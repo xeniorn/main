@@ -37,7 +37,9 @@ Private pFractions As clsGraphRegions
 Private pInjections As clsGraphAnnotation
 
 Private WithEvents Uni3Importer As clsUnicorn3Importer
+Attribute Uni3Importer.VB_VarHelpID = -1
 Private WithEvents Uni6Importer As clsUnicorn6Importer
+Attribute Uni6Importer.VB_VarHelpID = -1
 
 Private pInputIsInvalid As Boolean
 

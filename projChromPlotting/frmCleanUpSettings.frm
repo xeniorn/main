@@ -16,6 +16,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -47,11 +48,62 @@ Private IAmInitialized As Boolean
 Private InjectionsExist As Boolean
 Private ColumnVolumeExists As Boolean
 
+
+Public Sub ManualInitialize()
+
+    Call UserForm_Initialize
+    
+    IAmInitialized = False
+    
+    If Not ((SEC Is Nothing) Or (defaultCleanUpOptions Is Nothing)) Then
+                
+        'allow picking of injections if there are any, set default (last injection)
+        InjectionsExist = False
+        If Not SEC.Injections Is Nothing Then
+            If SEC.Injections.Count > 0 Then
+                InjectionsExist = True
+            End If
+        End If
+        
+        If InjectionsExist Then
+            With NormVol_opt1_Injection
+                .List = SEC.Injections.AnnotationArray
+            End With
+        Else
+            Call DisableInjections
+        End If
+        
+        'allow picking of Column Volume option if CV is provided in the data
+        If SEC.Metadata.ColumnVolume > 0 Then
+            Trunc_end_opt1_Volume = SEC.Metadata.ColumnVolume
+            Trunc_end_opt2_Volume = SEC.Chromatograms.Item(1).Xmax
+            ColumnVolumeExists = True
+        Else
+            ColumnVolumeExists = False
+            Trunc_end_opt1.Visible = False
+            Trunc_end_opt1_Volume.Visible = False
+            Trunc_end_opt3.Value = True
+        End If
+                           
+        'Call DefineDefaults
+        'Call SettingsCopy(defaultCleanUpOptions, tempCleanUpOptions)
+                           
+        Call RevertToDefaultSettings
+        
+        'NormUV_version_opt1_Detail.Value = 1
+        'NormUV_version_opt2_Detail.Value = 1
+        
+        IAmInitialized = True
+        
+    End If
+
+End Sub
+
 Private Sub SettingsCopy( _
     ByVal InputSettings As VBA.Collection, _
     ByRef TargetSettings As VBA.Collection)
 
-    Dim i As Long
+    Dim i As Long, j As Long
     Dim tempInput As VBA.Collection
     Dim tempCollection As VBA.Collection
     Dim tempIDs As VBA.Collection
@@ -67,7 +119,9 @@ Private Sub SettingsCopy( _
         .Add conNormUV
     End With
     
-    For Each tempID In tempIDs
+    For j = 1 To tempIDs.Count
+    
+        tempID = tempIDs.Item(j)
         
         'grab the subsetting collection, prepare a fresh collection
         Set tempInput = InputSettings.Item(tempID)
@@ -87,7 +141,7 @@ Private Sub SettingsCopy( _
         Call TargetSettings.Add(tempCollection, tempID)
         
     
-    Next tempID
+    Next j
         
     Set tempIDs = Nothing
     Set tempInput = Nothing
@@ -107,54 +161,75 @@ Private Sub DisableInjections()
 
 End Sub
 
-Private Sub DefineDefaults()
+Public Sub DefineDefaults()
 
     Dim tempSetting As VBA.Collection
-
-    Set tempSetting = New VBA.Collection
-    defaultCleanUpOptions.Add tempSetting, conNormVol
-    With tempSetting
-        .Add True
-        If InjectionsExist Then
-            .Add SEC.Injections.Annotation(SEC.Injections.Count)
-        End If
-        .Add CDbl(0)
-    End With
     
-    Set tempSetting = New VBA.Collection
-    defaultCleanUpOptions.Add tempSetting, conAlign
-    With tempSetting
-        .Add True
-    End With
+    '===NORMALIZE VOLUME
+    '1: [do I normalize] 2: [which injection] 3: [which volume]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conNormVol
+        With tempSetting
+            .Add True
+            If Not SEC.Injections Is Nothing Then
+                If SEC.Injections.Count > 0 Then
+                    InjectionsExist = True
+                End If
+            End If
+            If InjectionsExist Then
+                .Add SEC.Injections.Annotation(SEC.Injections.Count)
+            Else
+                .Add ""
+            End If
+            .Add CDbl(0)
+        End With
     
-    Set tempSetting = New VBA.Collection
-    defaultCleanUpOptions.Add tempSetting, conTrunc
-    With tempSetting
-        .Add True
-        .Add CDbl(0)
-        If ColumnVolumeExists Then
-            .Add SEC.Metadata.ColumnVolume
-        End If
-    End With
+    '===ALIGN
+    '1: [do I align]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conAlign
+        With tempSetting
+            .Add True
+        End With
     
-    Set tempSetting = New VBA.Collection
-    defaultCleanUpOptions.Add tempSetting, conThin
-    With tempSetting
-        .Add True
-        .Add CDbl(0.5)
-        .Add SEC.Chromatograms.Item(1).NumberOfPoints
-    End With
+    '===TRUNCATE DATA
+    '1: [do I trunc] 2: [start volume] 3: [end volume]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conTrunc
+        With tempSetting
+            .Add True
+            .Add CDbl(0)
+            If ColumnVolumeExists Then
+                .Add SEC.Metadata.ColumnVolume
+            Else
+                .Add SEC.Chromatograms.Item(1).Xmax
+            End If
+        End With
     
-    Set tempSetting = New VBA.Collection
-    defaultCleanUpOptions.Add tempSetting, conNormUV
-    With tempSetting
-        .Add True
-        .Add "MAXVALUE"
-        .Add SEC.Chromatograms.Item(1).Xmin
-        .Add SEC.Chromatograms.Item(1).Xmax
-    End With
+    '===THIN DATA
+    '1: [do I thin] 2: [distance between points]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conThin
+        With tempSetting
+            .Add True
+            .Add CDbl(0.5)
+            .Add SEC.Chromatograms.Item(1).NumberOfPoints
+        End With
+        
+    '===NORMALIZE UV
+    '1: [do I norm] 2: [INTEGRAL/MAXVALUE] 3: [startvolume] 4: [endvolume]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conNormUV
+        With tempSetting
+            .Add False
+            .Add "MAXVALUE"
+            .Add SEC.Chromatograms.Item(1).Xmin
+            .Add SEC.Chromatograms.Item(1).Xmax
+        End With
     
     Set tempSetting = Nothing
+    
+    Call ImportSettings(defaultCleanUpOptions)
 
 End Sub
 
@@ -199,7 +274,8 @@ Private Sub ImportSettings(ChosenSettings As VBA.Collection)
             With tempSetting
                 Thin_tick = .Item(1)
                 Thin_opt1_Detail.Value = .Item(2)
-                Thin_opt2_Detail.Value = .Item(3)
+                Thin_opt2_Detail.Value = CLng( _
+                    (SEC.Chromatograms.Item(1).Xmax - SEC.Chromatograms.Item(1).Xmin) / .Item(2) + 1)
             End With
              
         '===NORMALIZE UV
@@ -226,64 +302,24 @@ Private Sub ImportSettings(ChosenSettings As VBA.Collection)
 End Sub
 
 Private Sub RevertToDefaultSettings()
+    
+    If defaultCleanUpOptions Is Nothing Then
+        Set defaultCleanUpOptions = New VBA.Collection
+    End If
+    
+    If defaultCleanUpOptions.Count = 0 Then
+        Call DefineDefaults
+    End If
 
     Call ImportSettings(defaultCleanUpOptions)
 
 End Sub
 
-Public Sub ManualInitialize()
 
-    Call UserForm_Initialize
-    
-    IAmInitialized = False
-    
-    If Not ((SEC Is Nothing) Or (defaultCleanUpOptions Is Nothing)) Then
-                
-        'allow picking of injections if there are any, set default (last injection)
-        InjectionsExist = False
-        If Not SEC.Injections Is Nothing Then
-            If SEC.Injections.Count > 0 Then
-                InjectionsExist = True
-            End If
-        End If
-        
-        If InjectionsExist Then
-            With NormVol_opt1_Injection
-                .List = SEC.Injections.AnnotationArray
-            End With
-        Else
-            Call DisableInjections
-        End If
-        
-        'allow picking of Column Volume option if CV is provided in the data
-        If SEC.Metadata.ColumnVolume > 0 Then
-            Trunc_end_opt1_Volume = SEC.Metadata.ColumnVolume
-            Trunc_end_opt2_Volume = SEC.Chromatograms.Item(1).Xmax
-            ColumnVolumeExists = True
-        Else
-            ColumnVolumeExists = False
-            Trunc_end_opt1.Visible = False
-            Trunc_end_opt1_Volume.Visible = False
-            Trunc_end_opt3.Value = True
-        End If
-                           
-        Call DefineDefaults
-        Call SettingsCopy(defaultCleanUpOptions, tempCleanUpOptions)
-                           
-        Call RevertToDefaultSettings
-        
-        'NormUV_version_opt1_Detail.Value = 1
-        'NormUV_version_opt2_Detail.Value = 1
-        
-        IAmInitialized = True
-        
-    End If
-
-End Sub
 
 Private Sub ctrlReset_Click()
 
-    Call ManualInitialize
+    Call RevertToDefaultSettings
 
 End Sub
 
@@ -574,6 +610,9 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
                     .Add ""
                     .Add NormVol_opt2_Volume.Value
                 End If
+            Else
+                .Add defaultCleanUpOptions.Item(conNormVol).Item(2)
+                .Add defaultCleanUpOptions.Item(conNormVol).Item(3)
             End If
         End With
     
@@ -600,6 +639,9 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
                 Else
                     .Add CDbl(SEC.Chromatograms.Item(1).Xmax)
                 End If
+            Else
+                .Add defaultCleanUpOptions.Item(conTrunc).Item(2)
+                .Add defaultCleanUpOptions.Item(conTrunc).Item(3)
             End If
         End With
         
@@ -612,11 +654,13 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
                 If Thin_opt1.Value = True Then
                     .Add CDbl(Thin_opt1_Detail.Value)
                 Else
-                    If Thin_opt2_Detail.Value <> SEC.Chromatograms.Item(1).NumberOfPoints Then
-                        tempValue = SEC.Chromatograms.Item(1).Xmax - SEC.Chromatograms.Item(1).Xmin
-                        .Add (tempValue) / (CLng(Thin_opt2_Detail.Value) - 1)
-                    End If
+                    'If Thin_opt2_Detail.Value <> SEC.Chromatograms.Item(1).NumberOfPoints Then
+                    tempValue = SEC.Chromatograms.Item(1).Xmax - SEC.Chromatograms.Item(1).Xmin
+                    'End If
+                    .Add CDbl((tempValue) / (CLng(Thin_opt2_Detail.Value) - 1))
                 End If
+            Else
+                .Add defaultCleanUpOptions.Item(conThin).Item(2)
             End If
         End With
         
@@ -641,11 +685,16 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
                         .Add CDbl(NormUV_region_opt2_EndValue.Value)
                     End If
                 End If
+            Else
+                .Add defaultCleanUpOptions.Item(conNormUV).Item(2)
+                .Add defaultCleanUpOptions.Item(conNormUV).Item(3)
+                .Add defaultCleanUpOptions.Item(conNormUV).Item(4)
             End If
         End With
         
     'store the settings into the object
-    Call DefineCleanUpOptions
+    Set tempCleanUpOptions = New VBA.Collection
+    Call DefineCleanUpOptions(tempCleanUpOptions)
     
     '=====test whether inputs make sense
     
@@ -708,7 +757,7 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
         Call EraseSettings(tempCleanUpOptions)
         ControlToFocus.SetFocus
     Else
-        Set defaultCleanUpOptions = SettingsCopy(tempCleanUpOptions)
+        Call SettingsCopy(tempCleanUpOptions, defaultCleanUpOptions)
     End If
     
     Set ControlToFocus = Nothing
@@ -756,6 +805,7 @@ Private Sub DefineCleanUpOptions(ChosenSettings As VBA.Collection)
         End With
 
 End Sub
+
 
 Private Sub UserForm_Terminate()
            
