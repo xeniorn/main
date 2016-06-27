@@ -172,13 +172,22 @@ Sub GibsonMonster()
 'CurrColumnuraCurrColumn Ahel, 2016-06-27
 '
 '====================================================================================================
-
+    
+    Const Table1Size As Long = 10
+    Const Table2Size As Long = 10
+    Const Table3Size As Long = 2
+    Const AssemblySize As Long = 1
+    
+    Const GapSize As Long = 2
+    
     Const RequiredRows As Long = 10
     Const RequiredColumns As Long = 2
+    Const ParameterNumber As Long = 9
     
     Dim i As Long
     Dim j As Long
     Dim CurrColumn As Long
+    Dim PrevColumn As Long
     
     Dim InputRange As Range
     Dim InputData() As Variant
@@ -188,42 +197,61 @@ Sub GibsonMonster()
     Dim PrevFragment As String
     Dim NextFragment As String
     
+    Dim PrevName As String
+    Dim NextName As String
+    
     Dim Addition As String
     Dim AllowedOverlap As String
     
     Dim FlorianParameter As String
     Dim GibsonScriptInput As String
     
+    Dim GibsonResults() As Variant
+    
     
     Set InputRange = Selection
+        
+    'Parse Inputs
+        With InputRange
+            
+            If .Rows.Count < RequiredRows Then
+                Err.Raise 1, , "Not enough rows"
+            End If
+            
+            If .Columns.Count < RequiredColumns Then
+                Err.Raise 1, , "Not enough columns"
+            End If
+            
+            FragmentCount = .Columns.Count
+            
+            InputData = .Value
+            
+        End With
     
-    With InputRange
+    'initialize Table2
+        Dim PrimersTable As Range
+        Dim PrimersTableValues() As Variant
         
-        If .Rows.Count < RequiredRows Then
-            Err.Raise 1, , "Not enough rows"
-        End If
-        
-        If .Columns.Count < RequiredColumns Then
-            Err.Raise 1, , "Not enough columns"
-        End If
-        
-        FragmentCount = .Columns.Count
-        
-        InputData = .Value
-        
-    End With
+        Set PrimersTable = InputRange.Offset(Table1Size + GapSize, 0).Resize(Table2Size, FragmentCount)
+        'shortcut to initialization of PrimersTable array
+            PrimersTableValues = PrimersTable.Value
     
+        
+    ':::::::::::::::::::::::::::::::::main:::::::::::::::::::::::::::::::::::
     CurrColumn = 1
     Do While CurrColumn < FragmentCount
         
-        'upstream DNA region
+        'upstream DNA region + name
             If CurrColumn = 1 Then
-                PrevFragment = InputData(FragmentCount, 9)
+                PrevColumn = FragmentCount
             Else
-                PrevFragment = InputData(CurrColumn - 1, 9)
+                PrevColumn = CurrColumn - 1
             End If
+            
+            PrevFragment = InputData(PrevColumn, 9)
+            PrevName = InputData(PrevColumn, 1)
         
-        'DNA to be added in between
+        'DNA to be added in between + name
             Addition = ""
             For i = 2 To 8
                 Addition = Addition & InputData(CurrColumn, i)
@@ -231,8 +259,10 @@ Sub GibsonMonster()
                 
         'downstream region
             NextFragment = InputData(CurrColumn, 9)
+            NextName = InputData(CurrColumn, 1)
             
         'overlaps parameter
+            AllowedOverlap = InputData(CurrColumn, 10)
             Select Case True
                 Case (AllowedOverlap Like "1")
                     FlorianParameter = "23"
@@ -249,16 +279,71 @@ Sub GibsonMonster()
                 Case Else 'includes [123]*
                     FlorianParameter = ""
             End Select
+              
+              
+        'construct input string for Gibson macro, run the macro
+            GibsonScriptInput = Join(Array( _
+                PrevFragment, _
+                Addition, _
+                NextFragment, _
+                FlorianParameter, _
+                PrevName, _
+                NextName _
+                ), _
+                vbCrLf)
                 
-        
-        
-        
-        
-        
+            ReDim GibsonResults(1 To ParameterNumber)
+            Call GibsonRun(GibsonScriptInput, GibsonResults)
             
+        'extract results
+        'as of 20160627, results are Array(1..9)
+        'results are in format: Overlap(Sequence|deltaG|Tm)||PrimerNext(Name|Seq|Tm)||PrimerPrev(%|%|%)
+            
+            Dim OverlapSequence As String
+            Dim SSdG As Double
+            Dim OverlapTm As Double
+            
+            Dim PrimerPrevName As String
+            Dim PrimerPrevSeq As String
+            Dim PrimerPrevTm As Double
+            
+            Dim PrimerNextName As String
+            Dim PrimerNextSeq As String
+            Dim PrimerNextTm As Double
+            
+            OverlapSequence = CStr(GibsonResults(1))
+            SSdG = CDbl(GibsonResults(2))
+            OverlapTm = CDbl(GibsonResults(3))
+            
+            PrimerNextName = CStr(GibsonResults(4))
+            PrimerNextSeq = CStr(GibsonResults(5))
+            PrimerNextTm = CDbl(GibsonResults(6))
+            
+            PrimerPrevName = CStr(GibsonResults(7))
+            PrimerPrevSeq = CStr(GibsonResults(8))
+            PrimerPrevTm = CDbl(GibsonResults(9))
+            
+        'output results to table
+        
+            PrimersTableValues(CurrColumn, 1) = NextFragment
+            
+            PrimersTableValues(CurrColumn, 2) = PrimerNextSeq
+            PrimersTableValues(PrevColumn, 3) = PrimerPrevSeq
+            
+            PrimersTableValues(CurrColumn, 4) = PrimerNextName
+            PrimersTableValues(PrevColumn, 5) = PrimerPrevName
+            
+            PrimersTableValues(CurrColumn, 6) = PrimerNextTm
+            PrimersTableValues(PrevColumn, 7) = PrimerPrevTm
+            
+            PrimersTableValues(CurrColumn, 9) = OverlapSequence
+            PrimersTableValues(CurrColumn + 1, 8) = OverlapSequence
+                    
         CurrColumn = CurrColumn + 1
         
     Loop
+    
+    
 
 
 End Sub
