@@ -8,56 +8,167 @@ a = DNALongestORF(Range("AC17"))
 k = Len(a)
 hh = DNATranslate(Range("AK17"))
 End Sub
+
 '****************************************************************************************************
-Function DNALongestORF(Sequence As String, Optional Circular As Boolean = True, _
-                        Optional Skip As Integer = 1) As String
+Function DNALongestORF( _
+    ByVal Sequence As String, _
+    Optional ByVal Circular As Boolean = True, _
+    Optional ByVal GetNthORF As Integer = 1, _
+    Optional ByVal MinimumORFLength As Long = 50 _
+    ) As String
 '====================================================================================================
 'Finds the longest ORF in a DNA sequence, read in forward direction, assuming it's circular by default
 'Juraj Ahel, 2015-09-29
 'Last update 2016-01-14
+'2016-06-27 implement selecting Nth longest ORF
 '====================================================================================================
-
-Const MinimumORF As Long = 0
-
-Dim TempStart As Long, TempEnd As Long, BestStart As Long
-Dim SequenceLength As Long
-Dim MaxEnd As Long
-
-Dim BestLength As Long, CurrentLength As Long
-
-SequenceLength = Len(Sequence)
-
-If Circular Then
-    'Sequence = Right(Sequence, SequenceLength \ 2 + 1) & _
-    '            Sequence & _
-    '        Left(Sequence, SequenceLength \ 2 + 1)
-    Sequence = Sequence & Left(Sequence, SequenceLength - 1)
-End If
-
-TempStart = 0
-BestStart = 0
-Do
-
-    TempStart = InStr(TempStart + 1, Sequence, "ATG") 'beginning of start codon
-    TempEnd = TempStart
-    MaxEnd = TempStart + SequenceLength - 3 'the start of end codon must
     
-    If MaxEnd > Len(Sequence) Then MaxEnd = Len(Sequence) - 2
-    j = 0
-    Do
-        TempEnd = TempEnd + 3
-        Codon = Mid(Sequence, TempEnd, 3)
-    Loop Until Codon = "TGA" Or Codon = "TAA" Or Codon = "TAG" Or TempEnd > MaxEnd
+    Dim TempStart As Long, TempEnd As Long, BestStart As Long
+    Dim SequenceLength As Long
+    Dim MaxEnd As Long
     
-    CurrentLength = TempEnd - TempStart
-    If CurrentLength > BestLength And CurrentLength <= SequenceLength Then
-        BestLength = CurrentLength
-        BestStart = TempStart
+    Dim ORFs As VBA.Collection
+    Dim tColl As VBA.Collection
+    Dim MakeCollection As Boolean
+    
+    Dim i As Long
+    Dim tIndex As Long
+    Dim tCounter As Long
+    
+    Dim BestLength As Long, CurrentLength As Long
+    
+    SequenceLength = Len(Sequence)
+    
+    If Circular Then
+        'Sequence = Right(Sequence, SequenceLength \ 2 + 1) & _
+        '            Sequence & _
+        '        Left(Sequence, SequenceLength \ 2 + 1)
+        Sequence = Sequence & Left(Sequence, SequenceLength - 1)
     End If
-
-Loop Until TempStart = 0 Or TempStart > (SequenceLength - MinimumORF)
-
-DNALongestORF = Mid(Sequence, BestStart, BestLength + 3)
+    
+    TempStart = 0
+    BestStart = 0
+    
+    'create a class to record all the longest ORFs
+    If GetNthORF > 1 Then
+        MakeCollection = True
+        Set ORFs = New VBA.Collection
+    Else
+        MakeCollection = False
+        Set ORFs = Nothing
+    End If
+    
+    ':::main:::
+    Do
+    
+        TempStart = InStr(TempStart + 1, Sequence, "ATG") 'beginning of start codon
+        'if no more start codons found, exit the loop
+        If TempStart = 0 Then
+            Exit Do
+        End If
+        TempEnd = TempStart
+        MaxEnd = TempStart + SequenceLength - 3 'the start of end codon must
+        
+        If MaxEnd > Len(Sequence) Then MaxEnd = Len(Sequence) - 2
+        
+        'just jump forward by 3 until a stop codon is reached (I'm sure this could be more efficient
+        'but I don't care)
+        j = 0
+        Do
+            TempEnd = TempEnd + 3
+            Codon = Mid(Sequence, TempEnd, 3)
+        Loop Until Codon = "TGA" Or Codon = "TAA" Or Codon = "TAG" Or TempEnd > MaxEnd
+        
+        CurrentLength = TempEnd - TempStart
+        
+        'if we are in the tolerated range
+        If CurrentLength > MinimumORFLength Then
+                    
+            'populate the collection
+            If MakeCollection Then
+                    
+                Set tColl = New VBA.Collection
+                    tColl.Add TempStart
+                    tColl.Add CurrentLength
+                    
+                ORFs.Add tColl
+                Set tColl = Nothing
+                
+            End If
+            
+            'update biggest result if necessary
+            If CurrentLength > BestLength And CurrentLength <= SequenceLength Then
+                
+                BestLength = CurrentLength
+                BestStart = TempStart
+            
+            End If
+        
+        End If
+    
+    Loop Until TempStart = 0 Or TempStart > (SequenceLength - MinimumORF)
+    
+    
+    'decide on output value
+    If MakeCollection Then
+        
+        tCounter = 1
+        
+        'remove N-1 largest ORFs from the collection
+        Do While tCounter < GetNthORF
+            
+            CurrentLength = 0
+            tIndex = 0
+            For i = 1 To ORFs.Count
+                If ORFs.Item(i).Item(2) > CurrentLength Then
+                    tIndex = i
+                End If
+            Next i
+            
+            If tIndex = 0 Then
+                Err.Raise 1, , "Tried to get ORF #" & GetNthORF & "but there are not enough ORFs above " _
+                & "the threshold size (" & MinimumORFLength & ")!"
+            End If
+            
+            ORFs.Remove (tIndex)
+            tCounter = tCounter + 1
+            
+        Loop
+        
+        'get Nth ORF!
+            CurrentLength = 0
+            tIndex = 0
+            For i = 1 To ORFs.Count
+                If ORFs.Item(i).Item(2) > CurrentLength Then
+                    tIndex = i
+                End If
+            Next i
+            
+            If tIndex = 0 Then
+                Err.Raise 1, , "Tried to get ORF #" & GetNthORF & "but there are not enough ORFs above " _
+                & "the threshold size (" & MinimumORFLength & ")!"
+            End If
+            
+            Set tColl = ORFs.Item(tIndex)
+            BestStart = tColl.Item(1)
+            BestLength = tColl.Item(2)
+            Set tColl = Nothing
+        
+    End If
+    
+    
+    
+    DNALongestORF = Mid(Sequence, BestStart, BestLength + 3)
+    
+    'cleanup
+    If MakeCollection Then
+        For i = 1 To ORFs.Count
+            Call ORFs.Remove(1)
+        Next i
+    End If
+    
+    Set tColl = Nothing
+    Set ORFs = Nothing
 
 End Function
 
