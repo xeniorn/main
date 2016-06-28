@@ -2,6 +2,47 @@ Attribute VB_Name = "XmodCollections"
 Option Explicit
 
 '****************************************************************************************************
+'====================================================================================================
+'
+'Juraj Ahel, 2016-03-09
+'Last update 2016-03-09
+'====================================================================================================
+Public Function IsElementOf(sKey As String, oCollection As Collection) As Boolean
+    'Const scSOURCE As String = "IsElementOf"
+
+    Dim lErrNumber As Long
+    Dim sErrDescription As String
+
+    lErrNumber = 0
+    sErrDescription = "unknown error occurred"
+    Err.Clear
+    On Error Resume Next
+        ' note: just access the item - no need to assign it to a dummy value
+        ' and this would not be so easy, because we would need different
+        ' code depending on the type of object
+        ' e.g.
+        '   Dim vItem as Variant
+        '   If VarType(oCollection.Item(sKey)) = vbObject Then
+        '       Set vItem = oCollection.Item(sKey)
+        '   Else
+        '       vItem = oCollection.Item(sKey)
+        '   End If
+        oCollection.Item sKey
+        lErrNumber = CLng(Err.Number)
+        sErrDescription = Err.Description
+    On Error GoTo 0
+
+    If lErrNumber = 5 Then ' 5 = not in collection
+        IsElementOf = False
+    ElseIf (lErrNumber = 0) Then
+        IsElementOf = True
+    'Else
+        ' Re-raise error
+    '    err.Raise lErrNumber, mscMODULE & ":" & scSOURCE, sErrDescription
+    End If
+End Function
+
+'****************************************************************************************************
 Sub CollectionAppend( _
     ByRef Collection1 As VBA.Collection, _
     ByVal Collection2 As VBA.Collection _

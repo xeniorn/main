@@ -172,7 +172,7 @@ End Function
 Function DNALongestORF( _
     ByVal Sequence As String, _
     Optional ByVal Circular As Boolean = True, _
-    Optional ByVal GetNthORF As Integer = 1, _
+    Optional ByVal GetNthORF As Long = 1, _
     Optional ByVal MinimumORFLength As Long = 50, _
     Optional ByVal AllowORFOverlap As Boolean = False _
     ) As String
@@ -366,7 +366,7 @@ Function OligoTm( _
                  Sequence As String, _
                  Optional EffectiveMonovalentCation_mM As Double = 50, _
                  Optional OligoConcentration_nM As Double = 500, _
-                 Optional Mode As String = "DNA", _
+                 Optional mode As String = "DNA", _
                  Optional TargetSequence As String = "" _
                 ) As Double
 
@@ -376,68 +376,73 @@ Function OligoTm( _
 'Replicated from Florian Weissman's script for Gibson assembly | originaly by Sebastina Bassi
 'Juraj Ahel, 2015-02-11, for more proper oligo Tm calculations than with the older naive algorithm
 'Last update 2015-03-24
+'2016-06-28 explicit variable declaration
 '====================================================================================================
 'still lacks additional energy by terminal GC or AT on either side (can take also from PrecisePrimer manual)
 'for this, I would first implement the possibility of selecting the subsequence that actually anneals, + mismatches
 'Also, I would like to implement the effect of Magnesium (and other divalent) ions, and possibly DMSO
 
-Dim Pairs() As Variant, dHTable() As Variant, dSTable() As Variant
-Pairs = Array("AA", "TT", "AT", "TA", "CA", "TG", "GT", "AC", "CT", "AG", "GA", "TC", "CG", "GC", "GG", "CC")
-dHTable = Array(7.9, 7.9, 7.2, 7.2, 8.5, 8.5, 8.4, 8.4, 7.8, 7.8, 8.2, 8.2, 10.6, 9.8, 8, 8)
-dSTable = Array(22.2, 22.2, 20.4, 21.3, 22.7, 22.7, 22.4, 22.4, 21, 21, 22.2, 22.2, 27.2, 24.4, 19.9, 19.9)
-
-Sequence = UCase(Sequence)
-
-Dim i As Integer
-Dim Seq() As String, Seqp() As String
-Dim N As Integer
-Dim salt As Double, DNAc As Double
-Dim r As Double, LogDNA As Double
-
-Dim dH As Double, dS As Double
-Dim Pair As String, PairCount As Integer
-
-salt = EffectiveMonovalentCation_mM / 1000#
-DNAc = OligoConcentration_nM / 1000000000#
-N = Len(Sequence)
-
-dG = 0: dS = 0
-
-For i = 0 To 15
-    Pair = Pairs(i)
-    PairCount = StringCharCount_IncludeOverlap(Sequence, Pairs(i))
-    If PairCount > 0 Then
-        dH = dH + PairCount * dHTable(i)
-        dS = dS + PairCount * dSTable(i)
-    End If
-    Counter = Counter + PairCount
-Next i
+    Dim Pairs() As Variant, dHTable() As Variant, dSTable() As Variant
+    Pairs = Array("AA", "TT", "AT", "TA", "CA", "TG", "GT", "AC", "CT", "AG", "GA", "TC", "CG", "GC", "GG", "CC")
+    dHTable = Array(7.9, 7.9, 7.2, 7.2, 8.5, 8.5, 8.4, 8.4, 7.8, 7.8, 8.2, 8.2, 10.6, 9.8, 8, 8)
+    dSTable = Array(22.2, 22.2, 20.4, 21.3, 22.7, 22.7, 22.4, 22.4, 21, 21, 22.2, 22.2, 27.2, 24.4, 19.9, 19.9)
     
-r = 1.98717
-
-'### Florian's version
-'LogDNA = r * Ln(DNAc / 4)
+    Sequence = UCase(Sequence)
     
-'### Version from PrecisePrimer (different assumptions, focusing on the initial state where [primer]>>[template]
-'### and also additional effect of terminal nucleotides (from SantaLucia et al.)
-LogDNA = r * Ln(DNAc)
-'Dim Termini As String: Termini = Left(Sequence, 1) & Right(Sequence, 1)
-Dim STerminal As Double, HTerminal As Double
-
-'HTerminal = 100 * StringCharCount(Termini, "G", "C") + 2300 * StringCharCount(Termini, "A", "T")
-'STerminal = -2.8 * StringCharCount(Termini, "G", "C") + 4.1 * StringCharCount(Termini, "A", "T")
-HTerminal = 0: STerminal = 0
-
+    Dim i As Long
+    Dim Seq() As String, Seqp() As String
+    Dim N As Long
+    Dim salt As Double, DNAc As Double
+    Dim R As Double, LogDNA As Double
     
-Dim Entropy As Double, Enthalpy As Double, Tm As Double
-
-'Entropy = -10.8 - dS + 0.368 * (N - 1) * Lg(salt)
-Entropy = -10.8 - dS + 0.368 * (N - 1) * Lg(salt) + STerminal
-Enthalpy = -dH * 1000 + HTerminal
-
-Tm = Enthalpy / (Entropy + LogDNA) - 273.15              'Lol, error was that it said "275.15".... -.-'
-
-OligoTm = Round(Tm, 1)
+    Dim dG As Double
+    
+    Dim dH As Double, dS As Double
+    Dim Pair As String, PairCount As Long
+    
+    Dim counter As Long
+    
+    salt = EffectiveMonovalentCation_mM / 1000#
+    DNAc = OligoConcentration_nM / 1000000000#
+    N = Len(Sequence)
+    
+    dG = 0: dS = 0
+    
+    For i = 0 To 15
+        Pair = Pairs(i)
+        PairCount = StringCharCount_IncludeOverlap(Sequence, Pairs(i))
+        If PairCount > 0 Then
+            dH = dH + PairCount * dHTable(i)
+            dS = dS + PairCount * dSTable(i)
+        End If
+        counter = counter + PairCount
+    Next i
+        
+    R = 1.98717
+    
+    '### Florian's version
+    'LogDNA = r * Ln(DNAc / 4)
+        
+    '### Version from PrecisePrimer (different assumptions, focusing on the initial state where [primer]>>[template]
+    '### and also additional effect of terminal nucleotides (from SantaLucia et al.)
+    LogDNA = R * Ln(DNAc)
+    'Dim Termini As String: Termini = Left(Sequence, 1) & Right(Sequence, 1)
+    Dim STerminal As Double, HTerminal As Double
+    
+    'HTerminal = 100 * StringCharCount(Termini, "G", "C") + 2300 * StringCharCount(Termini, "A", "T")
+    'STerminal = -2.8 * StringCharCount(Termini, "G", "C") + 4.1 * StringCharCount(Termini, "A", "T")
+    HTerminal = 0: STerminal = 0
+    
+        
+    Dim Entropy As Double, Enthalpy As Double, Tm As Double
+    
+    'Entropy = -10.8 - dS + 0.368 * (N - 1) * Lg(salt)
+    Entropy = -10.8 - dS + 0.368 * (N - 1) * Lg(salt) + STerminal
+    Enthalpy = -dH * 1000 + HTerminal
+    
+    Tm = Enthalpy / (Entropy + LogDNA) - 273.15              'Lol, error was that it said "275.15".... -.-'
+    
+    OligoTm = Round(Tm, 1)
 
 End Function
 
@@ -448,30 +453,34 @@ Function DNAReverseComplement(InputSequence As String) As String
 'Outputs a DNA reverse complement of a given input sequence
 'Juraj Ahel, 2015-02-04, for checking primers
 'Last update 2015-02-04
+'2016-06-28 explicit variable declaration
 '====================================================================================================
 'So far, always UPPERCASE output. Non-ACGT are preserved.
-
-Dim i As Integer, StringLength As Integer
-Dim OutputSequence() As String
-
-StringLength = Len(InputSequence)
-ReDim OutputSequence(1 To StringLength)
- InputSequence = UCase(InputSequence)
-
-For i = 1 To StringLength
     
-    j = StringLength - i + 1
+    Dim i As Long
+    Dim j As Long
     
-    Select Case Mid(InputSequence, i, 1)
-        Case "A": OutputSequence(j) = "T"
-        Case "C": OutputSequence(j) = "G"
-        Case "G": OutputSequence(j) = "C"
-        Case "T": OutputSequence(j) = "A"
-        Case Else: OutputSequence(j) = Mid(InputSequence, i, 1)
-    End Select
-Next i
-
-DNAReverseComplement = Join(OutputSequence, "")
+    Dim StringLength As Long
+    Dim OutputSequence() As String
+    
+    StringLength = Len(InputSequence)
+    ReDim OutputSequence(1 To StringLength)
+     InputSequence = UCase(InputSequence)
+    
+    For i = 1 To StringLength
+        
+        j = StringLength - i + 1
+        
+        Select Case Mid(InputSequence, i, 1)
+            Case "A": OutputSequence(j) = "T"
+            Case "C": OutputSequence(j) = "G"
+            Case "G": OutputSequence(j) = "C"
+            Case "T": OutputSequence(j) = "A"
+            Case Else: OutputSequence(j) = Mid(InputSequence, i, 1)
+        End Select
+    Next i
+    
+    DNAReverseComplement = Join(OutputSequence, "")
 
 End Function
 
@@ -488,13 +497,13 @@ Function DNATranslate(ByVal InputSequence As String) As String
 'Last update 2016-01-15
 '====================================================================================================
     
-    Dim i As Integer, SequenceLength As Long, ProteinLength As Long
-    Dim AminoAcid As String, OutputSequence As String, Codon As String
+    Dim i As Long, SequenceLength As Long, ProteinLength As Long
+    Dim Aminoacid As String, OutputSequence As String, Codon As String
     Dim AminoAcids() As String
     
     SequenceLength = Len(InputSequence)
     OutputSequence = ""
-    AminoAcid = ""
+    Aminoacid = ""
     i = 0
     
     InputSequence = Replace(UCase(InputSequence), "U", "T")
@@ -514,53 +523,53 @@ Function DNATranslate(ByVal InputSequence As String) As String
         
         Select Case Codon
             Case "GCA", "GCC", "GCG", "GCT"
-            AminoAcid = "A"
+            Aminoacid = "A"
             Case "AGA", "AGG", "CGA", "CGC", "CGG", "CGT"
-            AminoAcid = "R"
+            Aminoacid = "R"
             Case "AAC", "AAT"
-            AminoAcid = "N"
+            Aminoacid = "N"
             Case "GAC", "GAT"
-            AminoAcid = "D"
+            Aminoacid = "D"
             Case "TGC", "TGT"
-            AminoAcid = "C"
+            Aminoacid = "C"
             Case "CAA", "CAG"
-            AminoAcid = "Q"
+            Aminoacid = "Q"
             Case "GAA", "GAG"
-            AminoAcid = "E"
+            Aminoacid = "E"
             Case "GGA", "GGC", "GGG", "GGT"
-            AminoAcid = "G"
+            Aminoacid = "G"
             Case "CAC", "CAT"
-            AminoAcid = "H"
+            Aminoacid = "H"
             Case "ATA", "ATC", "ATT"
-            AminoAcid = "I"
+            Aminoacid = "I"
             Case "CTA", "CTC", "CTG", "CTT", "TTA", "TTG"
-            AminoAcid = "L"
+            Aminoacid = "L"
             Case "AAA", "AAG"
-            AminoAcid = "K"
+            Aminoacid = "K"
             Case "ATG"
-            AminoAcid = "M"
+            Aminoacid = "M"
             Case "TTC", "TTT"
-            AminoAcid = "F"
+            Aminoacid = "F"
             Case "CCA", "CCC", "CCG", "CCT"
-            AminoAcid = "P"
+            Aminoacid = "P"
             Case "AGC", "AGT", "TCA", "TCC", "TCG", "TCT"
-            AminoAcid = "S"
+            Aminoacid = "S"
             Case "ACA", "ACC", "ACG", "ACT"
-            AminoAcid = "T"
+            Aminoacid = "T"
             Case "TGG"
-            AminoAcid = "W"
+            Aminoacid = "W"
             Case "TAC", "TAT"
-            AminoAcid = "Y"
+            Aminoacid = "Y"
             Case "GTA", "GTC", "GTG", "GTT"
-            AminoAcid = "V"
+            Aminoacid = "V"
             Case "TAA", "TAG", "TGA"
-            AminoAcid = "*"
+            Aminoacid = "*"
             Case Else
-            AminoAcid = "X"
+            Aminoacid = "X"
         End Select
         
-        OutputSequence = OutputSequence & AminoAcid
-        AminoAcids(i) = AminoAcid
+        OutputSequence = OutputSequence & Aminoacid
+        AminoAcids(i) = Aminoacid
         
     Next i
     
@@ -588,15 +597,15 @@ Const MinOverlap = 15           'overlap should be at least this
 Const MaxOverlapCheck = 250     'max meaningful to check, could be arbitrarily long code-wise, but no reason
 Const MinTm = 48                'Tm should be at least this
 
-Dim FragmentCount As Integer
-Dim OverlapLength As Integer
-Dim TempResult As String
-Dim i As Integer, j As Integer
+Dim FragmentCount As Long
+Dim OverlapLength As Long
+Dim tempResult As String
+Dim i As Long, j As Long
 Dim Tm As Double
 
 FragmentCount = 1 + UBound(DNAList) - LBound(DNAList)
 
-TempResult = DNAList(0)
+tempResult = DNAList(0)
 
 
 For i = 0 To FragmentCount - 1
@@ -607,16 +616,16 @@ For i = 0 To FragmentCount - 1
     OverlapLength = j
     Tm = OligoTm(Right(DNAList(i), j))
     If (OverlapLength < MinOverlap) Or (Tm < MinTm) Then
-        TempResult = "#ERROR! Overlap " & (1 + i) & "-" & (1 + ((i + 1) Mod FragmentCount)) & " faulty!"
+        tempResult = "#ERROR! Overlap " & (1 + i) & "-" & (1 + ((i + 1) Mod FragmentCount)) & " faulty!"
         GoTo 999
     Else
         DNAList(i) = Left(DNAList(i), Len(DNAList(i)) - OverlapLength)
     End If
 Next i
 
-TempResult = Join(DNAList, "")
+tempResult = Join(DNAList, "")
 
-999 DNAGibsonLigation = TempResult
+999 DNAGibsonLigation = tempResult
 
 End Function
 
@@ -637,8 +646,8 @@ Function PCRSimulate(Template As String, _
     Dim ErrorPrefix As String
     ErrorPrefix = "#! "
     
-    Dim PrimerFCount As Integer, PrimerRCount As Integer
-    Dim Result As String
+    Dim PrimerFCount As Long, PrimerRCount As Long
+    Dim result As String
     
     PrimerFCount = StringCharCount_IncludeOverlap(Template, ForwardPrimer, DNAReverseComplement(ForwardPrimer))
     PrimerRCount = StringCharCount_IncludeOverlap(Template, DNAReverseComplement(ReversePrimer))
@@ -646,21 +655,21 @@ Function PCRSimulate(Template As String, _
     If PrimerFCount <> 1 Or PrimerRCount <> 1 Then
     
         If PrimerFCount > 1 Or PrimerRCount > 1 Then
-            Result = "Primer target sites not unique: Forward: " & PrimerFCount & " Reverse: " & PrimerRCount
+            result = "Primer target sites not unique: Forward: " & PrimerFCount & " Reverse: " & PrimerRCount
         ElseIf PrimerFCount = 0 And PrimerRCount = 0 Then
-            Result = "No binding site found for either primer!"
+            result = "No binding site found for either primer!"
         ElseIf PrimerFCount = 0 Then
-            Result = "No binding site found for Forward primer."
+            result = "No binding site found for Forward primer."
         ElseIf PrimerRCount = 0 Then
-            Result = "No binding site found for Reverse primer."
+            result = "No binding site found for Reverse primer."
         End If
         
-        Result = ErrorPrefix & Result
+        result = ErrorPrefix & result
         
         GoTo 999
     End If
     
-    Dim FSite As Integer, RSite As Integer, FLen As Integer, RLen As Integer
+    Dim FSite As Long, RSite As Long, FLen As Long, RLen As Long
     Dim Reverse As Boolean
     
     Reverse = False
@@ -695,13 +704,13 @@ Function PCRSimulate(Template As String, _
     FLen = Len(ForwardPrimer)
     RLen = Len(ReversePrimer)
     
-    Result = ForwardPrimer & SubSequenceSelect(Template, FSite + FLen, RSite - 1) & DNAReverseComplement(ReversePrimer)
+    result = ForwardPrimer & SubSequenceSelect(Template, FSite + FLen, RSite - 1) & DNAReverseComplement(ReversePrimer)
     
-    If Len(Result) < FLen + RLen Then Result = ErrorPrefix & "Primers too close."
+    If Len(result) < FLen + RLen Then result = ErrorPrefix & "Primers too close."
     
-    If FSite > RSite Then Result = ErrorPrefix & "Reverse primer anneals upstream of Forward primer, check sequences."
+    If FSite > RSite Then result = ErrorPrefix & "Reverse primer anneals upstream of Forward primer, check sequences."
     
-999     PCRSimulate = Result
+999     PCRSimulate = result
 
 End Function
 
@@ -722,93 +731,100 @@ Function PCRWithOverhangs(Template As String, _
 'insertions or deletions after the annealing locus
 'Juraj Ahel, 2015-06-14, to be able to quickly generate fragments for in-silico cloning
 'Last update 2015-06-29
+'2016-06-28 added explicit variable declaration + indentation
 '====================================================================================================
 
-Dim OverhangF As String, OverhangR As String
-Dim OverlapF As String, OverlapR As String
-Dim ReversePrimerRC As String, TempFrag As String
-
-Dim NCheck As Integer: NCheck = 3
-Dim ErrorMsg() As String
-Dim CtrlF() As Boolean, CtrlR() As Boolean
-Dim ErrMF() As String, ErrMR() As String
-ReDim ErrMF(1 To NCheck)
-ReDim ErrMR(1 To NCheck)
-ReDim ErrorMsg(1 To NCheck)
-ReDim CtrlF(1 To NCheck)
-ReDim CtrlR(1 To NCheck)
-Dim CtrlSum As Integer
-
-ErrorMsg(1) = "no overlap"
-ErrorMsg(2) = "overlap <" & MinimalOverlap & " bp"
-ErrorMsg(3) = "insertion after overlap"
-
-ReversePrimerRC = DNAReverseComplement(ReversePrimer)
-
-'if stringent, looks for best match, otherwise looks for maximum overlap at terminus
-If Not IgnoreBestMatch Then
-    OverlapF = StringFindOverlap(ForwardPrimer, Template)
-    OverlapR = StringFindOverlap(ReversePrimerRC, Template)
-Else
-    i = 0
-    Do
-        i = i + 1
-        TempFrag = Right(ForwardPrimer, i)
-    Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ForwardPrimer)
-    OverlapF = Right(ForwardPrimer, i - 1)
-    i = 0
-    Do
-        i = i + 1
-        TempFrag = Left(ReversePrimerRC, i)
-    Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ReversePrimer)
-    OverlapR = Left(ReversePrimerRC, i - 1)
-End If
-
-'is there overlap at all?
-If Left(OverlapF, 2) = "#!" Then CtrlF(1) = True
-If Left(OverlapR, 2) = "#!" Then CtrlR(1) = True
-
-'is the overlap at least MinimalOverlap bp?
-If Len(OverlapF) < MinimalOverlap Then CtrlF(2) = True
-If Len(OverlapR) < MinimalOverlap Then CtrlR(2) = True
-
-'is the overlapping region at the 3' end of the primer?
-If Right(ForwardPrimer, Len(OverlapF)) <> OverlapF Then CtrlF(3) = True
-If Left(ReversePrimerRC, Len(OverlapR)) <> OverlapR Then CtrlR(3) = True
-
-For i = 1 To NCheck
-    CtrlSum = CtrlSum + CtrlF(i) + CtrlR(i)
-    If CtrlF(i) Then ErrMF(i) = ErrorMsg(i)
-    If CtrlR(i) Then ErrMR(i) = ErrorMsg(i)
-Next i
-
-'TRUE IS -1, NOT 1 AS INTEGER!!!!
-If CtrlSum < 0 Then
-    TempResult = Abs(CtrlSum) & "#!:"
-    TempResult = TempResult & " for: " & Join(ErrMF, ", ")
-    TempResult = TempResult & " rev: " & Join(ErrMR, ", ")
-    GoTo 999
-End If
-
-OverhangF = Left(ForwardPrimer, Len(ForwardPrimer) - Len(OverlapF))
-If Len(OverlapR) < Len(ReversePrimer) Then
-    OverhangR = DNAReverseComplement(Left(ReversePrimer, Len(ReversePrimer) - Len(OverlapR)))
-End If
-
-If Not Details Then
-    TempResult = PCRSimulate(Template, OverlapF, DNAReverseComplement(OverlapR), Circular, Perfect)
-    TempResult = OverhangF & TempResult & OverhangR
-Else
-    TempResult = "F:" & OligoTm(OverlapF) & " °C, " & Len(OverlapF)
-    TempResult = TempResult & " R:" & OligoTm(OverlapR) & " °C, " & Len(OverlapR)
-End If
-
-999 PCRWithOverhangs = TempResult
+    Dim OverhangF As String, OverhangR As String
+    Dim OverlapF As String, OverlapR As String
+    Dim ReversePrimerRC As String, TempFrag As String
+    
+    Dim i As Long
+    
+    Dim tempResult As String
+    
+    Dim NCheck As Long: NCheck = 3
+    Dim ErrorMsg() As String
+    Dim CtrlF() As Boolean, CtrlR() As Boolean
+    Dim ErrMF() As String, ErrMR() As String
+    ReDim ErrMF(1 To NCheck)
+    ReDim ErrMR(1 To NCheck)
+    ReDim ErrorMsg(1 To NCheck)
+    ReDim CtrlF(1 To NCheck)
+    ReDim CtrlR(1 To NCheck)
+    Dim CtrlSum As Long
+    
+    ErrorMsg(1) = "no overlap"
+    ErrorMsg(2) = "overlap <" & MinimalOverlap & " bp"
+    ErrorMsg(3) = "insertion after overlap"
+    
+    ReversePrimerRC = DNAReverseComplement(ReversePrimer)
+    
+    'if stringent, looks for best match, otherwise looks for maximum overlap at terminus
+    If Not IgnoreBestMatch Then
+        OverlapF = StringFindOverlap(ForwardPrimer, Template)
+        OverlapR = StringFindOverlap(ReversePrimerRC, Template)
+    Else
+        i = 0
+        Do
+            i = i + 1
+            TempFrag = Right(ForwardPrimer, i)
+        Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ForwardPrimer)
+        OverlapF = Right(ForwardPrimer, i - 1)
+        i = 0
+        Do
+            i = i + 1
+            TempFrag = Left(ReversePrimerRC, i)
+        Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ReversePrimer)
+        OverlapR = Left(ReversePrimerRC, i - 1)
+    End If
+    
+    'is there overlap at all?
+    If Left(OverlapF, 2) = "#!" Then CtrlF(1) = True
+    If Left(OverlapR, 2) = "#!" Then CtrlR(1) = True
+    
+    'is the overlap at least MinimalOverlap bp?
+    If Len(OverlapF) < MinimalOverlap Then CtrlF(2) = True
+    If Len(OverlapR) < MinimalOverlap Then CtrlR(2) = True
+    
+    'is the overlapping region at the 3' end of the primer?
+    If Right(ForwardPrimer, Len(OverlapF)) <> OverlapF Then CtrlF(3) = True
+    If Left(ReversePrimerRC, Len(OverlapR)) <> OverlapR Then CtrlR(3) = True
+    
+    For i = 1 To NCheck
+        CtrlSum = CtrlSum + CtrlF(i) + CtrlR(i)
+        If CtrlF(i) Then ErrMF(i) = ErrorMsg(i)
+        If CtrlR(i) Then ErrMR(i) = ErrorMsg(i)
+    Next i
+    
+    'TRUE IS -1, NOT 1 AS INTEGER!!!!
+    If CtrlSum < 0 Then
+        tempResult = Abs(CtrlSum) & "#!:"
+        tempResult = tempResult & " for: " & Join(ErrMF, ", ")
+        tempResult = tempResult & " rev: " & Join(ErrMR, ", ")
+        GoTo 999
+    End If
+    
+    OverhangF = Left(ForwardPrimer, Len(ForwardPrimer) - Len(OverlapF))
+    If Len(OverlapR) < Len(ReversePrimer) Then
+        OverhangR = DNAReverseComplement(Left(ReversePrimer, Len(ReversePrimer) - Len(OverlapR)))
+    End If
+    
+    If Not Details Then
+        tempResult = PCRSimulate(Template, OverlapF, DNAReverseComplement(OverlapR), Circular, Perfect)
+        tempResult = OverhangF & tempResult & OverhangR
+    Else
+        tempResult = "F:" & OligoTm(OverlapF) & " °C, " & Len(OverlapF)
+        tempResult = tempResult & " R:" & OligoTm(OverlapR) & " °C, " & Len(OverlapR)
+    End If
+    
+999     PCRWithOverhangs = tempResult
 
 End Function
 
+
+
 '****************************************************************************************************
-Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double = 60, Optional MinLength As Integer = 15) As String
+Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double = 60, Optional MinLength As Long = 15) As String
 
 '====================================================================================================
 'Designs a simple primer for regular PCR amplification, trying to optimize the Tm and trying to
@@ -822,12 +838,12 @@ Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double
 
 Const NumberOfVariants = 40
 
-Dim Result As String
+Dim result As String
 Dim Tm As Double
-Dim Length As Integer
-Dim Score() As Double, MaxScore As Integer
+Dim Length As Long
+Dim Score() As Double, MaxScore As Long
 Dim Variants() As String
-Dim i As Integer, j As Integer
+Dim i As Long, j As Long
 Dim PrimerStart As String, PrimerEnd As String
 
 ReDim Score(1 To NumberOfVariants)
@@ -867,3 +883,28 @@ DNAGCContent = StringCharCount(UCase(Sequence), "G", "C", "S") / Len(Sequence)
 
 End Function
 
+'****************************************************************************************************
+Function DNAReindex(DNASequence As String, NewStartBase As Long) As String
+
+'====================================================================================================
+'Reindexes a circular DNA sequence
+'Juraj Ahel, 2015-09-27
+'Last update 2015-09-28
+'====================================================================================================
+
+Dim SeqLength As Long, Offset As Long
+
+SeqLength = Len(DNASequence)
+
+Offset = NewStartBase - 1
+
+Select Case Offset
+    Case 0
+        DNAReindex = DNASequence
+    Case Is > 0
+        DNAReindex = Right(DNASequence, SeqLength - Offset) & Left(DNASequence, Offset)
+    Case Else
+        DNAReindex = Right(DNASequence, -Offset) & Right(DNASequence, SeqLength + Offset)
+End Select
+
+End Function

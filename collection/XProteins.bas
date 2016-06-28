@@ -11,7 +11,7 @@ Private Function AACharge(pKa As Double, pH As Double, Species As Variant) As Do
 '====================================================================================================
 'Species 0 = acid, 1 = base
 
-Dim ChargeSign As Integer
+Dim ChargeSign As Long
 Dim Charge As Double
 
 If Species = 0 Then ChargeSign = -1 Else ChargeSign = 1
@@ -37,10 +37,10 @@ Function Theoretical_pI(ProteinSequence As String, Optional pKaValues As String 
 AminoAcids = Array("D", "E", "R", "K", "H", "C", "Y")
 AASpecies = Array(0, 0, 1, 1, 1, 0, 0, 0, 1) '0 is acid, 1 is base
 
-Dim AACounts(1 To 9) As Integer
+Dim AACounts(1 To 9) As Long
 Dim PartialCharges(1 To 9) As Double
 Dim pH As Double, TotalCharge As Double
-Dim i As Integer
+Dim i As Long
 
 Dim pKa(1 To 9) As Double
 

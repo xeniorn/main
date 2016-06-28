@@ -14,26 +14,6 @@ Const ExcelExportFolder As String = "C:\ExcelExports\GibsonMacro"
 Const RNAFoldPath As String = "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe"
 
 
-'****************************************************************************************************
-Function TempTimeStampName() As String
-
-'====================================================================================================
-'A simple function that generates a timestamp string, containing full date and time without delimiters
-'(YYYYMMDDhhmmss format)
-'Juraj Ahel, 2015-02-11, for creating (almost certainly) unique files for GibsonTest
-'Last update 2015-02-11
-'====================================================================================================
-
-    Dim t As String
-    
-    t = Now
-    t = Replace(t, " ", "")
-    t = Replace(t, ":", "")
-    t = Replace(t, "-", "")
-    
-    TempTimeStampName = t
-
-End Function
 
 '****************************************************************************************************
 Sub GibsonTest()
@@ -225,6 +205,8 @@ Sub GibsonMonster()
     
     Dim GibsonResults() As Variant
     
+    Dim ORFs As VBA.Collection
+    
     
     ':::START:::
     
@@ -407,21 +389,23 @@ Sub GibsonMonster()
     'check the ORFs
         tResult = ""
         tTemplate = AssemblyTableValues(2, 1)
+            
+        Set ORFs = DNAFindORFs( _
+            Sequence:=tTemplate, _
+            Circular:=True, _
+            MinimumORFLength:=50, _
+            AllowORFOverlap:=False, _
+            AllowReverseStrand:=True)
+            
         For i = 1 To ORFDetectNumber
-        
-            tResult = DNALongestORF( _
-                Sequence:=tTemplate, _
-                Circular:=True, _
-                GetNthORF:=i, _
-                MinimumORFLength:=50)
+                
+            tResult = ORFs.Item(i)
                 
             ORFTableValues(1, i) = tResult
             ORFTableValues(2, i) = DNATranslate(tResult)
             ORFTableValues(3, i) = Len(ORFTableValues(2, i))
             
         Next i
-            
-    
     
     PrimersTable.Value = PrimersTableValues
     AssemblyTable.Value = AssemblyTableValues
@@ -431,6 +415,7 @@ Sub GibsonMonster()
     Set PrimersTable = Nothing
     Set AssemblyTable = Nothing
     Set ORFTable = Nothing
+    Set ORFs = Nothing
 
 End Sub
 
@@ -621,25 +606,25 @@ Function ExtractParameter(Source As String, ParameterName As String, Optional Ma
 'Last update 2015-02-11
 '====================================================================================================
 
-Dim s As String, e As String
-Dim StartIndex As Integer, EndIndex As Integer
+Dim S As String, e As String
+Dim StartIndex As Long, EndIndex As Long
 
-Dim Locs As Integer, Loce As Integer
+Dim Locs As Long, Loce As Long
 Dim Data As String
 
 Select Case UCase(MarkerType)
     Case "[]", "[", "]", "SQUARE"
-        s = "[" & ParameterName & "]"
+        S = "[" & ParameterName & "]"
         e = "[\" & ParameterName & "]"
-        Off = Len(s)
+        Off = Len(S)
     Case Else
         Data = "Not yet supported, sorry. Use ""[]"" for MarkerType"
         GoTo 90
 End Select
 
-Locs = InStr(1, Source, s, vbTextCompare)
+Locs = InStr(1, Source, S, vbTextCompare)
 Loce = InStr(1, Source, e, vbTextCompare)
-StartIndex = Locs + Len(s)
+StartIndex = Locs + Len(S)
 EndIndex = Loce - 1
 Data = Mid(Source, StartIndex, EndIndex - StartIndex + 1)
 
@@ -648,7 +633,7 @@ Data = Mid(Source, StartIndex, EndIndex - StartIndex + 1)
 End Function
 
 
-Sub CallPythonScript(InputFile As String, RunDir As String, OutputFile As String)
+Sub CallPythonScript(inputfile As String, RunDir As String, OutputFile As String)
 
 '====================================================================================================
 'Wrapper for calling the python script
@@ -663,7 +648,7 @@ prog = Python27ProgramName
 path = PathToPython27
 
 argum = jaQuote & PythonScriptPath & jaQuote & _
-        " " & jaQuote & InputFile & jaQuote & _
+        " " & jaQuote & inputfile & jaQuote & _
         " " & jaQuote & RNAFoldPath & jaQuote & _
         " " & jaQuote & ExcelExportFolder & jaQuote
 
@@ -675,77 +660,6 @@ CallProgram ProgramCommand:=prog, _
             RunDirectory:=RunDir, _
             RunAsRawCmd:=True, _
             OutputFile:=OutputFile
-
-End Sub
-
-'****************************************************************************************************
-Sub CallProgram( _
-                ProgramCommand As String, _
-                Optional ProgramPath As String = "", _
-                Optional ArgList As String = "", _
-                Optional WaitUntilFinished As Boolean = True, _
-                Optional WindowMode As String = "1", _
-                Optional RunDirectory As String = "", _
-                Optional RunAsRawCmd As Boolean = True, _
-                Optional OutputFile As String = "" _
-               )
-
-'====================================================================================================
-'Calls an external program under the windows environment, using windows scripting host (Wsh)
-'Takes more intuitive inputs and does all the complicated mimbo-jimbo so the code calling it is clean
-'Juraj Ahel, 2015-02-11, for Gibson assembly and general purposes
-'Last update 2015-02-11
-'====================================================================================================
-'Made for Excel Professional Plus 2013 under Windows 8.1
-
-    Dim wsh As Object
-    Dim WaitOnReturn As Boolean: WaitOnReturn = WaitUntilFinished
-    Dim WindowVisibilityType As Integer
-    Dim RunCommand As String, ProgramFullPath As String, ParsedArguments As String
-    Dim ProgramCommandTemp As String, ProgramPathTemp As String
-    
-    ProgramCommandTemp = ProgramCommand
-    ProgramPathTemp = ProgramPath
-    
-    'Parse program path if it's used, so it is formatted as a folder
-    If ProgramPathTemp <> "" Then
-        Select Case Right(ProgramPathTemp, 1)
-            Case "/", "\"
-                ProgramPathTemp = Left(ProgramPathTemp, Len(ProgramPathTemp) - 1)
-        End Select
-        ProgramPathTemp = ProgramPathTemp & "\"
-    End If
-                
-    ParsedArguments = ArgList
-    
-    'Parse the run command so it actually works
-    RunCommand = ProgramCommandTemp
-    ProgramFullPath = ProgramPathTemp & RunCommand
-    
-    RunCommand = ProgramFullPath & " " & ParsedArguments
-    
-    'Parse the visibility options
-    Select Case UCase(WindowMode)
-        Case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
-            WindowVisibilityType = CInt(WindowMode)
-        Case "HIDDEN", "HIDE", "BACKGROUND"
-            WindowVisibilityType = 0
-        Case Else
-            WindowVisibilityType = 1
-    End Select
-    
-    'The object that does all the work
-    Set wsh = VBA.CreateObject("WSCript.Shell")
-    
-    ParsedRunDirectory = RunDirectory
-    wsh.CurrentDirectory = ParsedRunDirectory
-    
-    If RunAsRawCmd Then RunCommand = "%comspec% /c " & RunCommand
-    
-    '2>&1 at the end ensures that the error log will be appended to the result! Cool!
-    If OutputFile <> "" Then RunCommand = RunCommand & " >""" & OutputFile & """ 2>&1"
-    
-    a = wsh.Run(RunCommand, WindowVisibilityType, WaitOnReturn)
 
 End Sub
 
