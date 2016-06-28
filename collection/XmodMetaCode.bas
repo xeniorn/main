@@ -127,7 +127,7 @@ Const conInputVarPrefix = "inp_"
 
 
 Dim OutputRange         As Range
-Dim Inp                 As Range
+Dim inp                 As Range
 Dim Inputs()            As Variant
 Dim tempTextArray(1 To 13) As String
 Dim tempString          As String
@@ -173,12 +173,12 @@ CodeHeader = _
 
 
 'Inputs
-Set Inp = Selection
-Inputs = Inp.Value
+Set inp = Selection
+Inputs = inp.Value
 
 Set OutputRange = Range("A1")
 
-NumberOfRows = Inp.Rows.Count
+NumberOfRows = inp.Rows.Count
 
 For i = 1 To NumberOfRows
     

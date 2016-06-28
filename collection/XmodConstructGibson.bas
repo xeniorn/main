@@ -248,6 +248,7 @@ Sub GibsonMonster()
     
     RowHeaders3(1, 1) = "PCR sequence"
     RowHeaders3(2, 1) = "assembly"
+    RowHeaders3(3, 1) = "tags"
     
     RowHeaders4(1, 1) = "nucleotides"
     RowHeaders4(2, 1) = "translation"
@@ -270,6 +271,9 @@ Sub GibsonMonster()
             End If
             
             FragmentCount = .Columns.Count
+            
+            'if too much was selected by accident
+            Set InputTable = InputTable.Resize(Table1Size, FragmentCount)
             
             InputTableValues = .Value
             
@@ -409,23 +413,70 @@ Sub GibsonMonster()
     
     'when all the values have been extracted, do the following:
     
-    'perform in-silico PCR of all fragments
         Dim tTemplate As String
         Dim tFor As String
         Dim tRev As String
+        
+        Dim tNterm As String
+        Dim tCterm As String
+        
+        Dim tResult As String
     
         For i = 1 To FragmentCount
+        
+            'perform in-silico PCR of all fragments
+                
+                tTemplate = PrimersTableValues(1, i)
+                tFor = PrimersTableValues(2, i)
+                tRev = PrimersTableValues(3, i)
+                
+                AssemblyTableValues(1, i) = PCRWithOverhangs(tTemplate, tFor, tRev, True)
             
-            tTemplate = PrimersTableValues(1, i)
-            tFor = PrimersTableValues(2, i)
-            tRev = PrimersTableValues(3, i)
-            
-            AssemblyTableValues(1, i) = PCRWithOverhangs(tTemplate, tFor, tRev, True)
+            'annotate the tags/linkers
+        
+                tNterm = ""
+                tCterm = ""
+                
+                For j = 3 To 6
+                    tNterm = tNterm & InputTableValues(j, i)
+                Next j
+                
+                For j = 8 To 11
+                    tCterm = tCterm & InputTableValues(j, i)
+                Next j
+                
+                'check which extension exists, apply it
+                'check if any exist
+                If Len(tCterm) > 0 Or Len(tNterm) > 0 Then
+                
+                    If Len(tNterm) > 0 Then
+                        tNterm = "N-" & DNATranslate(tNterm)
+                    End If
+                    
+                    If Len(tCterm) > 0 Then
+                        tCterm = "C-" & DNATranslate(tCterm)
+                    End If
+                    
+                    'if both
+                    If Len(tNterm) > 0 And Len(tCterm) > 0 Then
+                        tResult = tNterm & " / " & tCterm
+                        
+                    'if only one
+                    Else
+                        If Len(tNterm) > 0 Then
+                            tResult = tNterm
+                        Else
+                            tResult = tCterm
+                        End If
+                    End If
+                    
+                End If
+                                    
+                AssemblyTableValues(3, i) = tResult
             
         Next i
         
     'ligate the fragments
-        Dim tResult As String
         
         tResult = AssemblyTableValues(1, 1)
         
@@ -457,32 +508,39 @@ Sub GibsonMonster()
             
         Next i
                 
-                
-                
-    With InputTable
-        .Offset(0, -1).Resize(Table1Size, 1).Value = RowHeaders1
-    End With
-                
-    With PrimersTable
-        .Offset(0, -1).Resize(Table2Size, 1).Value = RowHeaders2
-        .Value = PrimersTableValues
-    End With
+    'repair table headers
+                    
+        With InputTable
+            .Offset(-1, -1).Resize(1, 1).Value = "Inputs"
+            .Offset(0, -1).Resize(Table1Size, 1).Value = RowHeaders1
+        End With
+                    
+        With PrimersTable
+            .Offset(-1, -1).Resize(1, 1).Value = "Primers"
+            .Offset(0, -1).Resize(Table2Size, 1).Value = RowHeaders2
+            .Value = PrimersTableValues
+        End With
+        
+        With AssemblyTable
+            .Offset(-1, -1).Resize(1, 1).Value = "PCR"
+            .Offset(0, -1).Resize(AssemblySize, 1).Value = RowHeaders3
+            .Value = AssemblyTableValues
+        End With
+        
+        With ORFTable
+            .Offset(-1, -1).Resize(1, 1).Value = "ORFs"
+            .Offset(0, -1).Resize(ORFTableSize, 1).Value = RowHeaders4
+            .Value = ORFTableValues
+        End With
     
-    With AssemblyTable
-        .Offset(0, -1).Resize(AssemblySize, 1).Value = RowHeaders3
-        .Value = AssemblyTableValues
-    End With
     
-    With ORFTable
-        .Offset(0, -1).Resize(ORFTableSize, 1).Value = RowHeaders4
-        .Value = ORFTableValues
-    End With
-    
-    Set InputTable = Nothing
-    Set PrimersTable = Nothing
-    Set AssemblyTable = Nothing
-    Set ORFTable = Nothing
-    Set ORFs = Nothing
+    'clean up
+        
+        Set InputTable = Nothing
+        Set PrimersTable = Nothing
+        Set AssemblyTable = Nothing
+        Set ORFTable = Nothing
+        Set ORFs = Nothing
 
 End Sub
 
