@@ -2,6 +2,126 @@ Attribute VB_Name = "YmodBioDevel"
 Option Explicit
 
 '****************************************************************************************************
+Function mFastaToArrayOfFasta(FASTASequence As String, _
+                                Optional SequenceCase As String = "UPPER", _
+                                Optional Alignment As Boolean = False) As Variant
+
+'====================================================================================================
+'Takes a FASTA or mFASTA text as input and extracts the headers and the sequences to a 2D array
+'Juraj Ahel, 2016-04-12, for general purposes
+'Last update 2016-04-12
+'====================================================================================================
+
+    Dim SStart As Long, SEnd As Long, HStart As Long, HEnd As Long
+    Dim SequenceNumber As Long
+    Dim i As Long, j As Long
+    
+    Dim LineTerminator As String: LineTerminator = Chr(10)
+    Dim DoubleLineTerminator As String: DoubleLineTerminator = LineTerminator & LineTerminator
+    
+    Dim ForbiddenSymbols As Variant
+    
+    Dim ErrorMessage As String
+    
+    Dim tempOutput() As String
+    
+    'Symbols that will be removed from sequence data - they are ok in headers'
+    
+    'Normal Fasta
+    'ForbiddenSymbols = Array( _
+    '                         Chr(9), Chr(124), LineTerminator, " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", _
+    '                         "-", "*", ":", ";", "'", """", "#", "@", "&", "/", "\", "^", "_", "+", "?", "!", "$", _
+    '                         "%", "=", "[", "]", "(", ")", "{", "}" _
+    '                        )
+    
+    'AlignedFasta - do not remove "-"
+    
+    If Alignment Then
+        ForbiddenSymbols = Array( _
+                                 Chr(9), Chr(124), LineTerminator, " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", _
+                                 "*", ":", ";", "'", """", "#", "@", "&", "/", "\", "^", "_", "+", "?", "!", "$", _
+                                 "%", "=", "[", "]", "(", ")", "{", "}" _
+                                )
+    Else
+        ForbiddenSymbols = Array( _
+                                 Chr(9), Chr(124), LineTerminator, " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", _
+                                 "*", ":", ";", "'", """", "#", "@", "&", "/", "\", "^", "_", "+", "?", "!", "$", _
+                                 "%", "=", "[", "]", "(", ")", "{", "}", _
+                                 "-")
+    End If
+    
+                                
+    SequenceNumber = StringCharCount(FASTASequence, ">")
+    
+    ReDim tempOutput(1 To SequenceNumber, 1 To 2)
+    
+    FASTASequence = Replace(FASTASequence, Chr(13), LineTerminator)
+    FASTASequence = Replace(FASTASequence, Chr(10), LineTerminator)
+    FASTASequence = FASTASequence & LineTerminator & ">" 'to allow termination for the final sequence
+    
+    Do While StringCharCount(FASTASequence, DoubleLineTerminator) > 0
+        FASTASequence = Replace(FASTASequence, DoubleLineTerminator, LineTerminator)
+    Loop
+    
+    HStart = 1: HEnd = 1
+    SStart = 1: SEnd = 1
+        
+    For i = 1 To SequenceNumber
+        
+        HStart = InStr(SEnd, FASTASequence, ">", vbBinaryCompare) + 1
+        HEnd = InStr(HStart, FASTASequence, LineTerminator, vbBinaryCompare) - 1
+        SStart = HEnd + 2
+        SEnd = InStr(SStart, FASTASequence, ">", vbBinaryCompare) - 2
+        
+        If HEnd > HStart Then tempOutput(i, 1) = Mid(FASTASequence, HStart, HEnd - HStart + 1) Else tempOutput(i, 1) = "[EMPTY_HEADER]"
+        If SEnd > SStart Then tempOutput(i, 2) = Mid(FASTASequence, SStart, SEnd - SStart + 1) Else tempOutput(i, 2) = ""
+        
+        For j = LBound(ForbiddenSymbols) To UBound(ForbiddenSymbols)
+            tempOutput(i, 2) = Replace(tempOutput(i, 2), ForbiddenSymbols(j), "")
+        Next j
+        
+    Next i
+        
+    'Change case, as per settings. UPPERCASE is the default.
+    
+    Select Case SequenceCase
+        Case "UPPER"
+            For i = 1 To SequenceNumber: tempOutput(i, 2) = UCase(tempOutput(i, 2)): Next i
+        Case "lower"
+            For i = 1 To SequenceNumber: tempOutput(i, 2) = LCase(tempOutput(i, 2)): Next i
+        Case "Preserve"
+        Case Else
+            For i = 1 To SequenceNumber: tempOutput(i, 2) = UCase(tempOutput(i, 2)): Next i
+    End Select
+    
+    'in alignments, total length of each sequence must be the same
+    If Alignment Then
+        
+        j = Len(tempOutput(1, 2))
+        
+        For i = 2 To SequenceNumber
+            
+            If Len(tempOutput(i, 2)) <> j Then
+                ErrorMessage = "Sequence #" _
+                                & i _
+                                & " not equal in length to #1 (" _
+                                & Len(tempOutput(i, 2)) _
+                                & " vs " _
+                                & j _
+                                & "). Check input file!"
+                Call Err.Raise(13, "mFastaToArrayOfFasta", ErrorMessage)
+            End If
+                        
+        Next i
+        
+    End If
+    
+   
+    mFastaToArrayOfFasta = tempOutput
+    
+End Function
+
+'****************************************************************************************************
 Sub GenerateCodingFromProtein()
 
 '====================================================================================================
@@ -278,6 +398,127 @@ For i = 1 To SequenceLength
 Next i
   
 GCRich = StringSubRegions(Join(GCRichnessIndex, ""), CStr(GCType), False)
+
+End Function
+
+
+Function CalculateConservationScore(FASTAArray As Variant, _
+                                    Optional ReferenceSequence As Long = 1, _
+                                    Optional Smoothing As Long = 1) _
+                                    As Variant
+    
+'this calculation is too basic. Try to find documentation about AACon from JalView, which uses
+'physicochemical properties
+    
+    Const conSpacer = "-"
+    
+    Dim SequenceNumber As Long
+    Dim SequenceLength As Long
+    Dim ReferenceLength As Long
+    Dim tempString As String
+    
+    Dim i As Long, j As Long
+    
+    Dim ConservationArray() As Long
+    Dim ReferenceSeqArray() As String
+    Dim OutputArray() As Long
+    Dim tempSmooth
+        
+    SequenceNumber = 1 + UBound(FASTAArray, 1) - LBound(FASTAArray, 1)
+    SequenceLength = Len(FASTAArray(1, 2))
+    ReferenceLength = Len(Replace(FASTAArray(ReferenceSequence, 2), conSpacer, ""))
+    
+    ReDim ConservationArray(1 To SequenceLength)
+    ReDim ReferenceSeqArray(1 To SequenceLength)
+    
+    For i = 1 To SequenceLength
+        
+        ReferenceSeqArray(i) = Mid(FASTAArray(ReferenceSequence, 2), i, 1)
+        tempString = ""
+        
+        For j = 1 To SequenceNumber
+            tempString = tempString & Mid(FASTAArray(j, 2), i, 1)
+        Next j
+        
+        ConservationArray(i) = GetMaxLetterCount(tempString)
+        
+    Next i
+    
+    ReDim OutputArray(1 To ReferenceLength)
+    
+    If Smoothing > 1 Then
+        
+        tempSmooth = SmoothData(ConservationArray, Smoothing)
+    
+    Else
+    
+        tempSmooth = ConservationArray
+    
+    End If
+        
+    j = 0
+    For i = 1 To SequenceLength
+        If ReferenceSeqArray(i) <> conSpacer Then
+            j = j + 1
+            OutputArray(j) = tempSmooth(i)
+        End If
+    Next i
+            
+           
+    CalculateConservationScore = OutputArray
+    
+    
+End Function
+
+'****************************************************************************************************
+Function ReindexFromAlignment(inp1, Inp2)
+
+    Const AllowedLetters = "[ACDEFGHIKLMNPQRSTVWY]"
+    
+    Dim len1, len2
+    Dim i
+    Dim a1(), a2(), a3()
+    len1 = Len(inp1)
+    
+    ReDim a1(1 To len1)
+    ReDim a2(1 To len1)
+    
+    c1 = 1
+    c2 = 1
+    
+    For i = 1 To len1
+    
+        If Mid(inp1, i, 1) Like AllowedLetters Then
+            a1(i) = c1
+            c1 = c1 + 1
+        Else
+            a1(i) = ""
+        End If
+        
+        If Mid(Inp2, i, 1) Like AllowedLetters Then
+            a2(i) = c2
+            c2 = c2 + 1
+        Else
+            a2(i) = ""
+        End If
+        
+    Next i
+    
+    For i = 1 To len1
+        If a1(i) Like "[1-9][0-9]*" Then
+            OP = OP & vbCrLf & a1(i) & vbTab
+            If a2(i) Like "##*" Then
+                OP = OP & a2(i)
+            Else
+                OP = OP & "%"
+            End If
+        End If
+    Next i
+    
+    aaa = Len(OP)
+    ReindexFromAlignment = OP
+    Call ExportStringToTXT(OP)
+
 
 End Function
 
