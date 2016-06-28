@@ -238,3 +238,141 @@ StringJoin = tempString
 
 End Function
 
+'****************************************************************************************************
+Function StringFindOverlap(Probe As String, Target As String)
+
+'====================================================================================================
+'Finds the (largest) continuous perfectoverlap between two strings
+'Juraj Ahel, 2015-04-30, for general purposes
+'Last update 2015-04-30
+'2016-06-28 explicit variable declaration
+'====================================================================================================
+
+Dim ProbeLength As Long, TargetLength As Long
+Dim Results() As Long
+Dim wStart As Long
+Dim tempResult As String
+Dim OverlapWidth As Long
+
+ProbeLength = Len(Probe)
+TargetLength = Len(Target)
+
+If ProbeLength > TargetLength Then
+    Call SwapValue(Probe, Target)
+    Call SwapValue(ProbeLength, TargetLength)
+End If
+    
+wStart = ProbeLength
+
+If wStart = 0 Then
+    tempResult = "Zero-string probe or target."
+    GoTo 999
+End If
+
+'- if I want to map them all
+'ReDim Results(1 To wStart, 1 To wStart)
+
+'- if I want to extract the longest ones only
+ReDim Results(1 To wStart)
+
+Dim i As Long, j As Long, k As Long, W As Long
+Dim TempProbe As String
+Dim FoundOverlap As Boolean
+
+W = wStart
+
+Do
+    k = 0
+    
+    For i = 1 To 1 + (wStart - W)
+    
+        TempProbe = Mid(Probe, i, W)
+        
+        j = 0
+        Do
+            j = InStr(j + 1, Target, TempProbe)
+            FoundOverlap = (j > 0)
+            
+            'k = k + FoundOverlap
+            'Results(w, k) = FoundOverlap * j
+            
+            If FoundOverlap Then
+                k = k + 1
+                Results(k) = j
+            End If
+        Loop Until Not FoundOverlap
+        
+    Next i
+    
+    W = W - 1
+    
+Loop Until k <> 0 Or W = 0
+
+OverlapWidth = W + 1
+
+Dim TempResultAsStrings() As String
+
+Select Case k
+    Case 0
+        tempResult = "#! No overlap found."
+    Case 1
+        tempResult = Mid(Target, Results(1), OverlapWidth)
+    Case Is > 1
+        ReDim TempResultAsStrings(1 To k)
+        For i = 1 To k
+            TempResultAsStrings(i) = CStr(Results(i))
+        Next i
+    
+        
+        tempResult = "Multiple equivalent results of length " _
+                    & OverlapWidth & " at positions: " _
+                    & Join(TempResultAsStrings, ";")
+End Select
+
+999 StringFindOverlap = tempResult
+
+End Function
+
+'****************************************************************************************************
+Function StringSubstract(Template As String, _
+                        ParamArray Substractions() As Variant _
+                        ) As String
+
+'====================================================================================================
+'Removes all instances of given substrings from the template sequence, even if overlapping
+'Juraj Ahel, 2015-04-30, for general purposes
+'Last update 2015-04-30
+'====================================================================================================
+
+Dim TemplateLength As Long, SubstractionLengths() As Long
+Dim TemplateArray() As String
+Dim NumberOfSubstractions As Long
+Dim i, j As Long
+Dim FoundTarget As Boolean
+
+TemplateLength = Len(Template)
+ReDim TemplateArray(1 To TemplateLength)
+
+For i = 1 To TemplateLength
+    TemplateArray(i) = Mid(Template, i, 1)
+Next i
+
+NumberOfSubstractions = UBound(Substractions) - LBound(Substractions) + 1
+
+For i = 1 To NumberOfSubstractions
+    j = 0
+    Do
+        j = InStr(j + 1, Template, Substractions(i - 1))
+        FoundTarget = (j > 0)
+        If FoundTarget Then
+            For k = 1 To Len(Substractions(i - 1))
+                TemplateArray(j + k - 1) = ""
+            Next k
+        End If
+    Loop Until Not FoundTarget
+Next i
+
+StringSubstract = Join(TemplateArray, "")
+
+End Function
+
