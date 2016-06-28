@@ -17,6 +17,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -218,7 +219,7 @@ Private Sub ctrlCleanUpButton_Click()
                 
                 'VOLUME NORMALIZATION
                 '1: [do I normalize] 2: [which injection] 3: [which volume]
-                With CleanUpOptions.Item("NORMVOL")
+                With CleanUpOptions.Item(conNormVol)
                     If .Item(1) = True Then
                         If .Item(2) <> "" Then
                             Call SEC.NormalizeVolumeToInjectionNumber(.Item(2))
@@ -230,7 +231,7 @@ Private Sub ctrlCleanUpButton_Click()
                 
                 'DATA TRUNCATION
                 '1: [do I trunc] 2: [start volume] 3: [end volume]
-                With CleanUpOptions.Item("TRUNC")
+                With CleanUpOptions.Item(conTrunc)
                     If .Item(1) = True Then
                         Call SEC.TruncateToVolumeRange(.Item(2), .Item(3))
                     End If
@@ -238,7 +239,7 @@ Private Sub ctrlCleanUpButton_Click()
                 
                 'DATA THINNING
                 '1: [do I thin] 2: [distance between points]
-                With CleanUpOptions.Item("THIN")
+                With CleanUpOptions.Item(conThin)
                     If .Item(1) = True Then
                         Call SEC.ThinData(.Item(2))
                     End If
@@ -246,7 +247,7 @@ Private Sub ctrlCleanUpButton_Click()
                 
                 'DATA ALIGNMENT
                 '1: [do I align]
-                With CleanUpOptions.Item("ALIGN")
+                With CleanUpOptions.Item(conAlign)
                     If .Item(1) = True Then
                         Call SEC.AlignDataStartToZero
                     End If
@@ -254,7 +255,7 @@ Private Sub ctrlCleanUpButton_Click()
                 
                 'UV NORMALIZATION
                 '1: [do I norm] 2: [INTEGRAL/MAXVALUE] 3: [startvolume] 4: [endvolume]
-                With CleanUpOptions.Item("NORMUV")
+                With CleanUpOptions.Item(conNormUV)
                     If .Item(1) = True Then
                         Select Case .Item(2)
                             Case "MAXVALUE"
@@ -624,6 +625,8 @@ End Sub
 
 Private Sub ctrlImportButton_Click()
     
+    Dim tempFrm As frmCleanUpSettings
+    
     Debug.Print ("Creating Chromatography object...")
     Set SEC = New clsGeneralizedChromatography
     
@@ -648,7 +651,20 @@ Private Sub ctrlImportButton_Click()
             Debug.Print ("Activating form controls...")
             Call EnableDataProcessing
             
+        'set default cleanup settings
+            Debug.Print ("Defining default settings...")
+            Set tempFrm = New frmCleanUpSettings
+            Set CleanUpOptions = New VBA.Collection
+            With tempFrm
+                Set .SEC = SEC
+                Set .defaultCleanUpOptions = CleanUpOptions
+                .ManualInitialize
+            End With
+            Unload tempFrm
+            
     End If
+    
+    Set tempFrm = Nothing
     
 End Sub
 
