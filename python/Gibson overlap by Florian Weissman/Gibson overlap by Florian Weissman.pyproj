@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{77fb80cf-72fd-415b-ada4-9d174ca1916c}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>JA_GibsonOverlapScript_v160622.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId />
+    <InterpreterVersion />
+    <CommandLineArguments>"E:\PhD\Tools Alati Macros Scripts Programs Utilities\Gibson overlap by Florian Weissman\testinpu.txt" "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe" "C:\ExcelExports\GibsonMacro"</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <InterpreterPath>
+    </InterpreterPath>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="1.txt.txt" />
+    <Content Include="150417_input overlap 2-3 version2.txt" />
+    <Content Include="150417_input overlap 2-3.txt" />
+    <Content Include="2.txt.txt" />
+    <Content Include="Fragment 1.txt" />
+    <Content Include="Fragment1.txt" />
+    <Content Include="Gibson150410_input overlap 5-6.txt" />
+    <Content Include="input1.txt" />
+    <Content Include="old versions\Output.txt" />
+    <Content Include="old versions\Output1.txt" />
+    <Content Include="old versions\Output2.txt" />
+    <Content Include="old versions\Output3.txt" />
+    <Content Include="old versions\Output4.txt" />
+    <Content Include="old versions\Output5.txt" />
+    <Content Include="old versions\Output6.txt" />
+    <Content Include="old versions\TestInput.txt" />
+    <Content Include="old versions\TestOutput.txt" />
+    <Content Include="out.txt" />
+    <Content Include="out2.txt" />
+    <Content Include="Output1.txt" />
+    <Content Include="output111.txt" />
+    <Content Include="outtest1.txt" />
+    <Content Include="readme Florian overlap.txt" />
+    <Content Include="t1.txt" />
+    <Content Include="t2.txt" />
+    <Content Include="test.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="JA_GibsonOverlapScript_v160216.py" />
+    <Compile Include="JA_GibsonOverlapScript_v160217.py" />
+    <Compile Include="JA_GibsonOverlapScript_v160622.py" />
+    <Compile Include="JA_overlap_local1.py" />
+    <Compile Include="JA_overlap_local1_manual.py" />
+    <Compile Include="old versions\JA_overlap_local_old.py" />
+    <Compile Include="old versions\overlap_UNIX.py" />
+    <Compile Include="old versions\win_overlap.py" />
+    <Compile Include="old versions\win_overlap_local.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="old versions" />
+  </ItemGroup>
+  <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
+</Project>
