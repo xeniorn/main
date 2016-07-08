@@ -15,6 +15,8 @@ Attribute VB_Exposed = False
 '2016-06-13 add data alignment function to be able to prevent results like
 '           0,012655    0,112655    0,312655    0,412655 ... (turn it into 0,0 0,1 0,2 0,3 ...)
 '====================================================================================================
+'2016-07-08 add some "ByVal"s
+
 Option Explicit
 
 Const conClassName As String = "clsChromatogram"
@@ -442,7 +444,7 @@ Public Sub TruncateXAxis(ByVal XLow As Double, Optional ByVal XHigh As Double)
 End Sub
 
 '****************************************************************************************************
-Public Sub ScaleXAxis(ScaleMultiplier As Double)
+Public Sub ScaleXAxis(ByVal ScaleMultiplier As Double)
 
     Dim i As Long
     Dim tempDataArray() As Double
@@ -460,7 +462,7 @@ Public Sub ScaleXAxis(ScaleMultiplier As Double)
 End Sub
 
 '****************************************************************************************************
-Public Sub ScaleYAxis(ScaleMultiplier As Double)
+Public Sub ScaleYAxis(ByVal ScaleMultiplier As Double)
 
     Dim i As Long
     Dim tempDataArray() As Double
@@ -479,7 +481,7 @@ End Sub
 
 
 '****************************************************************************************************
-Public Sub ShiftXAxis(ShiftAmount As Double)
+Public Sub ShiftXAxis(ByVal ShiftAmount As Double)
     
     Dim i As Long
     Dim tempDataArray() As Double
@@ -497,7 +499,7 @@ Public Sub ShiftXAxis(ShiftAmount As Double)
 End Sub
 
 '****************************************************************************************************
-Public Sub OffsetYAxis(OffsetAmount As Double)
+Public Sub OffsetYAxis(ByVal OffsetAmount As Double)
     
     Dim i As Long
     Dim tempDataArray() As Double
@@ -507,7 +509,7 @@ Public Sub OffsetYAxis(OffsetAmount As Double)
     CreateUndo
     
     For i = 1 To NumberOfPoints
-        tempDataArray(i) = tempDataArray(i) + ShiftAmount
+        tempDataArray(i) = tempDataArray(i) + OffsetAmount
     Next i
     
     ChromatogramData.YDataArray = tempDataArray

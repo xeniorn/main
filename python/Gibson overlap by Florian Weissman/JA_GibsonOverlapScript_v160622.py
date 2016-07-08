@@ -150,7 +150,9 @@ with open(InputFile, 'r') as TempFile:
  seq2 = seq1[0]+seq1[1]+seq1[2]
  a = len(seq1[0])+(len(seq1[1])/2)
  if len(seq1[1]) > MinimumWindow:
-  window = len(seq1[1])
+  window = MinimumWindow #this is the shit
+  #if FlorianParameter <> '13'
+  #window = len(seq1[1])
  else:
   window = MinimumWindow
  TempFile.close
@@ -170,19 +172,23 @@ with open(InputFile, 'r') as TempFile:
 
 TestFactor = len(seq2) - window - MaxDistanceFromEnd - MaxWindowExtension + 2
 
-if str(seq1[3]) == '1':
+FlorianParameter = seq1[3]
+
+if str(FlorianParameter) == '1':
  TestFactor = TestFactor - len(seq1[0])
-elif str(seq1[3]) == '2':
+elif str(FlorianParameter) == '2':
  if len(seq1[0])<=len(seq1[2]):
   TestFactor = TestFactor - len(seq1[0])
  else: 
   TestFactor = TestFactor - len(seq1[2])
-elif str(seq1[3]) == '3':
+elif str(FlorianParameter) == '3':
  TestFactor = TestFactor - len(seq1[2])
-elif str(seq1[3]) == '12': 
+elif str(FlorianParameter) == '12': 
  TestFactor = TestFactor - len(seq1[0]+seq1[1])
-elif str(seq1[3]) == '23':
+elif str(FlorianParameter) == '23':
  TestFactor = TestFactor - len(seq1[1]+seq1[2])
+elif str(FlorianParameter) == '13':
+ TestFactor = TestFactor - len(seq1[0]+seq1[2])
 else:
  TestFactor = TestFactor
 
@@ -199,55 +205,47 @@ if len(seq1)>=ExpectedNumberOfParameters:
   TemplateName1 = str(seq1[4])
   TemplateName2 = str(seq1[5])
 
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
   
   
 #"""###construct inputs for RNAFold"""
 seq3 = []
-if str(seq1[3]) == '1':
- allowed1 = 'Added Seq, Template2'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+
+for j in range(0,MaxWindowExtension):
+ length = length0 + j
+ if str(FlorianParameter) == '1':
+  allowed1 = 'Added Seq, Template2'
   for i in range(0,window):
    seq3.append(seq2[len(seq1[0])+i:len(seq1[0])+i+length]) 
-elif str(seq1[3]) == '2':
- allowed1 = 'Template1, Template2'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+ elif str(FlorianParameter) == '2':
+  allowed1 = 'Template1, Template2'
   for i in range(0,MaxDistanceFromEnd):
    seq3.append(seq2[len(seq1[0])+len(seq1[1])+i:len(seq1[0])+len(seq1[1])+i+length]) 
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
   for i in range(0,MaxDistanceFromEnd):
    seq3.append(seq2[len(seq1[0])-i-length:len(seq1[0])-i])
-elif str(seq1[3]) == '3':
- allowed1 = 'Template1, Added Seq'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+ elif str(FlorianParameter) == '3':
+  allowed1 = 'Template1, Added Seq'
   for i in range(0,window):
    seq3.append(seq2[len(seq1[0])+len(seq1[1])-i-length:len(seq1[0])+len(seq1[1])-i])
-elif str(seq1[3]) == '12':
- allowed1 = 'Template2'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+ elif str(FlorianParameter) == '12':
+  allowed1 = 'Template2'
   for i in range(0,MaxDistanceFromEnd):
    seq3.append(seq2[len(seq1[0])+len(seq1[1])+i:len(seq1[0])+len(seq1[1])+i+length]) 
-elif str(seq1[3]) == '23':
- allowed1 = 'Template1'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+ elif str(FlorianParameter) == '23':
+  allowed1 = 'Template1'
   for i in range(0,MaxDistanceFromEnd):
    seq3.append(seq2[len(seq1[0])-i-length:len(seq1[0])-i])
-else:
- allowed1 = 'Template1, Added Seq, Template2'
- for j in range(0,MaxWindowExtension):
-  length = length0 + j
+ elif str(FlorianParameter) == '13':
+  allowed1 = 'Added Seq'
+  for i in range(0,window):
+   seq3.append(seq2[len(seq1[0])+i:len(seq1[0])+i+length]) 
+ else:
+  allowed1 = 'Template1, Added Seq, Template2'
   for i in range(-window,window):
    seq3.append(seq2[a+i-(length/2):a+i-(length/2)+length])
 
@@ -390,7 +388,7 @@ for i in range(0,NumberOfOutputs):
  PrintTemp4 = str(Tm_dan(seq2[bigger1:seq2.find(seq1[2])+16+j],DefaultSalt))[:4]
  PrintTemp3 = seq2[seq2.find(L4[i]):seq2.find(seq1[2])+16+j]
  
- print '>Overlap ' + str(i+1) + ': ' + TemplateName2 + '_for  (Tm ' + PrintTemp4 + ')'
+ print '>Overlap ' + str(i+1) + ': ' + TemplateName2 + '_f  (Tm ' + PrintTemp4 + ')'
  print PrintTemp3
    
  seq2r = ReverseComplement(seq2)
@@ -410,7 +408,7 @@ for i in range(0,NumberOfOutputs):
  PrintTemp2 = str(Tm_dan(seq2r[bigger1:seq2r.find(seq10r)+16+j],DefaultSalt))[:4]
  PrintTemp1 = seq2r[seq2r.find(l3ir):seq2r.find(seq10r)+16+j]
  
- print '>Overlap ' + str(i+1) + ': ' + TemplateName1 +'_rev  (Tm ' + PrintTemp2 + ')'
+ print '>Overlap ' + str(i+1) + ': ' + TemplateName1 +'_r  (Tm ' + PrintTemp2 + ')'
  print PrintTemp1
  
  
@@ -419,6 +417,6 @@ for i in range(0,NumberOfOutputs):
  
 #"""###final tagged output that is read by Gibson Assembly excel macro"""  
 print '[OVERLAP][OverlapSequence]' + L4[0] + '[\OverlapSequence] [dG]' + str(L6[0]) + '[\dG] [Tm]' + str(L5[0])[:4] + '[\Tm]'
-print '[PRIMER1][PrimerName]' + TemplateName2 + '_for[\PrimerName] [Sequence]' + PrintTemp3 + '[\Sequence] [Tm]' + PrintTemp4 + '[\Tm]'
-print '[PRIMER2][PrimerName]' + TemplateName1 + '_rev[\PrimerName] [Sequence]' + PrintTemp1 + '[\Sequence] [Tm]' + PrintTemp2 + '[\Tm]'
+print '[PRIMER1][PrimerName]' + TemplateName2 + '_f[\PrimerName] [Sequence]' + PrintTemp3 + '[\Sequence] [Tm]' + PrintTemp4 + '[\Tm]'
+print '[PRIMER2][PrimerName]' + TemplateName1 + '_r[\PrimerName] [Sequence]' + PrintTemp1 + '[\Sequence] [Tm]' + PrintTemp2 + '[\Tm]'
 

@@ -13,11 +13,12 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId />
     <InterpreterVersion />
-    <CommandLineArguments>"E:\PhD\Tools Alati Macros Scripts Programs Utilities\Gibson overlap by Florian Weissman\testinpu.txt" "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe" "C:\ExcelExports\GibsonMacro"</CommandLineArguments>
+    <CommandLineArguments>"C:\Users\juraj.ahel\AppData\Local\Temp\20160703221330.jatmp" "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe" "C:\ExcelExports\GibsonMacro"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <InterpreterPath>
     </InterpreterPath>
     <IsWindowsApplication>False</IsWindowsApplication>
+    <DebugStdLib>False</DebugStdLib>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
