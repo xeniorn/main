@@ -18,6 +18,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -191,6 +192,7 @@ Private Sub ctrlCleanUpButton_Click()
             
             tempMsg = "Do you want to carry out the following actions?" & vbCrLf
             With CleanUpOptions
+                tempMsg = tempMsg & "Set the minimum absorbance to zero (prevent negative absorbance)"
                 If .Item(conNormVol).Item(1) = True Then
                     tempMsg = tempMsg & "Volume normalization" & vbCrLf
                 End If
@@ -216,6 +218,8 @@ Private Sub ctrlCleanUpButton_Click()
                 'works as intended
                 Call SEC.RevertAllToOriginal
                 'Call SEC.TempCleanUp(SelectedInjection)
+                
+                Call SEC.PostHocAutoZero
                 
                 'VOLUME NORMALIZATION
                 '1: [do I normalize] 2: [which injection] 3: [which volume]

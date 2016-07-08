@@ -8,6 +8,7 @@ Public Type AxisDataType
 End Type
 
 Sub CallUnicornForm()
+Attribute CallUnicornForm.VB_ProcData.VB_Invoke_Func = "D\n14"
 
     Dim a As AxisDataType
     
@@ -21,6 +22,7 @@ Sub CallUnicornForm()
     Const file6 As String = "C:\temp\Juraj Ahel FPLC\Gimli\Default\Result\Juraj\Ettan\Ettan Mpa\Ettan150601E P12.res"
     Const file7 As String = "C:\Users\juraj.ahel\Desktop\New folder (2)\Pur160205 SEC3 IMAC1 IEX.zip"
     Const file8 As String = "Y:\Personal Folders\Juraj\FPLC\Mpa\Pur160427 Mpa 5c SeMet SEC1.res"
+    Const file9 As String = "Y:\Personal Folders\Juraj\FPLC\Mpa\Pur160707 Mpa5c SEC1 S6 XK 16 70.zip"
     
     'CreateSheetFromName (conDefaultSheetName)
     
@@ -31,7 +33,7 @@ Sub CallUnicornForm()
     With tmpFrm
 
         '.DefaultStartFolder = "Y:\Juraj\FPLC\Mpa\"
-        .DefaultFileName = file8
+        .DefaultFileName = file9
         
         .ManualInitialize
         

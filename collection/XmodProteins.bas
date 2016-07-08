@@ -1,4 +1,4 @@
-Attribute VB_Name = "XProteins"
+Attribute VB_Name = "XmodProteins"
 Option Explicit
 
 '****************************************************************************************************

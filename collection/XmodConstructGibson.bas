@@ -149,14 +149,15 @@ Sub GibsonMonster()
 
 '====================================================================================================
 '
-'CurrColumnuraCurrColumn Ahel, 2016-06-27
-'
+'Juraj Ahel, 2016-06-27
+'v0.5
 '====================================================================================================
     
     'constants
-    Const Table1Size As Long = 10
-    Const Table2Size As Long = 9
-    Const AssemblySize As Long = 2
+    Const Table1Size As Long = 13
+    
+    Const Table2Size As Long = 11
+    Const AssemblySize As Long = 3
     Const ORFTableSize As Long = 3
     
     Const GapSize As Long = 2
@@ -166,6 +167,11 @@ Sub GibsonMonster()
     Const RequiredRows As Long = 10
     Const RequiredColumns As Long = 2
     Const ParameterNumber As Long = 9
+    
+    'positions of parameters in table1
+    Const pName As Long = 1
+    Const pSeq As Long = 7
+    Const pFlorian As Long = 13
     
     'iterators
     Dim i As Long
@@ -207,6 +213,47 @@ Sub GibsonMonster()
     
     Dim ORFs As VBA.Collection
     
+    'headers
+    
+    Dim RowHeaders1(1 To Table1Size, 1 To 1)
+    Dim RowHeaders2(1 To Table2Size, 1 To 1)
+    Dim RowHeaders3(1 To AssemblySize, 1 To 1)
+    Dim RowHeaders4(1 To ORFTableSize, 1 To 1)
+    
+    RowHeaders1(1, 1) = "name"
+    RowHeaders1(2, 1) = "linker/addition before"
+    RowHeaders1(3, 1) = "start codon"
+    RowHeaders1(4, 1) = "linker"
+    RowHeaders1(5, 1) = "tag"
+    RowHeaders1(6, 1) = "linker"
+    RowHeaders1(7, 1) = "fragment sequence"
+    RowHeaders1(8, 1) = "linker"
+    RowHeaders1(9, 1) = "tag"
+    RowHeaders1(10, 1) = "linker"
+    RowHeaders1(11, 1) = "stop codon"
+    RowHeaders1(12, 1) = "linker/adition after"
+    RowHeaders1(13, 1) = "allowed overlap to next"
+    
+    RowHeaders2(1, 1) = "source sequence"
+    RowHeaders2(2, 1) = "forward primer"
+    RowHeaders2(3, 1) = "reverse primer"
+    RowHeaders2(4, 1) = "forward name"
+    RowHeaders2(5, 1) = "reverse name"
+    RowHeaders2(6, 1) = "forward Tm"
+    RowHeaders2(7, 1) = "reverse Tm"
+    RowHeaders2(8, 1) = "forward Length"
+    RowHeaders2(9, 1) = "reverse Length"
+    RowHeaders2(10, 1) = "overlap previous"
+    RowHeaders2(11, 1) = "overlap next"
+    
+    RowHeaders3(1, 1) = "PCR sequence"
+    RowHeaders3(2, 1) = "assembly"
+    RowHeaders3(3, 1) = "tags"
+    
+    RowHeaders4(1, 1) = "nucleotides"
+    RowHeaders4(2, 1) = "translation"
+    RowHeaders4(3, 1) = "length"
+    
     
     ':::START:::
     
@@ -224,6 +271,9 @@ Sub GibsonMonster()
             End If
             
             FragmentCount = .Columns.Count
+            
+            'if too much was selected by accident
+            Set InputTable = InputTable.Resize(Table1Size, FragmentCount)
             
             InputTableValues = .Value
             
@@ -258,21 +308,26 @@ Sub GibsonMonster()
             End Select
             
         'define the current fragment
-            CurrFragment = InputTableValues(9, CurrColumn)
-            CurrName = InputTableValues(1, CurrColumn)
+            CurrFragment = InputTableValues(pSeq, CurrColumn)
+            CurrName = InputTableValues(pName, CurrColumn)
                     
         'DNA to be added in between + name
+        'DNA that will be added are the C-terminal (3') additions to current fragment
+        'and the N-terminal (5') additions to the next fragment
             Addition = ""
-            For i = 2 To 8
+            For i = 8 To 12
+                Addition = Addition & InputTableValues(i, CurrColumn)
+            Next i
+            For i = 2 To 6
                 Addition = Addition & InputTableValues(i, NextColumn)
             Next i
                 
         'downstream region (next fragment)
-            NextFragment = InputTableValues(9, NextColumn)
-            NextName = InputTableValues(1, NextColumn)
+            NextFragment = InputTableValues(pSeq, NextColumn)
+            NextName = InputTableValues(pName, NextColumn)
             
         'overlaps parameter
-            AllowedOverlap = InputTableValues(10, CurrColumn)
+            AllowedOverlap = InputTableValues(pFlorian, CurrColumn)
             Select Case True
                 Case (AllowedOverlap Like "1")
                     FlorianParameter = "23"
@@ -346,36 +401,82 @@ Sub GibsonMonster()
             PrimersTableValues(7, CurrColumn) = PrimerCurrTm
             PrimersTableValues(6, NextColumn) = PrimerNextTm
             
-            PrimersTableValues(9, CurrColumn) = OverlapSequence
-            PrimersTableValues(8, NextColumn) = OverlapSequence
+            PrimersTableValues(9, CurrColumn) = Len(PrimerCurrSeq)
+            PrimersTableValues(8, NextColumn) = Len(PrimerNextSeq)
+            
+            PrimersTableValues(11, CurrColumn) = OverlapSequence
+            PrimersTableValues(10, NextColumn) = OverlapSequence
                     
         CurrColumn = CurrColumn + 1
         
     Loop
     
     'when all the values have been extracted, do the following:
-    PrimersTable.Value = PrimersTableValues
-    AssemblyTable.Value = AssemblyTableValues
-    ORFTable.Value = ORFTableValues
     
-    
-    'perform in-silico PCR of all fragments
         Dim tTemplate As String
         Dim tFor As String
         Dim tRev As String
+        
+        Dim tNterm As String
+        Dim tCterm As String
+        
+        Dim tResult As String
     
         For i = 1 To FragmentCount
+        
+            'perform in-silico PCR of all fragments
+                
+                tTemplate = PrimersTableValues(1, i)
+                tFor = PrimersTableValues(2, i)
+                tRev = PrimersTableValues(3, i)
+                
+                AssemblyTableValues(1, i) = PCRWithOverhangs(tTemplate, tFor, tRev, True)
             
-            tTemplate = PrimersTableValues(1, i)
-            tFor = PrimersTableValues(2, i)
-            tRev = PrimersTableValues(3, i)
-            
-            AssemblyTableValues(1, i) = PCRWithOverhangs(tTemplate, tFor, tRev, True)
+            'annotate the tags/linkers
+        
+                tNterm = ""
+                tCterm = ""
+                
+                For j = 3 To 6
+                    tNterm = tNterm & InputTableValues(j, i)
+                Next j
+                
+                For j = 8 To 11
+                    tCterm = tCterm & InputTableValues(j, i)
+                Next j
+                
+                'check which extension exists, apply it
+                'check if any exist
+                If Len(tCterm) > 0 Or Len(tNterm) > 0 Then
+                
+                    If Len(tNterm) > 0 Then
+                        tNterm = "N-" & DNATranslate(tNterm)
+                    End If
+                    
+                    If Len(tCterm) > 0 Then
+                        tCterm = "C-" & DNATranslate(tCterm)
+                    End If
+                    
+                    'if both
+                    If Len(tNterm) > 0 And Len(tCterm) > 0 Then
+                        tResult = tNterm & " / " & tCterm
+                        
+                    'if only one
+                    Else
+                        If Len(tNterm) > 0 Then
+                            tResult = tNterm
+                        Else
+                            tResult = tCterm
+                        End If
+                    End If
+                    
+                End If
+                                    
+                AssemblyTableValues(3, i) = tResult
             
         Next i
         
     'ligate the fragments
-        Dim tResult As String
         
         tResult = AssemblyTableValues(1, 1)
         
@@ -406,16 +507,40 @@ Sub GibsonMonster()
             ORFTableValues(3, i) = Len(ORFTableValues(2, i))
             
         Next i
+                
+    'repair table headers
+                    
+        With InputTable
+            .Offset(-1, -1).Resize(1, 1).Value = "Inputs"
+            .Offset(0, -1).Resize(Table1Size, 1).Value = RowHeaders1
+        End With
+                    
+        With PrimersTable
+            .Offset(-1, -1).Resize(1, 1).Value = "Primers"
+            .Offset(0, -1).Resize(Table2Size, 1).Value = RowHeaders2
+            .Value = PrimersTableValues
+        End With
+        
+        With AssemblyTable
+            .Offset(-1, -1).Resize(1, 1).Value = "PCR"
+            .Offset(0, -1).Resize(AssemblySize, 1).Value = RowHeaders3
+            .Value = AssemblyTableValues
+        End With
+        
+        With ORFTable
+            .Offset(-1, -1).Resize(1, 1).Value = "ORFs"
+            .Offset(0, -1).Resize(ORFTableSize, 1).Value = RowHeaders4
+            .Value = ORFTableValues
+        End With
     
-    PrimersTable.Value = PrimersTableValues
-    AssemblyTable.Value = AssemblyTableValues
-    ORFTable.Value = ORFTableValues
     
-    Set InputTable = Nothing
-    Set PrimersTable = Nothing
-    Set AssemblyTable = Nothing
-    Set ORFTable = Nothing
-    Set ORFs = Nothing
+    'clean up
+        
+        Set InputTable = Nothing
+        Set PrimersTable = Nothing
+        Set AssemblyTable = Nothing
+        Set ORFTable = Nothing
+        Set ORFs = Nothing
 
 End Sub
 
