@@ -2,6 +2,59 @@ Attribute VB_Name = "XmodDNA"
 Option Explicit
 
 '****************************************************************************************************
+Function DNAParseTextInput( _
+    ByVal InputString As String, _
+    Optional ByVal Uppercase As Boolean = True, _
+    Optional ByVal ExtendedSymbolSet As Boolean = False _
+    ) As String
+'====================================================================================================
+'Finds the longest ORF in a DNA sequence, read in forward direction, assuming it's circular by default
+'Juraj Ahel, 2016-06-28
+'
+'====================================================================================================
+    
+    Const AllowedSet As String = "[ATGC]"
+    Const ExtendedAllowedSet As String = "[ACGTRYWSMKBDHVUN]"
+    
+    Dim i As Long
+    Dim InputArray() As String, OutputArray() As String
+    Dim InputLength As Long
+    Dim tChar As String
+    Dim Filter As String
+    Dim Result As String
+    
+    If Len(InputString) = 0 Then
+        DNAParseTextInput = ""
+        Exit Function
+    End If
+    
+    If ExtendedSymbolSet = True Then
+        Filter = ExtendedAllowedSet
+    Else
+        Filter = AllowedSet
+    End If
+    
+    InputLength = Len(InputString)
+    
+    ReDim InputArray(1 To InputLength)
+    ReDim OutputArray(1 To InputLength)
+    
+    For i = 1 To InputLength
+    
+        tChar = UCase(Mid(InputString, i, 1))
+        If tChar Like Filter Then OutputArray(i) = tChar
+        
+    Next i
+    
+    Result = Join(OutputArray, "")
+    
+    If Uppercase Then Result = UCase(Result)
+    
+    DNAParseTextInput = Result
+
+End Function
+
+'****************************************************************************************************
 Private Function DNAFindORFsRecursion( _
     ByVal Sequence As String, _
     Optional ByVal MinimumORFLength As Long = 50 _
@@ -90,9 +143,10 @@ Function DNAFindORFs( _
 '====================================================================================================
 'Finds the longest ORF in a DNA sequence, read in forward direction, assuming it's circular by default
 'Juraj Ahel, 2016-06-28
-'
+'2016-07-14 add quick hack to allow the case where the entire circular construct is an ORF, which does not start at 1
 '====================================================================================================
 'AllowORFOverlap not yet implemented - but it can be easily acquired by just running DNALongestORF
+
             
     Dim ORFs As VBA.Collection
     Dim tColl As VBA.Collection
@@ -129,6 +183,9 @@ Function DNAFindORFs( _
                 iStart = InStr(1, Sequence, tempORF)
                 iLen = Len(tempORF)
                 
+                'HACKY
+                If iStart < 1 Then GoTo 999
+                
                 LeftSeq = Left(Sequence, iStart - 1)
                 RightSeq = Right(Sequence, 1 + Len(Sequence) - iStart - iLen)
                         
@@ -154,6 +211,7 @@ Function DNAFindORFs( _
         
     End If
         
+999 'hacky
         
     If Not ORFs Is Nothing Then
         If ORFs.Count > 1 Then
@@ -182,6 +240,7 @@ Function DNALongestORF( _
 'Last update 2016-01-14
 '2016-06-27 implement selecting Nth longest ORF
 '2016-06-28 make overlapping ORFs optional
+'2016-07-04 require a stop codon at the end of the CDS
 '====================================================================================================
     
     Dim TempStart As Long, TempEnd As Long, BestStart As Long
@@ -263,6 +322,13 @@ Function DNALongestORF( _
             Codon = Mid(Sequence, TempEnd, 3)
         Loop Until Codon = "TGA" Or Codon = "TAA" Or Codon = "TAG" Or TempEnd > MaxEnd
         
+        Select Case Codon
+            Case "TGA", "TAA", "TAG"
+                'all good
+            Case Else
+                GoTo NextLoop
+        End Select
+        
         CurrentLength = TempEnd - TempStart
         
         'if we are in the tolerated range
@@ -290,6 +356,8 @@ Function DNALongestORF( _
             End If
         
         End If
+    
+NextLoop:
     
     Loop Until TempStart = 0 Or TempStart > (SequenceLength - MinimumORFLength)
     
@@ -454,6 +522,7 @@ Function DNAReverseComplement(InputSequence As String) As String
 'Juraj Ahel, 2015-02-04, for checking primers
 'Last update 2015-02-04
 '2016-06-28 explicit variable declaration
+'2016-07-14 exit check for zero length input
 '====================================================================================================
 'So far, always UPPERCASE output. Non-ACGT are preserved.
     
@@ -462,6 +531,11 @@ Function DNAReverseComplement(InputSequence As String) As String
     
     Dim StringLength As Long
     Dim OutputSequence() As String
+    
+    If Len(InputSequence) = 0 Then
+        DNAReverseComplement = ""
+        Exit Function
+    End If
     
     StringLength = Len(InputSequence)
     ReDim OutputSequence(1 To StringLength)
@@ -592,40 +666,64 @@ Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
 'Last update 2015-09-28
 '====================================================================================================
 'demonstrated to work 2015-09-28 on pJA1K and PLS46 (Mys1b in pFastBAC1 from 1-2, 3-5, 6-7, DF14)
+'2016-07-04 add ability to pass an array variable as a parameter, in a dirty way
+'           rewrite code a bit
 
-Const MinOverlap = 15           'overlap should be at least this
-Const MaxOverlapCheck = 250     'max meaningful to check, could be arbitrarily long code-wise, but no reason
-Const MinTm = 48                'Tm should be at least this
-
-Dim FragmentCount As Long
-Dim OverlapLength As Long
-Dim tempResult As String
-Dim i As Long, j As Long
-Dim Tm As Double
-
-FragmentCount = 1 + UBound(DNAList) - LBound(DNAList)
-
-tempResult = DNAList(0)
-
-
-For i = 0 To FragmentCount - 1
-    j = MaxOverlapCheck
-    Do While (Right(DNAList(i), j) <> Left(DNAList((i + 1) Mod FragmentCount), j))
-        j = j - 1
-    Loop
-    OverlapLength = j
-    Tm = OligoTm(Right(DNAList(i), j))
-    If (OverlapLength < MinOverlap) Or (Tm < MinTm) Then
-        tempResult = "#ERROR! Overlap " & (1 + i) & "-" & (1 + ((i + 1) Mod FragmentCount)) & " faulty!"
-        GoTo 999
+    Const MinOverlap = 10          'overlap should be at least this
+    Const MaxOverlapCheck = 250     'max meaningful to check, could be arbitrarily long code-wise, but no reason
+    Const MinTm = 48                'Tm should be at least this
+    
+    Dim FragmentCount As Long
+    Dim OverlapLength As Long
+    Dim tempResult As String
+    Dim i As Long, j As Long
+    Dim NextFragment As Long
+    Dim Tm As Double
+    Dim ParsedDNAList() As Variant
+    
+    FragmentCount = 1 + UBound(DNAList) - LBound(DNAList)
+    
+    If VarType(DNAList(LBound(DNAList))) >= vbArray Then
+        ParsedDNAList = DNAList(LBound(DNAList))
     Else
-        DNAList(i) = Left(DNAList(i), Len(DNAList(i)) - OverlapLength)
+        ParsedDNAList = DNAList
     End If
-Next i
-
-tempResult = Join(DNAList, "")
-
-999 DNAGibsonLigation = tempResult
+    
+    tempResult = ParsedDNAList(LBound(ParsedDNAList))
+    
+    
+    For i = LBound(ParsedDNAList) To UBound(ParsedDNAList)
+        
+        If i = UBound(ParsedDNAList) Then
+            NextFragment = LBound(ParsedDNAList)
+        Else
+            NextFragment = i + 1
+        End If
+        
+        j = MaxOverlapCheck
+        Do While (Right(ParsedDNAList(i), j) <> Left(ParsedDNAList(NextFragment), j))
+            j = j - 1
+        Loop
+        
+        OverlapLength = j
+        Tm = OligoTm(Right(ParsedDNAList(i), j))
+        
+        If (OverlapLength < MinOverlap) Then
+            tempResult = "#ERROR! Overlap " & (1 + i) & "-" & (1 + ((i + 1) Mod FragmentCount)) & " too low Tm!"
+            GoTo 999
+        End If
+        If (Tm < MinTm) Then
+            tempResult = "#ERROR! Overlap " & (1 + i) & "-" & (1 + ((i + 1) Mod FragmentCount)) & " too short!"
+            GoTo 999
+        End If
+        
+        ParsedDNAList(i) = Left(ParsedDNAList(i), Len(ParsedDNAList(i)) - OverlapLength)
+        
+    Next i
+    
+    tempResult = Join(ParsedDNAList, "")
+    
+999     DNAGibsonLigation = tempResult
 
 End Function
 
@@ -647,7 +745,7 @@ Function PCRSimulate(Template As String, _
     ErrorPrefix = "#! "
     
     Dim PrimerFCount As Long, PrimerRCount As Long
-    Dim result As String
+    Dim Result As String
     
     PrimerFCount = StringCharCount_IncludeOverlap(Template, ForwardPrimer, DNAReverseComplement(ForwardPrimer))
     PrimerRCount = StringCharCount_IncludeOverlap(Template, DNAReverseComplement(ReversePrimer))
@@ -655,16 +753,16 @@ Function PCRSimulate(Template As String, _
     If PrimerFCount <> 1 Or PrimerRCount <> 1 Then
     
         If PrimerFCount > 1 Or PrimerRCount > 1 Then
-            result = "Primer target sites not unique: Forward: " & PrimerFCount & " Reverse: " & PrimerRCount
+            Result = "Primer target sites not unique: Forward: " & PrimerFCount & " Reverse: " & PrimerRCount
         ElseIf PrimerFCount = 0 And PrimerRCount = 0 Then
-            result = "No binding site found for either primer!"
+            Result = "No binding site found for either primer!"
         ElseIf PrimerFCount = 0 Then
-            result = "No binding site found for Forward primer."
+            Result = "No binding site found for Forward primer."
         ElseIf PrimerRCount = 0 Then
-            result = "No binding site found for Reverse primer."
+            Result = "No binding site found for Reverse primer."
         End If
         
-        result = ErrorPrefix & result
+        Result = ErrorPrefix & Result
         
         GoTo 999
     End If
@@ -704,13 +802,13 @@ Function PCRSimulate(Template As String, _
     FLen = Len(ForwardPrimer)
     RLen = Len(ReversePrimer)
     
-    result = ForwardPrimer & SubSequenceSelect(Template, FSite + FLen, RSite - 1) & DNAReverseComplement(ReversePrimer)
+    Result = ForwardPrimer & SubSequenceSelect(Template, FSite + FLen, RSite - 1) & DNAReverseComplement(ReversePrimer)
     
-    If Len(result) < FLen + RLen Then result = ErrorPrefix & "Primers too close."
+    If Len(Result) < FLen + RLen Then Result = ErrorPrefix & "Primers too close."
     
-    If FSite > RSite Then result = ErrorPrefix & "Reverse primer anneals upstream of Forward primer, check sequences."
+    If FSite > RSite Then Result = ErrorPrefix & "Reverse primer anneals upstream of Forward primer, check sequences."
     
-999     PCRSimulate = result
+999     PCRSimulate = Result
 
 End Function
 
@@ -719,7 +817,7 @@ Function PCRWithOverhangs(Template As String, _
                     ForwardPrimer As String, ReversePrimer As String, _
                     Optional Circular = False, _
                     Optional Perfect = True, _
-                    Optional IgnoreBestMatch = False, _
+                    Optional IgnoreBestMatch = True, _
                     Optional Details = False, _
                     Optional MinimalOverlap = 15 _
                     ) As String
@@ -811,7 +909,9 @@ Function PCRWithOverhangs(Template As String, _
     
     If Not Details Then
         tempResult = PCRSimulate(Template, OverlapF, DNAReverseComplement(OverlapR), Circular, Perfect)
-        tempResult = OverhangF & tempResult & OverhangR
+        If Left(tempResult, 2) <> "#!" Then
+            tempResult = OverhangF & tempResult & OverhangR
+        End If
     Else
         tempResult = "F:" & OligoTm(OverlapF) & " °C, " & Len(OverlapF)
         tempResult = tempResult & " R:" & OligoTm(OverlapR) & " °C, " & Len(OverlapR)
@@ -838,7 +938,7 @@ Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double
 
 Const NumberOfVariants = 40
 
-Dim result As String
+Dim Result As String
 Dim Tm As Double
 Dim Length As Long
 Dim Score() As Double, MaxScore As Long

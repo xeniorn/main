@@ -13,7 +13,7 @@
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId />
     <InterpreterVersion />
-    <CommandLineArguments>"C:\Users\juraj.ahel\AppData\Local\Temp\20160703221330.jatmp" "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe" "C:\ExcelExports\GibsonMacro"</CommandLineArguments>
+    <CommandLineArguments>"C:\temp\20160714193517.jatmp" "C:\Program Files (x86)\ViennaRNA Package\RNAfold.exe" "C:\ExcelExports\GibsonMacro"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <InterpreterPath>
     </InterpreterPath>

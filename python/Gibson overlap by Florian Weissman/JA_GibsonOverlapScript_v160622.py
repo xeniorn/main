@@ -15,14 +15,20 @@ debugging = False
 DefaultSalt = 50
 
 ExpectedNumberOfParameters = 6
-MaxDistanceFromEnd = 30
-MaxWindowExtension = 5
 
-minOverlapTm = 48
-primer_tm = 62
 NumberOfOutputs = 1
-MinimumWindow = 20
-length0 = MinimumWindow
+
+MinimumOverlap = 20
+minOverlapTm = 50
+
+MinimumPrimerOverlap = 18
+primer_tm = 62
+
+MaxDistanceFromEnd = 20
+MaxOverlapSize = 25
+MaxWindowExtension = MaxOverlapSize - MinimumOverlap
+
+length0 = MinimumOverlap
 
 if debugging:
  print "# of args: " + str(len(sys.argv))
@@ -127,11 +133,17 @@ def complement(s):
  """\OS X Version"""
  
  """JA - Windows version, adds \r to endline"""
- basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'U': 'A', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'u': 'a', '\n': '', '\r': '', ';': ''}
+ basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'U': 'A', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'u': 'a', '\n': '', '\r': '', ';': '',' ' : ''}
  """\Windows version"""
- letters = list(s) 
- letters = [basecomplement[base] for base in letters] 
- return ''.join(letters) 
+
+ result = ''
+
+ if len(s) > 0:
+  letters = list(s) 
+  letters = [basecomplement[base] for base in letters] 
+  result = result.join(letters)  
+
+ return result
  
 def gc(s): 
  gc = s.count('G') + s.count('C') 
@@ -148,13 +160,13 @@ with open(InputFile, 'r') as TempFile:
  for line in TempFile:
   seq1.append(line[:-1])
  seq2 = seq1[0]+seq1[1]+seq1[2]
- a = len(seq1[0])+(len(seq1[1])/2)
- if len(seq1[1]) > MinimumWindow:
-  window = MinimumWindow #this is the shit
+ IndexOfMiddle = len(seq1[0])+(len(seq1[1])/2)
+ if len(seq1[1]) > MinimumOverlap:
+  window = MinimumOverlap #this is the shit
   #if FlorianParameter <> '13'
   #window = len(seq1[1])
  else:
-  window = MinimumWindow
+  window = MinimumOverlap
  TempFile.close
  
  
@@ -194,7 +206,6 @@ else:
 
 if TestFactor <0:
  MaxDistanceFromEnd = MaxDistanceFromEnd + TestFactor
-
  
 
 TemplateName1 = 'Template1'
@@ -209,45 +220,61 @@ if len(seq1)>=ExpectedNumberOfParameters:
 
 
 
-
-
   
   
 #"""###construct inputs for RNAFold"""
 seq3 = []
+indexlist = []
+startindex = 0
 
 for j in range(0,MaxWindowExtension):
  length = length0 + j
  if str(FlorianParameter) == '1':
   allowed1 = 'Added Seq, Template2'
   for i in range(0,window):
-   seq3.append(seq2[len(seq1[0])+i:len(seq1[0])+i+length]) 
+   startindex = len(seq1[0])+i
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
  elif str(FlorianParameter) == '2':
   allowed1 = 'Template1, Template2'
   for i in range(0,MaxDistanceFromEnd):
-   seq3.append(seq2[len(seq1[0])+len(seq1[1])+i:len(seq1[0])+len(seq1[1])+i+length]) 
+   startindex = len(seq1[0])+len(seq1[1])+i
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex) 
   for i in range(0,MaxDistanceFromEnd):
-   seq3.append(seq2[len(seq1[0])-i-length:len(seq1[0])-i])
+   startindex = len(seq1[0])-i-length
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
  elif str(FlorianParameter) == '3':
   allowed1 = 'Template1, Added Seq'
   for i in range(0,window):
-   seq3.append(seq2[len(seq1[0])+len(seq1[1])-i-length:len(seq1[0])+len(seq1[1])-i])
+   startindex = len(seq1[0])+len(seq1[1])-i-length
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
  elif str(FlorianParameter) == '12':
   allowed1 = 'Template2'
   for i in range(0,MaxDistanceFromEnd):
-   seq3.append(seq2[len(seq1[0])+len(seq1[1])+i:len(seq1[0])+len(seq1[1])+i+length]) 
+   startindex = len(seq1[0])+len(seq1[1])+i
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
  elif str(FlorianParameter) == '23':
   allowed1 = 'Template1'
   for i in range(0,MaxDistanceFromEnd):
-   seq3.append(seq2[len(seq1[0])-i-length:len(seq1[0])-i])
+   startindex = len(seq1[0])-i-length
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
  elif str(FlorianParameter) == '13':
   allowed1 = 'Added Seq'
   for i in range(0,window):
-   seq3.append(seq2[len(seq1[0])+i:len(seq1[0])+i+length]) 
+   startindex = len(seq1[0])+i
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex) 
  else:
   allowed1 = 'Template1, Added Seq, Template2'
   for i in range(-window,window):
-   seq3.append(seq2[a+i-(length/2):a+i-(length/2)+length])
+   startindex = IndexOfMiddle+i-(length/2)
+   seq3.append(seq2[startindex:startindex+length]) 
+   indexlist.append(startindex)
 
 seq4 = []
 for item in seq3:
@@ -301,7 +328,7 @@ with open(EnergiesFile,'r') as TempFile:
 L2 = []
 for i in range(0,len(L1)):
  if i%2 == 0:
-  L2.append((seq3[i/2],float(L1[i])+float(L1[i+1])))
+  L2.append((seq3[i/2],float(L1[i])+float(L1[i+1]),indexlist[i/2]))
 L3 = sorted(L2, key=lambda x: x[1], reverse=True)
 
 
@@ -342,6 +369,7 @@ print 'Best overlapping segment(s):'
 L4 = []
 L5 = []
 L6 = []
+L7 = []
 i = 0
 j = 0
 tempSeq = L3[0][0]
@@ -352,6 +380,7 @@ if tempTm >= minOverlapTm:
  L4.append(tempSeq)
  L5.append(tempTm)
  L6.append(L3[0][1])
+ L7.append(L3[j][2])
  
 j = 0
 while i < NumberOfOutputs:
@@ -362,6 +391,7 @@ while i < NumberOfOutputs:
   L4.append(tempSeq)
   L5.append(tempTm)
   L6.append(L3[j][1])
+  L7.append(L3[j][2])
   i = i + 1
    
 for i in range(0,NumberOfOutputs): 
@@ -374,19 +404,34 @@ print
 
 
 
- 
+IndexOfFragTwo = len(seq1[0]) + len(seq1[1])
+ReverseIndexFragZero = len(seq1[2]) + len(seq1[1])
+
 #"""###calculate and print primer sequences"""
 for i in range(0,NumberOfOutputs):
- if seq2.find(seq1[2]) >= seq2.find(L4[i]):
-  bigger1 = seq2.find(seq1[2])
+ #LEGACY CODE FROM FLORIAN: fails if there are repeat sequences
+ """
+ if IndexOfFragTwo >= seq2.find(L4[i]):
+  bigger1 = IndexOfFragTwo
  else:
   bigger1 = seq2.find(L4[i])
+ """
+ #new code JA
+ #location of overlap in the sequence
+ #if the overlap is inside fragment 2, then start counting the overlap residues from the overlap (PCR will go from there, truncating it!)
+ #else, start counting from the beginning of the fragment 2, where the primer will actually anneal
+ if IndexOfFragTwo > L7[i]:
+  bigger1 = IndexOfFragTwo
+ else:
+  bigger1 = L7[i]
+
  for j in range(0,MaxDistanceFromEnd):
-  if (Tm_dan(seq2[bigger1:seq2.find(seq1[2])+16+j],DefaultSalt) >= primer_tm) and (seq2[seq2.find(seq1[2])+16+j-1].upper() == 'C' or seq2[seq2.find(seq1[2])+16+j-1].upper() =='G'):   
+  terminalresidue = seq2[IndexOfFragTwo+MinimumPrimerOverlap+j-1].upper()
+  if (Tm_dan(seq2[bigger1:IndexOfFragTwo+MinimumPrimerOverlap+j],DefaultSalt) >= primer_tm) and (terminalresidue == 'C' or terminalresidue =='G'):   
    break
   
- PrintTemp4 = str(Tm_dan(seq2[bigger1:seq2.find(seq1[2])+16+j],DefaultSalt))[:4]
- PrintTemp3 = seq2[seq2.find(L4[i]):seq2.find(seq1[2])+16+j]
+ PrintTemp4 = str(Tm_dan(seq2[bigger1:IndexOfFragTwo+MinimumPrimerOverlap+j],DefaultSalt))[:4]
+ PrintTemp3 = seq2[L7[i]:IndexOfFragTwo+MinimumPrimerOverlap+j]
  
  print '>Overlap ' + str(i+1) + ': ' + TemplateName2 + '_f  (Tm ' + PrintTemp4 + ')'
  print PrintTemp3
@@ -394,19 +439,28 @@ for i in range(0,NumberOfOutputs):
  seq2r = ReverseComplement(seq2)
  l3ir = ReverseComplement(L4[i])
  seq10r = ReverseComplement(seq1[0])
- 
- if seq2r.find(seq10r) >= seq2r.find(l3ir):
-  bigger1 = seq2r.find(seq10r)
+ #location of reverse complement of overlap in reverse complement of sequence 
+ OverlapIndexReverse = len(seq2) - L7[i] - len(L4[i])
+
+ if ReverseIndexFragZero > OverlapIndexReverse:
+  bigger1 = ReverseIndexFragZero
  else:
-  bigger1 = seq2r.find(l3ir)
+  bigger1 = OverlapIndexReverse
+ 
+ #LEGACY CODE
+ #if seq2r.find(seq10r) >= seq2r.find(l3ir):
+ # bigger1 = seq2r.find(seq10r)
+ #else:
+ # bigger1 = seq2r.find(l3ir)
   
  for j in range(0,MaxDistanceFromEnd):
-  if (Tm_dan(seq2r[bigger1:seq2r.find(seq10r)+16+j],DefaultSalt) >= primer_tm) and (seq2r[seq2r.find(seq10r)+16+j-1].upper() == 'C' or seq2r[seq2r.find(seq10r)+16+j-1].upper() =='G'):      
+  terminalresidue = seq2r[ReverseIndexFragZero+MinimumPrimerOverlap+j-1].upper()
+  if (Tm_dan(seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j],DefaultSalt) >= primer_tm) and (terminalresidue == 'C' or terminalresidue =='G'):      
    break
  print
  
- PrintTemp2 = str(Tm_dan(seq2r[bigger1:seq2r.find(seq10r)+16+j],DefaultSalt))[:4]
- PrintTemp1 = seq2r[seq2r.find(l3ir):seq2r.find(seq10r)+16+j]
+ PrintTemp2 = str(Tm_dan(seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j],DefaultSalt))[:4]
+ PrintTemp1 = seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j]
  
  print '>Overlap ' + str(i+1) + ': ' + TemplateName1 +'_r  (Tm ' + PrintTemp2 + ')'
  print PrintTemp1

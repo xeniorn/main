@@ -1,13 +1,13 @@
 Attribute VB_Name = "XmodConstructGibson"
 'Juraj Ahel, 2015-02-01
-'Last Update, 2016-02-17
+'Last Update 2016-02-17
 
 Const DebugMode As Boolean = True
 
 Const jaQuote As String = """"
 
 'These need to be [Private] Dim and a final Wrapper function should ask
-Const PythonScriptPath As String = "E:\PhD\Tools Alati Macros Scripts Programs Utilities\Gibson overlap by Florian Weissman\JA_GibsonOverlapScript_v160622.py"
+Const PythonScriptPath As String = "C:\Users\juraj.ahel\Documents\GitHub\main\python\Gibson overlap by Florian Weissman\JA_GibsonOverlapScript_v160622.py"
 Const Python27ProgramName As String = "python.exe"
 Const PathToPython27 As String = "C:\Python27"
 Const ExcelExportFolder As String = "C:\ExcelExports\GibsonMacro"
@@ -85,17 +85,17 @@ Sub GibsonTest()
                     
                         Case "OVERLAP"
                             OverlapSequence = ExtractParameter(textline, "OverlapSequence", "[]")
-                            OverlapEnergy = Val(ExtractParameter(textline, "dG", "[]"))
-                            OverlapTm = Val(ExtractParameter(textline, "Tm", "[]"))
+                            OverlapEnergy = val(ExtractParameter(textline, "dG", "[]"))
+                            OverlapTm = val(ExtractParameter(textline, "Tm", "[]"))
                         
                         Case "PRIMER1"
                             PrimerName(1) = ExtractParameter(textline, "PrimerName", "[]")
                             PrimerSequence(1) = ExtractParameter(textline, "Sequence", "[]")
-                            PrimerTmNN(1) = Val(ExtractParameter(textline, "Tm", "[]"))
+                            PrimerTmNN(1) = val(ExtractParameter(textline, "Tm", "[]"))
                         Case "PRIMER2"
                             PrimerName(2) = ExtractParameter(textline, "PrimerName", "[]")
                             PrimerSequence(2) = ExtractParameter(textline, "Sequence", "[]")
-                            PrimerTmNN(2) = Val(ExtractParameter(textline, "Tm", "[]"))
+                            PrimerTmNN(2) = val(ExtractParameter(textline, "Tm", "[]"))
                             
                     End Select
                        
@@ -145,24 +145,57 @@ Sub GibsonTest()
 End Sub
 
 '****************************************************************************************************
+Sub GibsonMother()
+'====================================================================================================
+'calls GibsonMonster for all areas in a selection
+'Juraj Ahel, 2016-07-05
+'
+'====================================================================================================
+
+    Dim InputRange As Range
+    Dim SubRange As Range
+
+    Set InputRange = Selection
+
+    If InputRange.Areas.Count >= 1 Then
+    
+        For Each SubRange In InputRange.Areas
+        
+            SubRange.Select
+            
+            Call GibsonMonster
+            
+        Next SubRange
+        
+    End If
+
+    Set SubRange = Nothing
+    Set InputRange = Nothing
+
+End Sub
+
+'****************************************************************************************************
 Sub GibsonMonster()
+Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
 
 '====================================================================================================
 '
 'Juraj Ahel, 2016-06-27
 'v0.5
 '====================================================================================================
+'2016-07-04 add PCR product length, make the program work for >2 sequences
+'2016-07-05 add automatic FASTA formatted output of primers / construct
     
     'constants
     Const Table1Size As Long = 13
     
     Const Table2Size As Long = 11
-    Const AssemblySize As Long = 3
+    Const AssemblySize As Long = 4
     Const ORFTableSize As Long = 3
     
     Const GapSize As Long = 2
     
-    Const ORFDetectNumber As Long = 7
+    Const conORFDetectNumber As Long = 7
     
     Const RequiredRows As Long = 10
     Const RequiredColumns As Long = 2
@@ -181,6 +214,9 @@ Sub GibsonMonster()
     Dim NextColumn As Long
     
     'tables
+    Dim InputTable As Range
+    Dim InputTableValues() As Variant
+    
     Dim PrimersTable As Range
     Dim PrimersTableValues() As Variant
     
@@ -190,11 +226,12 @@ Sub GibsonMonster()
     Dim ORFTable As Range
     Dim ORFTableValues() As Variant
     
-    Dim InputTable As Range
-    Dim InputTableValues() As Variant
+    Dim OutputTable As Range
+    Dim OutputTableValues() As Variant
     
     'descriptors
     Dim FragmentCount As Long
+    Dim ORFDetectNumber As Long
     
     'temp vars
     Dim PrevFragment As String
@@ -247,12 +284,15 @@ Sub GibsonMonster()
     RowHeaders2(11, 1) = "overlap next"
     
     RowHeaders3(1, 1) = "PCR sequence"
-    RowHeaders3(2, 1) = "assembly"
+    RowHeaders3(2, 1) = "length"
     RowHeaders3(3, 1) = "tags"
+    RowHeaders3(4, 1) = "assembly"
     
     RowHeaders4(1, 1) = "nucleotides"
     RowHeaders4(2, 1) = "translation"
     RowHeaders4(3, 1) = "length"
+    
+    ORFDetectNumber = conORFDetectNumber
     
     
     ':::START:::
@@ -277,6 +317,14 @@ Sub GibsonMonster()
             
             InputTableValues = .Value
             
+            'remove spaces and all other non-DNA characters that might be present from
+            'relevant inputs
+            For j = 1 To FragmentCount
+                For i = 2 To Table1Size - 1
+                    InputTableValues(i, j) = DNAParseTextInput(InputTableValues(i, j))
+                Next i
+            Next j
+            
         End With
     
     'initialize Tables
@@ -288,6 +336,9 @@ Sub GibsonMonster()
         
         Set ORFTable = AssemblyTable.Offset(AssemblyTable.Rows.Count + GapSize, 0).Resize(ORFTableSize, ORFDetectNumber)
         ORFTableValues = ORFTable.Value
+        
+        Set OutputTable = ORFTable.Offset(ORFTable.Rows.Count + GapSize, 0).Resize(2 * FragmentCount + 1, 3)
+        OutputTableValues = OutputTable.Value
     
         
     ':::::::::::::::::::::::::::::::::main:::::::::::::::::::::::::::::::::::
@@ -431,9 +482,11 @@ Sub GibsonMonster()
                 tRev = PrimersTableValues(3, i)
                 
                 AssemblyTableValues(1, i) = PCRWithOverhangs(tTemplate, tFor, tRev, True)
+                AssemblyTableValues(2, i) = Len(AssemblyTableValues(1, i))
             
             'annotate the tags/linkers
-        
+            
+                tResult = ""
                 tNterm = ""
                 tCterm = ""
                 
@@ -480,16 +533,25 @@ Sub GibsonMonster()
         
         tResult = AssemblyTableValues(1, 1)
         
-        For i = 2 To FragmentCount
-            tResult = DNAGibsonLigation(tResult, AssemblyTableValues(1, i))
+        'For i = 2 To FragmentCount
+        '    tResult = DNAGibsonLigation(tResult, AssemblyTableValues(1, i))
+        'Next i
+        
+        Dim tArray()
+        ReDim tArray(1 To FragmentCount)
+        
+        For i = 1 To FragmentCount
+            tArray(i) = AssemblyTableValues(1, i)
         Next i
         
-        AssemblyTableValues(2, 1) = tResult
+        tResult = DNAGibsonLigation(tArray)
+        
+        AssemblyTableValues(4, 1) = tResult
         
     
     'check the ORFs
         tResult = ""
-        tTemplate = AssemblyTableValues(2, 1)
+        tTemplate = AssemblyTableValues(4, 1)
             
         Set ORFs = DNAFindORFs( _
             Sequence:=tTemplate, _
@@ -498,14 +560,38 @@ Sub GibsonMonster()
             AllowORFOverlap:=False, _
             AllowReverseStrand:=True)
             
+        If ORFDetectNumber > ORFs.Count Then
+            ORFDetectNumber = ORFs.Count
+        End If
+            
         For i = 1 To ORFDetectNumber
-                
+            
             tResult = ORFs.Item(i)
                 
             ORFTableValues(1, i) = tResult
             ORFTableValues(2, i) = DNATranslate(tResult)
             ORFTableValues(3, i) = Len(ORFTableValues(2, i))
             
+        Next i
+        
+        
+        OutputTableValues(1, 1) = "Assembly" & InputTable.Column
+        OutputTableValues(1, 2) = AssemblyTableValues(4, 1)
+        
+        For i = 1 To FragmentCount
+        
+            OutputTableValues(2 * i, 1) = PrimersTableValues(4, i)
+            OutputTableValues(2 * i, 2) = PrimersTableValues(2, i)
+            
+            OutputTableValues(2 * i + 1, 1) = PrimersTableValues(5, i)
+            OutputTableValues(2 * i + 1, 2) = PrimersTableValues(3, i)
+            
+        Next i
+        
+        For i = LBound(OutputTableValues, 1) To UBound(OutputTableValues, 1)
+          
+            OutputTableValues(i, 3) = ">" & OutputTableValues(i, 1) & "###" & OutputTableValues(i, 2)
+          
         Next i
                 
     'repair table headers
@@ -532,6 +618,12 @@ Sub GibsonMonster()
             .Offset(0, -1).Resize(ORFTableSize, 1).Value = RowHeaders4
             .Value = ORFTableValues
         End With
+        
+        With OutputTable
+            .Offset(-1, -1).Resize(1, 1).Value = "Output"
+            '.Offset(0, -1).Resize(ORFTableSize, 1).Value = RowHeaders4
+            .Value = OutputTableValues
+        End With
     
     
     'clean up
@@ -541,6 +633,7 @@ Sub GibsonMonster()
         Set AssemblyTable = Nothing
         Set ORFTable = Nothing
         Set ORFs = Nothing
+        Set OutputTable = Nothing
 
 End Sub
 
@@ -674,17 +767,17 @@ Sub GibsonRun( _
             
                 Case "OVERLAP"
                     OverlapSequence = ExtractParameter(textline, "OverlapSequence", "[]")
-                    OverlapEnergy = Val(ExtractParameter(textline, "dG", "[]"))
-                    OverlapTm = Val(ExtractParameter(textline, "Tm", "[]"))
+                    OverlapEnergy = val(ExtractParameter(textline, "dG", "[]"))
+                    OverlapTm = val(ExtractParameter(textline, "Tm", "[]"))
                 
                 Case "PRIMER1"
                     PrimerName(1) = ExtractParameter(textline, "PrimerName", "[]")
                     PrimerSequence(1) = ExtractParameter(textline, "Sequence", "[]")
-                    PrimerTmNN(1) = Val(ExtractParameter(textline, "Tm", "[]"))
+                    PrimerTmNN(1) = val(ExtractParameter(textline, "Tm", "[]"))
                 Case "PRIMER2"
                     PrimerName(2) = ExtractParameter(textline, "PrimerName", "[]")
                     PrimerSequence(2) = ExtractParameter(textline, "Sequence", "[]")
-                    PrimerTmNN(2) = Val(ExtractParameter(textline, "Tm", "[]"))
+                    PrimerTmNN(2) = val(ExtractParameter(textline, "Tm", "[]"))
                     
             End Select
                
