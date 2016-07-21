@@ -2,6 +2,59 @@ Attribute VB_Name = "XmodDNA"
 Option Explicit
 
 '****************************************************************************************************
+Function DNAEqual( _
+    ByVal Input1 As String, _
+    ByVal Input2 As String, _
+    Optional ByVal Circular As Boolean = True, _
+    Optional ByVal CheckReverseComplement As Boolean = True _
+    ) As Boolean
+   
+'====================================================================================================
+'Compares 2 DNA sequences to see if they are the same, allowing circular sequences
+'Juraj Ahel, 2016-07-21
+'
+'====================================================================================================
+
+    Dim i As Long
+    Dim FoundForward As Boolean, FoundReverse As Boolean
+    Dim tempIndex As Long
+    
+    If Len(Input1) <> Len(Input2) Then
+        DNAEqual = False
+        Exit Function
+    End If
+    
+    Input1 = DNAParseTextInput(Input1, ExtendedSymbolSet:=True)
+    Input2 = DNAParseTextInput(Input2, ExtendedSymbolSet:=True)
+    
+    If Circular Then
+        tempIndex = InStr(1, Input2 & Input2, Input1)
+        If tempIndex > 0 Then
+            If Mid(Input2 & Input2, tempIndex, Len(Input1)) = Input1 Then
+                FoundForward = True
+            Else
+                FoundForward = False
+            End If
+        Else
+            FoundForward = False
+        End If
+    Else
+        If Input1 = Input2 Then
+            FoundForward = True
+        Else
+            FoundForward = False
+        End If
+    End If
+        
+    If CheckReverseComplement Then
+        FoundReverse = DNAEqual(Input1, DNAReverseComplement(Input2), Circular, False)
+    End If
+    
+    DNAEqual = FoundForward Or FoundReverse
+    
+End Function
+
+'****************************************************************************************************
 Function DNAParseTextInput( _
     ByVal InputString As String, _
     Optional ByVal Uppercase As Boolean = True, _
@@ -680,14 +733,14 @@ Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
     Dim NextFragment As Long
     Dim Tm As Double
     Dim ParsedDNAList() As Variant
-    
-    FragmentCount = 1 + UBound(DNAList) - LBound(DNAList)
-    
+            
     If VarType(DNAList(LBound(DNAList))) >= vbArray Then
         ParsedDNAList = DNAList(LBound(DNAList))
     Else
         ParsedDNAList = DNAList
     End If
+    
+    FragmentCount = 1 + UBound(ParsedDNAList) - LBound(ParsedDNAList)
     
     tempResult = ParsedDNAList(LBound(ParsedDNAList))
     
@@ -830,6 +883,7 @@ Function PCRWithOverhangs(Template As String, _
 'Juraj Ahel, 2015-06-14, to be able to quickly generate fragments for in-silico cloning
 'Last update 2015-06-29
 '2016-06-28 added explicit variable declaration + indentation
+'2016-07-21 if the entire primer was annealing it would give horribly wrong result (N-1 !)
 '====================================================================================================
 
     Dim OverhangF As String, OverhangR As String
@@ -862,18 +916,41 @@ Function PCRWithOverhangs(Template As String, _
         OverlapF = StringFindOverlap(ForwardPrimer, Template)
         OverlapR = StringFindOverlap(ReversePrimerRC, Template)
     Else
+    
         i = 0
         Do
             i = i + 1
             TempFrag = Right(ForwardPrimer, i)
-        Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ForwardPrimer)
-        OverlapF = Right(ForwardPrimer, i - 1)
+            
+            If InStr(1, Template, TempFrag) = 0 Then
+                i = i - 1
+                Exit Do
+            End If
+            
+            If i = Len(ForwardPrimer) Then
+                Exit Do
+            End If
+        Loop
+            
+        OverlapF = Right(ForwardPrimer, i)
+        
         i = 0
         Do
             i = i + 1
             TempFrag = Left(ReversePrimerRC, i)
-        Loop Until InStr(1, Template, TempFrag) = 0 Or i = Len(ReversePrimer)
-        OverlapR = Left(ReversePrimerRC, i - 1)
+            
+            If InStr(1, Template, TempFrag) = 0 Then
+                i = i - 1
+                Exit Do
+            End If
+            
+            If i = Len(ReversePrimer) Then
+                Exit Do
+            End If
+        Loop
+        
+        OverlapR = Left(ReversePrimerRC, i)
+        
     End If
     
     'is there overlap at all?

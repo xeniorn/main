@@ -3,79 +3,9 @@ import subprocess
 import fileinput
 import string
 import math
-
-#"""###initialization"""
-
-#"""displays various debugging messages along the way"""
-debugging = False
-
-#"""MaxDistanceFromEnd is the farthest the program is allowed to go from the middle point"""
-#"""The actual max distance is 1 less than this variable. The same goes for MaxWindowExtension"""
-
-DefaultSalt = 50
-
-ExpectedNumberOfParameters = 6
-
-NumberOfOutputs = 1
-
-MinimumOverlap = 20
-minOverlapTm = 50
-
-MinimumPrimerOverlap = 18
-primer_tm = 62
-
-MaxDistanceFromEnd = 20
-MaxOverlapSize = 25
-MaxWindowExtension = MaxOverlapSize - MinimumOverlap
-
-length0 = MinimumOverlap
-
-if debugging:
- print "# of args: " + str(len(sys.argv))
- print "script: " + sys.argv[0]
- print "input: " + sys.argv[1]
- print "RNAFold: " + sys.argv[2]
- print "TempDir: " + sys.argv[3]
- print
-
-
- 
-#"""full path to python script - not really important, for debugging"""
-PythonScriptpath = sys.argv[0]
-
-#"""full path to input file"""
-InputFile = sys.argv[1]
-
-#"""full executable path to RNAFold"""
-RNAFoldPath = sys.argv[2]
-
-TempFolder = 'C:/Temp/PythonTemp'
-#"""JA: define the folder for the temp files"""
-if len(sys.argv) > 3:
- if sys.argv[3] <> "":
-  TempFolder = sys.argv[3]
- 
-
-
-TempFolder.replace('\\', '/')
-
-OverlapListFile = TempFolder + '/folds_sr.tmp'
-EnergiesFile = TempFolder + '/folds_dG.tmp'
-
-if debugging:
- print TempFolder
- print OverlapListFile
- print EnergiesFile
- print
-
- 
- 
- 
- 
- 
  
 #"""Extensions"""
-def Tm_dan(s,saltc,dnac=500):
+def DNA_Tm(s,saltc,dnac=500):
  """Returns DNA mt using nearest neighbor thermodynamics. dnac is
  DNA concentration [nM] and saltc is salt concentration [mM]
  Works as EMBOSS dan, taken from (Breslauer et al. Proc. Natl. Acad.
@@ -85,40 +15,37 @@ def Tm_dan(s,saltc,dnac=500):
  
  def overcount(st,p):
   """Returns how many p are on st, works even for overlapping"""
-  ocu=0
-  x=0
+  ocu = 0
+  x = 0
   while 1:
    try:
-    i=st.index(p,x)
+    i = st.index(p,x)
    except ValueError:
     break
-   ocu=ocu+1
-   x=i+1
+   ocu = ocu + 1
+   x = i + 1
   return ocu
  
  
- sup=string.upper(s)
+ sup = string.upper(s)
  r = 1.98717
- LogDNA = r * math.log(dnac/4e9)
- vh=0
- vs=0
+ LogDNA = r * math.log(dnac / 4e9)
+ vh = 0
+ vs = 0
  
- vh=(overcount(sup,"AA"))*7.9+(overcount(sup,"TT"))*7.9+(overcount(sup,"AT"))*7.2+(overcount(sup,"TA"))*7.2+(overcount(sup,"CA"))*8.5+(overcount(sup,"TG"))*8.5+(overcount(sup,"GT"))*8.4+(overcount(sup,"AC"))*8.4
+ vh = (overcount(sup,"AA")) * 7.9 + (overcount(sup,"TT")) * 7.9 + (overcount(sup,"AT")) * 7.2 + (overcount(sup,"TA")) * 7.2 \
++(overcount(sup,"CA")) * 8.5 + (overcount(sup,"TG")) * 8.5 + (overcount(sup,"GT")) * 8.4 + (overcount(sup,"AC")) * 8.4 \
++(overcount(sup,"CT")) * 7.8 + (overcount(sup,"AG")) * 7.8 + (overcount(sup,"GA")) * 8.2 + (overcount(sup,"TC")) * 8.2 \
++(overcount(sup,"CG")) * 10.6 + (overcount(sup,"GC")) * 9.8 + (overcount(sup,"GG")) * 8 + (overcount(sup,"CC")) * 8 \
  
- vh=vh+(overcount(sup,"CT"))*7.8+(overcount(sup,"AG"))*7.8+(overcount(sup,"GA"))*8.2+(overcount(sup,"TC"))*8.2
- 
- vh=vh+(overcount(sup,"CG"))*10.6+(overcount(sup,"GC"))*9.8+(overcount(sup,"GG"))*8+(overcount(sup,"CC"))*8
- 
- vs=(overcount(sup,"AA"))*22.2+(overcount(sup,"TT"))*22.2+(overcount(sup,"AT"))*20.4+(overcount(sup,"TA"))*21.3
- 
- vs=vs+(overcount(sup,"CA"))*22.7+(overcount(sup,"TG"))*22.7+(overcount(sup,"GT"))*22.4+(overcount(sup,"AC"))*22.4
- 
- vs=vs+(overcount(sup,"CT"))*21.0+(overcount(sup,"AG"))*21.0+(overcount(sup,"GA"))*22.2+(overcount(sup,"TC"))*22.2
- vs=vs+(overcount(sup,"CG"))*27.2+(overcount(sup,"GC"))*24.4+(overcount(sup,"GG"))*19.9+(overcount(sup,"CC"))*19.9
+ vs = (overcount(sup,"AA")) * 22.2 + (overcount(sup,"TT")) * 22.2 + (overcount(sup,"AT")) * 20.4 + (overcount(sup,"TA")) * 21.3 \
+ +(overcount(sup,"CA")) * 22.7 + (overcount(sup,"TG")) * 22.7 + (overcount(sup,"GT")) * 22.4 + (overcount(sup,"AC")) * 22.4 \
+ +(overcount(sup,"CT")) * 21.0 + (overcount(sup,"AG")) * 21.0 + (overcount(sup,"GA")) * 22.2 + (overcount(sup,"TC")) * 22.2 \
+ +(overcount(sup,"CG")) * 27.2 + (overcount(sup,"GC")) * 24.4 + (overcount(sup,"GG")) * 19.9 + (overcount(sup,"CC")) * 19.9 \
  
  entropy = -10.8 - vs
- entropy = entropy + ((len(s)-1) * (math.log10(saltc/1000.0))*0.368)
- dTm = ((-vh*1000) / (entropy+LogDNA)) - 273.15
+ entropy = entropy + ((len(s) - 1) * (math.log10(saltc / 1000.0)) * 0.368)
+ dTm = ((-vh * 1000) / (entropy + LogDNA)) - 273.15
  # print vh,vs,entropy
  return dTm
  
@@ -154,137 +81,254 @@ def ReverseComplement(s):
  s = complement(s) 
  return s 
 
+
+
+
+
+#################################################################################################
+#################################################################################################
+#################################################################################################
+#################################################################################################
+#################################################################################################
+#################################################################################################
+
+#"""###initialization"""
+
+#"""displays various debugging messages along the way"""
+debugging = False
+
+#"""MaxDistanceFromEnd is the farthest the program is allowed to go from the
+#middle point"""
+#"""The actual max distance is 1 less than this variable.  The same goes for
+#MaxWindowExtension"""
+DefaultSalt = 50
+
+ExpectedNumberOfParameters = 6
+
+NumberOfOutputs = 1
+
+MinimumVariantsNumber = 5
+
+MinimumGibsonOverlap = 20
+MaxGibsonOverlap = 25
+minGibsonOverlapTm = 50
+
+MaxGibsonOverlapDistance = 35
+
+
+MinPrimerAnneal = 15
+minPrimerTm = 60
+
+MaxPrimerAnneal = 30
+
+
+MaxGibsonExtension = MaxGibsonOverlap - MinimumGibsonOverlap
+MaxPrimerExtension = MaxPrimerAnneal - MinPrimerAnneal
+
+
+if debugging:
+ print "# of args: " + str(len(sys.argv))
+ print "script: " + sys.argv[0]
+ print "input: " + sys.argv[1]
+ print "RNAFold: " + sys.argv[2]
+ print "TempDir: " + sys.argv[3]
+ print
+
+
+ 
+#"""full path to python script - not really important, for debugging"""
+PythonScriptPath = sys.argv[0]
+
+#"""full path to input file"""
+InputFile = sys.argv[1]
+
+#"""full executable path to RNAFold"""
+RNAFoldPath = sys.argv[2]
+
+TempFolder = 'C:/Temp/PythonTemp'
+#"""JA: define the folder for the temp files"""
+if len(sys.argv) > 3:
+ if sys.argv[3] <> "":
+  TempFolder = sys.argv[3]
+ 
+
+
+TempFolder.replace('\\', '/')
+
+OverlapListFile = TempFolder + '/folds_sr.tmp'
+EnergiesFile = TempFolder + '/folds_dG.tmp'
+
+if debugging:
+ print TempFolder
+ print OverlapListFile
+ print EnergiesFile
+ print
+
+ 
+ 
+ 
+ 
+
+
+
+
+
 #"""###read input file"""
-seq1 = []
+InputLinesList = []
 with open(InputFile, 'r') as TempFile:
  for line in TempFile:
-  seq1.append(line[:-1])
- seq2 = seq1[0]+seq1[1]+seq1[2]
- IndexOfMiddle = len(seq1[0])+(len(seq1[1])/2)
- if len(seq1[1]) > MinimumOverlap:
-  window = MinimumOverlap #this is the shit
-  #if FlorianParameter <> '13'
-  #window = len(seq1[1])
- else:
-  window = MinimumOverlap
+  InputLinesList.append(line[:-1])
  TempFile.close
+
+FirstSequence = InputLinesList[0]
+InsertSequence = InputLinesList[1]
+LastSequence = InputLinesList[2]
+FlorianParameter = InputLinesList[3]
+
+if len(InputLinesList) >= ExpectedNumberOfParameters:
+ if (str(InputLinesList[4]) != "") and (str(InputLinesList[5]) != ""):
+  if (str(InputLinesList[4]) != str(InputLinesList[5])):
+   TemplateName1 = str(InputLinesList[4])
+   TemplateName2 = str(InputLinesList[5])
+  else:
+   TemplateName1 = str(InputLinesList[4]) + "_1"
+   TemplateName2 = str(InputLinesList[4]) + "_2"
+ else:
+  TemplateName1 = 'Template1'
+  TemplateName2 = 'Template2'
+else:
+ """hi, hihihi, I do nothing!"""
+
+
+FinalSequence = FirstSequence + InsertSequence + LastSequence
+IndexOfMiddle = len(FirstSequence) + (len(InsertSequence) // 2)
+
+#if len(InsertSequence) > MinimumGibsonOverlap:
+# window = MinimumGibsonOverlap #this is the shit
+#                         #if FlorianParameter <> '13'
+#                         #window = len(InsertSequence)
+#else:
+window = MinimumGibsonOverlap
  
  
- 
- 
- 
- 
- 
- 
+
  
 #"""###Parse inputs"""
-#"""MaxDistanceFromEnd is the farthest the program is allowed to go from the middle point"""
-#"""The actual max distance is 1 less than this variable. The same goes for MaxWindowExtension"""
-#"""TestFactor is a number of tested conditions that will be possible. If it's negative, the program tweaks the constraints a bit"""
+#"""MaxDistanceFromEnd is the farthest the program is allowed to go from the
+#middle point"""
+#"""The actual max distance is 1 less than this variable.  The same goes for
+#MaxWindowExtension"""
+#"""TestFactor is a number of tested conditions that will be possible.  If it's
+#negative, the program tweaks the constraints a bit"""
+TestFactor = len(FinalSequence) - window - MaxGibsonOverlapDistance - MaxGibsonExtension + 2
 
-TestFactor = len(seq2) - window - MaxDistanceFromEnd - MaxWindowExtension + 2
-
-FlorianParameter = seq1[3]
 
 if str(FlorianParameter) == '1':
- TestFactor = TestFactor - len(seq1[0])
+ TestFactor = TestFactor - len(FirstSequence)
 elif str(FlorianParameter) == '2':
- if len(seq1[0])<=len(seq1[2]):
-  TestFactor = TestFactor - len(seq1[0])
+ if len(FirstSequence) <= len(LastSequence):
+  TestFactor = TestFactor - len(FirstSequence)
  else: 
-  TestFactor = TestFactor - len(seq1[2])
+  TestFactor = TestFactor - len(LastSequence)
 elif str(FlorianParameter) == '3':
- TestFactor = TestFactor - len(seq1[2])
+ TestFactor = TestFactor - len(LastSequence)
 elif str(FlorianParameter) == '12': 
- TestFactor = TestFactor - len(seq1[0]+seq1[1])
+ TestFactor = TestFactor - len(FirstSequence + InsertSequence)
 elif str(FlorianParameter) == '23':
- TestFactor = TestFactor - len(seq1[1]+seq1[2])
+ TestFactor = TestFactor - len(InsertSequence + LastSequence)
 elif str(FlorianParameter) == '13':
- TestFactor = TestFactor - len(seq1[0]+seq1[2])
+ TestFactor = TestFactor - len(FirstSequence + LastSequence)
 else:
  TestFactor = TestFactor
 
-if TestFactor <0:
- MaxDistanceFromEnd = MaxDistanceFromEnd + TestFactor
- 
-
-TemplateName1 = 'Template1'
-TemplateName2 = 'Template2'
-
-if len(seq1)>=ExpectedNumberOfParameters:
- if (str(seq1[4]) != "") and (str(seq1[5]) != "") and (str(seq1[4]) != str(seq1[5])):
-  TemplateName1 = str(seq1[4])
-  TemplateName2 = str(seq1[5])
-
-
+if TestFactor < 0:
+ MaxGibsonOverlapDistance = MaxGibsonOverlapDistance + TestFactor
 
 
 
   
   
 #"""###construct inputs for RNAFold"""
-seq3 = []
+tempOverlapsList = []
 indexlist = []
 startindex = 0
 
-for j in range(0,MaxWindowExtension):
- length = length0 + j
+for j in range(0,MaxGibsonExtension):
+ length = MinimumGibsonOverlap + j
  if str(FlorianParameter) == '1':
-  allowed1 = 'Added Seq, Template2'
-  for i in range(0,window):
-   startindex = len(seq1[0])+i
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex)
- elif str(FlorianParameter) == '2':
-  allowed1 = 'Template1, Template2'
-  for i in range(0,MaxDistanceFromEnd):
-   startindex = len(seq1[0])+len(seq1[1])+i
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex) 
-  for i in range(0,MaxDistanceFromEnd):
-   startindex = len(seq1[0])-i-length
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex)
- elif str(FlorianParameter) == '3':
-  allowed1 = 'Template1, Added Seq'
-  for i in range(0,window):
-   startindex = len(seq1[0])+len(seq1[1])-i-length
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex)
- elif str(FlorianParameter) == '12':
-  allowed1 = 'Template2'
-  for i in range(0,MaxDistanceFromEnd):
-   startindex = len(seq1[0])+len(seq1[1])+i
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex)
- elif str(FlorianParameter) == '23':
-  allowed1 = 'Template1'
-  for i in range(0,MaxDistanceFromEnd):
-   startindex = len(seq1[0])-i-length
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex)
- elif str(FlorianParameter) == '13':
-  allowed1 = 'Added Seq'
-  for i in range(0,window):
-   startindex = len(seq1[0])+i
-   seq3.append(seq2[startindex:startindex+length]) 
-   indexlist.append(startindex) 
- else:
-  allowed1 = 'Template1, Added Seq, Template2'
-  for i in range(-window,window):
-   startindex = IndexOfMiddle+i-(length/2)
-   seq3.append(seq2[startindex:startindex+length]) 
+  TextAllowed = 'Added Seq, Template2'
+  for i in range(0,MaxGibsonOverlapDistance):
+   startindex = len(FirstSequence) + i
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
    indexlist.append(startindex)
 
-seq4 = []
-for item in seq3:
- seq4.append(ReverseComplement(item))
+ elif str(FlorianParameter) == '2':
+  TextAllowed = 'Template1, Template2'
+  tempMaxDistance = MaxGibsonOverlapDistance - len(InsertSequence)
+  if tempMaxDistance < MinimumVariantsNumber:
+   tempMaxDistance = MinimumVariantsNumber
+  for i in range(0,tempMaxDistance):
+   startindex = len(FirstSequence) + len(InsertSequence) + i
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex) 
+  for i in range(0,tempMaxDistance):
+   startindex = len(FirstSequence) - i - length
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex)
+
+ elif str(FlorianParameter) == '3':
+  TextAllowed = 'Template1, Added Seq'
+  for i in range(0,MaxGibsonOverlapDistance):
+   startindex = len(FirstSequence) + len(InsertSequence) - i - length
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex)
+
+ elif str(FlorianParameter) == '12':
+  TextAllowed = 'Template2'
+  tempMaxDistance = MaxGibsonOverlapDistance - len(InsertSequence)
+  if tempMaxDistance < MinimumVariantsNumber:
+   tempMaxDistance = MinimumVariantsNumber
+  for i in range(0,tempMaxDistance):
+   startindex = len(FirstSequence) + len(InsertSequence) + i
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex)
+
+ elif str(FlorianParameter) == '23':
+  TextAllowed = 'Template1'
+  tempMaxDistance = MaxGibsonOverlapDistance - len(InsertSequence)
+  if tempMaxDistance < MinimumVariantsNumber:
+   tempMaxDistance = MinimumVariantsNumber  
+  for i in range(0,tempMaxDistance):
+   startindex = len(FirstSequence) - i - length
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex)
+
+ elif str(FlorianParameter) == '13':
+  TextAllowed = 'Added Seq'
+  tempMaxDistance = (len(InsertSequence) - length) // 2
+  tempAdd = (len(InsertSequence) - length) % 2
+  for i in range(-tempMaxDistance,tempMaxDistance + tempAdd):
+   startindex = IndexOfMiddle
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex) 
+
+ else:
+  TextAllowed = 'Template1, Added Seq, Template2'
+  tempMaxDistance = MaxGibsonOverlapDistance // 2
+  for i in range(-tempMaxDistance , tempMaxDistance +1):
+   startindex = IndexOfMiddle + i - length
+   tempOverlapsList.append(FinalSequence[startindex:startindex + length]) 
+   indexlist.append(startindex)
+
+tempRCOverlapsList = []
+for item in tempOverlapsList:
+ tempRCOverlapsList.append(ReverseComplement(item))
 
 
 with open(OverlapListFile,'w') as TempFile:
- for i in range(0,len(seq3)):
-  TempFile.write(seq3[i] + '\r\n')
-  TempFile.write(seq4[i] + '\r\n') 
+ for i in range(0,len(tempOverlapsList)):
+  TempFile.write(tempOverlapsList[i] + '\r\n')
+  TempFile.write(tempRCOverlapsList[i] + '\r\n') 
  TempFile.close
  
  
@@ -295,7 +339,8 @@ with open(OverlapListFile,'w') as TempFile:
 #"""###run RNAFold"""
 
 #"""OS X Version"""
-#"""command1 = subprocess.Popen(['RNAfold --noGU --noPS -T 10 < folds_sr.tmp > folds_dG.tmp'], shell=True)"""
+#"""command1 = subprocess.Popen(['RNAfold --noGU --noPS -T 10 < folds_sr.tmp >
+#folds_dG.tmp'], shell=True)"""
 #"""\OS X Version"""
 
 #"""JA - Windows version"""
@@ -303,10 +348,11 @@ TempInput = file(OverlapListFile,'r')
 TempOutput = file(EnergiesFile,'w')
 #"""??TempInput"""
 command1 = subprocess.Popen([RNAFoldPath, "--noGU", "--noPS", "-T 10"], stdin=TempInput, stdout=TempOutput)
-#"""command1 = subprocess.Popen(["RNAfold.exe", "--noGU", "--noPS", "-T 10"], stdin=TempInput, stdout=TempOutput)"""
-#"""command1 = subprocess.Popen(["RNAfold", "--noGU", "--noPS", "-T 10"], stdin=TempInput, stdout=TempOutput)"""
+#"""command1 = subprocess.Popen(["RNAfold.exe", "--noGU", "--noPS", "-T 10"],
+#stdin=TempInput, stdout=TempOutput)"""
+#"""command1 = subprocess.Popen(["RNAfold", "--noGU", "--noPS", "-T 10"],
+#stdin=TempInput, stdout=TempOutput)"""
 #"""\Windows version"""
-
 command1.wait()
 
 TempInput.close()
@@ -318,18 +364,20 @@ TempOutput.close()
 
 
 #"""###extract RNAFold outputs"""
-L1 = []
+EnergyList = []
 with open(EnergiesFile,'r') as TempFile:
  i = 0
  for eachLine in TempFile:
   i += 1
-  if i%2 == 0:
-   L1.append(eachLine[-8:-2])
-L2 = []
-for i in range(0,len(L1)):
- if i%2 == 0:
-  L2.append((seq3[i/2],float(L1[i])+float(L1[i+1]),indexlist[i/2]))
-L3 = sorted(L2, key=lambda x: x[1], reverse=True)
+  if i % 2 == 0:
+   EnergyList.append(eachLine[-8:-2])
+
+ParsedEnergyList = []
+for i in range(0,len(EnergyList)):
+ if i % 2 == 0:
+  ParsedEnergyList.append((tempOverlapsList[i / 2],float(EnergyList[i]) + float(EnergyList[i + 1]),indexlist[i / 2]))
+
+SortedEnergyList = sorted(ParsedEnergyList, key=lambda x: x[1], reverse=True)
 
 
 
@@ -341,19 +389,21 @@ L3 = sorted(L2, key=lambda x: x[1], reverse=True)
   
   
 #"""###output header"""
-print;print;print
+print
+print
+print
 
-print 'Overlap allowed in: ' + str(allowed1)
+print 'Overlap allowed in: ' + str(TextAllowed)
 print
 print 'Input sequences:'
-print 'Template1:         ' + seq1[0]
-print 'Built by oligos:   ' + seq1[1]
-print 'Template2:         ' + seq1[2]
-#for item in seq1:
+print 'Template1:         ' + FirstSequence
+print 'Built by oligos:   ' + InsertSequence
+print 'Template2:         ' + LastSequence
+#for item in InputLinesList:
 # print item
 print
 print 'Product:'
-print seq2
+print FinalSequence
 print
 
 
@@ -363,39 +413,38 @@ print
 
 
 #"""###print Gibson overlaps"""
-
 print 'Best overlapping segment(s):'
 
-L4 = []
-L5 = []
-L6 = []
-L7 = []
+OverlapsList = []
+TmList = []
+FinalEnergyList = []
+OverlapIndexList = []
 i = 0
 j = 0
-tempSeq = L3[0][0]
-tempTm = Tm_dan(tempSeq,DefaultSalt)
+tempSeq = SortedEnergyList[0][0]
+tempTm = DNA_Tm(tempSeq,DefaultSalt)
 
-if tempTm >= minOverlapTm:
+if tempTm >= minGibsonOverlapTm:
  i = i + 1
- L4.append(tempSeq)
- L5.append(tempTm)
- L6.append(L3[0][1])
- L7.append(L3[j][2])
+ OverlapsList.append(tempSeq)
+ TmList.append(tempTm)
+ FinalEnergyList.append(SortedEnergyList[0][1])
+ OverlapIndexList.append(SortedEnergyList[j][2])
  
 j = 0
 while i < NumberOfOutputs:
  j = j + 1
- tempSeq = L3[j][0]
- tempTm = Tm_dan(tempSeq,DefaultSalt)
- if tempTm >= minOverlapTm:
-  L4.append(tempSeq)
-  L5.append(tempTm)
-  L6.append(L3[j][1])
-  L7.append(L3[j][2])
+ tempSeq = SortedEnergyList[j][0]
+ tempTm = DNA_Tm(tempSeq,DefaultSalt)
+ if tempTm >= minGibsonOverlapTm:
+  OverlapsList.append(tempSeq)
+  TmList.append(tempTm)
+  FinalEnergyList.append(SortedEnergyList[j][1])
+  OverlapIndexList.append(SortedEnergyList[j][2])
   i = i + 1
    
 for i in range(0,NumberOfOutputs): 
-  print L4[i] + '    dG: ' + str(L6[i]) + '    Tm: ' + str(L5[i])[:4]
+  print OverlapsList[i] + '    dG: ' + str(FinalEnergyList[i]) + '    Tm: ' + str(TmList[i])[:4]
 print
 
 
@@ -404,8 +453,8 @@ print
 
 
 
-IndexOfFragTwo = len(seq1[0]) + len(seq1[1])
-ReverseIndexFragZero = len(seq1[2]) + len(seq1[1])
+LastFragmentIndex = len(FirstSequence) + len(InsertSequence)
+RCFirstFragmentIndex = len(LastSequence) + len(InsertSequence)
 
 #"""###calculate and print primer sequences"""
 for i in range(0,NumberOfOutputs):
@@ -418,59 +467,78 @@ for i in range(0,NumberOfOutputs):
  """
  #new code JA
  #location of overlap in the sequence
- #if the overlap is inside fragment 2, then start counting the overlap residues from the overlap (PCR will go from there, truncating it!)
- #else, start counting from the beginning of the fragment 2, where the primer will actually anneal
- if IndexOfFragTwo > L7[i]:
-  bigger1 = IndexOfFragTwo
- else:
-  bigger1 = L7[i]
+ #if the overlap is inside fragment 2, then start counting the overlap residues
+ #from the overlap (PCR will go from there, truncating it!)
+ #else, start counting from the beginning of the fragment 2, where the primer
+ #will actually anneal
+ 
+ PrimerStartIndex = OverlapIndexList[i]
 
- for j in range(0,MaxDistanceFromEnd):
-  terminalresidue = seq2[IndexOfFragTwo+MinimumPrimerOverlap+j-1].upper()
-  if (Tm_dan(seq2[bigger1:IndexOfFragTwo+MinimumPrimerOverlap+j],DefaultSalt) >= primer_tm) and (terminalresidue == 'C' or terminalresidue =='G'):   
+ if LastFragmentIndex > PrimerStartIndex:
+  PrimerAnnealStartIndex = LastFragmentIndex
+ else:
+  PrimerAnnealStartIndex = PrimerStartIndex
+  
+
+ for tPrimerLength in range(MinPrimerAnneal,MaxPrimerAnneal + 1):
+  FragmentEndIndex = PrimerAnnealStartIndex + tPrimerLength
+  TerminalResidue = FinalSequence[FragmentEndIndex].upper()
+  tAnnealSequence = FinalSequence[PrimerAnnealStartIndex:FragmentEndIndex + 1]
+  tempTm = DNA_Tm(tAnnealSequence,DefaultSalt)
+  if (tempTm >= minPrimerTm) and (TerminalResidue == 'C' or TerminalResidue == 'G'):   
    break
   
- PrintTemp4 = str(Tm_dan(seq2[bigger1:IndexOfFragTwo+MinimumPrimerOverlap+j],DefaultSalt))[:4]
- PrintTemp3 = seq2[L7[i]:IndexOfFragTwo+MinimumPrimerOverlap+j]
+ PrintTm_for = str(tempTm)[:4]
+ PrintSeq_for = FinalSequence[PrimerStartIndex:FragmentEndIndex + 1]
  
- print '>Overlap ' + str(i+1) + ': ' + TemplateName2 + '_f  (Tm ' + PrintTemp4 + ')'
- print PrintTemp3
-   
- seq2r = ReverseComplement(seq2)
- l3ir = ReverseComplement(L4[i])
- seq10r = ReverseComplement(seq1[0])
- #location of reverse complement of overlap in reverse complement of sequence 
- OverlapIndexReverse = len(seq2) - L7[i] - len(L4[i])
+ print '>Overlap ' + str(i + 1) + ': ' + TemplateName2 + '_f  (Tm ' + PrintTm_for + ')'
+ print PrintSeq_for
+ 
+#repeat the same for reverse!
+  
+ RCFinalSequence = ReverseComplement(FinalSequence)
+ RCtempOverlap = ReverseComplement(OverlapsList[i])
+ RCFirstSequence = ReverseComplement(FirstSequence)
 
- if ReverseIndexFragZero > OverlapIndexReverse:
-  bigger1 = ReverseIndexFragZero
+ #location of reverse complement of overlap in reverse complement of sequence
+ #(index of last residue of overlap is OverlapIndex + (OverlapLength-1)
+ #(inversion of index for base-0 indexing is x ---> N - x, therefore overlapRC = N - overlap - len(overlap) + 1 !!!
+ RCOverlapIndex = len(FinalSequence) - (OverlapIndexList[i] + (len(OverlapsList[i]) - 1))
+ 
+ RCPrimerStartIndex = RCOverlapIndex
+
+ if RCFirstFragmentIndex > RCPrimerStartIndex:
+  PrimerAnnealStartIndex = RCFirstFragmentIndex
  else:
-  bigger1 = OverlapIndexReverse
+  PrimerAnnealStartIndex = RCPrimerStartIndex
  
  #LEGACY CODE
- #if seq2r.find(seq10r) >= seq2r.find(l3ir):
- # bigger1 = seq2r.find(seq10r)
+ #if seq2r.find(RCFirstSequence) >= seq2r.find(l3ir):
+ # bigger1 = seq2r.find(RCFirstSequence)
  #else:
  # bigger1 = seq2r.find(l3ir)
   
- for j in range(0,MaxDistanceFromEnd):
-  terminalresidue = seq2r[ReverseIndexFragZero+MinimumPrimerOverlap+j-1].upper()
-  if (Tm_dan(seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j],DefaultSalt) >= primer_tm) and (terminalresidue == 'C' or terminalresidue =='G'):      
+ for tPrimerLength in range(MinPrimerAnneal,MaxPrimerAnneal + 1):
+
+  FragmentEndIndex = RCFirstFragmentIndex + tPrimerLength
+  TerminalResidue = RCFinalSequence[FragmentEndIndex].upper()
+  tAnnealSequence = RCFinalSequence[PrimerAnnealStartIndex:FragmentEndIndex + 1]
+  tempTm = DNA_Tm(tAnnealSequence,DefaultSalt)
+
+  if (tempTm >= minPrimerTm) and (TerminalResidue == 'C' or TerminalResidue == 'G'):      
    break
+
+
  print
  
- PrintTemp2 = str(Tm_dan(seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j],DefaultSalt))[:4]
- PrintTemp1 = seq2r[bigger1:ReverseIndexFragZero+MinimumPrimerOverlap+j]
+ PrintTm_rev = str(tempTm)[:4]
+ PrintSeq_rev = RCFinalSequence[RCPrimerStartIndex:FragmentEndIndex + 1]
  
- print '>Overlap ' + str(i+1) + ': ' + TemplateName1 +'_r  (Tm ' + PrintTemp2 + ')'
- print PrintTemp1
- 
- 
- 
- 
- 
-#"""###final tagged output that is read by Gibson Assembly excel macro"""  
-print '[OVERLAP][OverlapSequence]' + L4[0] + '[\OverlapSequence] [dG]' + str(L6[0]) + '[\dG] [Tm]' + str(L5[0])[:4] + '[\Tm]'
-print '[PRIMER1][PrimerName]' + TemplateName2 + '_f[\PrimerName] [Sequence]' + PrintTemp3 + '[\Sequence] [Tm]' + PrintTemp4 + '[\Tm]'
-print '[PRIMER2][PrimerName]' + TemplateName1 + '_r[\PrimerName] [Sequence]' + PrintTemp1 + '[\Sequence] [Tm]' + PrintTemp2 + '[\Tm]'
-
+ print '>Overlap ' + str(i + 1) + ': ' + TemplateName1 + '_r  (Tm ' + PrintTm_rev + ')'
+ print PrintSeq_rev
+  
+ #"""###final tagged output that is read by Gibson Assembly excel macro"""
+ print '[OVERLAP][OverlapSequence]' + OverlapsList[i] + '[\OverlapSequence] [dG]' + str(FinalEnergyList[i]) + '[\dG] [Tm]' + str(TmList[i])[:4] + '[\Tm]'
+ print '[PRIMER1][PrimerName]' + TemplateName2 + '_f[\PrimerName] [Sequence]' + PrintSeq_for + '[\Sequence] [Tm]' + PrintTm_for + '[\Tm]'
+ print '[PRIMER2][PrimerName]' + TemplateName1 + '_r[\PrimerName] [Sequence]' + PrintSeq_rev + '[\Sequence] [Tm]' + PrintTm_rev + '[\Tm]'
+ print
