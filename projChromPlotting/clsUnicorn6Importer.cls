@@ -354,7 +354,10 @@ Public Function GetDateTime() As String
    
 End Function
 
-Private Function GetYAxisLabel(ByVal DatumToProcess As VBA.Collection)
+Private Function GetYAxisLabel(ByVal DatumToProcess As VBA.Collection, ByVal XMLCurveName As String)
+
+    Dim tWavelength As String
+    Dim tStr As String
 
     Select Case DatumToProcess.Item(1)
         Case "Conduction"
@@ -366,6 +369,10 @@ Private Function GetYAxisLabel(ByVal DatumToProcess As VBA.Collection)
             Select Case DatumToProcess.Item(2)
                 Case "UV"
                     GetYAxisLabel = "UV280"
+                Case Else
+                    tStr = XMLCurveName
+                    tWavelength = Mid(tStr, InStr(1, tStr, "_"), Len(tStr))
+                    GetYAxisLabel = "UV" & tWavelength
             End Select
         Case "Other"
             Select Case DatumToProcess.Item(2)
@@ -373,6 +380,7 @@ Private Function GetYAxisLabel(ByVal DatumToProcess As VBA.Collection)
                     GetYAxisLabel = "% of elution buffer"
             End Select
         Case "Pressure"
+        Case Else
     End Select
 
 End Function
@@ -385,7 +393,9 @@ Private Sub ParseDataToProcess(ByRef DataToProcess As VBA.Collection, ByRef File
     Dim j As Long
     
     Dim tCurveType As String
-    Dim tCurveName As String
+    Dim tCurveNameBase As String
+    Dim tCurveFilename As String
+    Dim tCurveID As String
     Dim tXPath As String
     
     Dim tAxisType As AxisDataType
@@ -407,7 +417,7 @@ Private Sub ParseDataToProcess(ByRef DataToProcess As VBA.Collection, ByRef File
     
         'extract the curve type and curve name
         tCurveType = DataToProcess.Item(j).Item(1)
-        tCurveName = DataToProcess.Item(j).Item(2)
+        tCurveNameBase = DataToProcess.Item(j).Item(2)
                 
         'define the XPath string to use for the curve type
         tXPath = "/Chromatogram/Curves/Curve[@CurveDataType=""" & tCurveType & """]"
@@ -421,14 +431,16 @@ Private Sub ParseDataToProcess(ByRef DataToProcess As VBA.Collection, ByRef File
             'look for curves with the right name
             Set tempNode = tempSelection.Item(i).SelectSingleNode("./Name")
             If Not tempNode Is Nothing Then
-                If tempNode.Text = tCurveName Then
+                tCurveID = tempNode.Text
+                If tCurveID Like "*" & tCurveNameBase & "*" Then
                 
                     'and extract the filename of the curve
                     Set tempNode = tempSelection.Item(i).SelectSingleNode("CurvePoints/CurvePoint/BinaryCurvePointsFileName")
                     If Not tempNode Is Nothing Then
+                        tCurveFilename = tempNode.Text
                     
                         'add the filename to the FilenamesToProcess list
-                        FilenamesToProcess.Add tempNode.Text, tempNode.Text
+                        FilenamesToProcess.Add tCurveFilename, tCurveFilename
                         
                         'define a new element to add to the data collection of the importer
                         Set tempCollection = New Collection
@@ -439,7 +451,7 @@ Private Sub ParseDataToProcess(ByRef DataToProcess As VBA.Collection, ByRef File
                         tempCollection.Add tempChromatogram
                         
                         'also add the filename base, so it's easier to pick it later!
-                        tempCollection.Add tempNode.Text
+                        tempCollection.Add tCurveFilename
                                                 
                         'add an empty graph to the chromatogram (to add metadata)
                         Set tempGraph = New clsGraphData
@@ -464,7 +476,7 @@ Private Sub ParseDataToProcess(ByRef DataToProcess As VBA.Collection, ByRef File
                             tempGraph.XAxisInfo = tAxisType
                             
                             'extract and parse Y axis info, add it to graph
-                            tAxisType.Label = GetYAxisLabel(DataToProcess.Item(j))
+                            tAxisType.Label = GetYAxisLabel(DataToProcess.Item(j), tCurveID)
                             tAxisType.Unit = .SelectSingleNode("AmplitudeUnit").Text
                             tempGraph.YAxisInfo = tAxisType
                                 
@@ -556,6 +568,7 @@ Public Sub ImportUNI6ZipFile(ByVal InputFilename As String, Optional DataToProce
             Exit Sub
         End If
         
+        Debug.Print ("Unzipping result data file...")
         
         'unzip the main zip file
         TempFolderBase = FileSystem_Unzip(InputFilename, , False)

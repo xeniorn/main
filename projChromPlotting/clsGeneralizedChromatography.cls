@@ -470,6 +470,25 @@ End Sub
 '****************************************************************************************************
 
 '****************************************************************************************************
+Public Sub PostHocAutoZero()
+
+    Dim tempcChromatogram As clsChromatogram
+    Dim i As Long
+    Dim OffsetAmount As Double
+    
+    Debug.Print ("Autozeroing the lowest value in the first UV chromatogram ")
+    
+    'hacky, temp
+    Set tempcChromatogram = Chromatograms.Item(1)
+    If Not tempcChromatogram Is Nothing Then
+        OffsetAmount = -1 * tempcChromatogram.Ymin
+        Call tempcChromatogram.OffsetYAxis(OffsetAmount)
+    End If
+    
+    Set tempcChromatogram = Nothing
+
+End Sub
+
 Public Sub AlignDataStartToZero(Optional ByVal ZeroValue As Double = 0)
 
     Dim tempcChromatogram As clsChromatogram
