@@ -189,16 +189,15 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
     'constants
     Const Table1Size As Long = 13
     
-    Const Table2Size As Long = 11
-    Const AssemblySize As Long = 4
+    Const Table2Size As Long = 12
+    Const AssemblySize As Long = 5
     Const ORFTableSize As Long = 3
     
     Const GapSize As Long = 2
     
     Const conORFDetectNumber As Long = 7
     
-    Const RequiredRows As Long = 10
-    Const RequiredColumns As Long = 2
+    Const RequiredColumns As Long = 1
     Const ParameterNumber As Long = 9
     
     'positions of parameters in table1
@@ -210,7 +209,6 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
     Dim i As Long
     Dim j As Long
     Dim CurrColumn As Long
-    Dim PrevColumn As Long
     Dim NextColumn As Long
     
     'tables
@@ -247,6 +245,7 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
     Dim GibsonScriptInput As String
     
     Dim GibsonResults() As Variant
+    Dim ExpectedAssembly As String
     
     Dim ORFs As VBA.Collection
     
@@ -282,15 +281,17 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
     RowHeaders2(9, 1) = "reverse Length"
     RowHeaders2(10, 1) = "overlap previous"
     RowHeaders2(11, 1) = "overlap next"
+    RowHeaders2(12, 1) = "dG next overlap"
     
     RowHeaders3(1, 1) = "PCR sequence"
     RowHeaders3(2, 1) = "length"
     RowHeaders3(3, 1) = "tags"
     RowHeaders3(4, 1) = "assembly"
+    RowHeaders3(5, 1) = "comment"
     
     RowHeaders4(1, 1) = "nucleotides"
     RowHeaders4(2, 1) = "translation"
-    RowHeaders4(3, 1) = "length"
+    RowHeaders4(3, 1) = "protein length"
     
     ORFDetectNumber = conORFDetectNumber
     
@@ -302,7 +303,7 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
     'Parse Inputs
         With InputTable
             
-            If .Rows.Count < RequiredRows Then
+            If .Rows.Count < Table1Size Then
                 Err.Raise 1, , "Not enough rows"
             End If
             
@@ -322,6 +323,7 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
             For j = 1 To FragmentCount
                 For i = 2 To Table1Size - 1
                     InputTableValues(i, j) = DNAParseTextInput(InputTableValues(i, j))
+                    ExpectedAssembly = ExpectedAssembly & InputTableValues(i, j)
                 Next i
             Next j
             
@@ -347,14 +349,11 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
         
         'allow circularity
             Select Case CurrColumn
-                Case 1
-                    PrevColumn = FragmentCount
-                    NextColumn = CurrColumn + 1
                 Case FragmentCount
-                    PrevColumn = CurrColumn - 1
                     NextColumn = 1
+                Case 1
+                    NextColumn = CurrColumn + 1
                 Case Else
-                    PrevColumn = CurrColumn - 1
                     NextColumn = CurrColumn + 1
             End Select
             
@@ -457,6 +456,8 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
             
             PrimersTableValues(11, CurrColumn) = OverlapSequence
             PrimersTableValues(10, NextColumn) = OverlapSequence
+            
+            PrimersTableValues(12, CurrColumn) = SSdG
                     
         CurrColumn = CurrColumn + 1
         
@@ -548,6 +549,13 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
         
         AssemblyTableValues(4, 1) = tResult
         
+        'check whether the in silico PCR gives the correct sequence
+        If DNAEqual(AssemblyTableValues(4, 1), ExpectedAssembly) Then
+            AssemblyTableValues(5, 1) = "Correct!"
+        Else
+            AssemblyTableValues(5, 1) = "Error in assembly!"
+        End If
+        
     
     'check the ORFs
         tResult = ""
@@ -570,7 +578,7 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
                 
             ORFTableValues(1, i) = tResult
             ORFTableValues(2, i) = DNATranslate(tResult)
-            ORFTableValues(3, i) = Len(ORFTableValues(2, i))
+            ORFTableValues(3, i) = Len(Replace(ORFTableValues(2, i), "*", ""))
             
         Next i
         

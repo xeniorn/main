@@ -2,6 +2,39 @@ Attribute VB_Name = "XmodStrings"
 Option Explicit
 
 '****************************************************************************************************
+Function StringOffsetCircular(ByVal InputString As String, ByVal Offset As Long) As String
+
+'====================================================================================================
+'a string is assumed to be circular - and the origin is shifted by "Offset"
+'Juraj Ahel, 2016-07-21
+
+'====================================================================================================
+
+    Dim NewLeft As String, NewRight As String
+    Dim StringLength As Long
+        
+    StringLength = Len(InputString)
+    
+    Offset = Offset Mod StringLength
+    
+    Select Case True
+        Case (Offset = 0)
+            NewLeft = InputString
+            NewRight = ""
+        Case (Offset > 0)
+            NewLeft = Right(InputString, StringLength - Offset)
+            NewRight = Left(InputString, Offset)
+        Case (Offset < 0)
+            NewLeft = Right(InputString, Offset)
+            NewRight = Left(InputString, StringLength - Offset)
+    End Select
+
+    StringOffsetCircular = NewLeft & NewRight
+    
+
+End Function
+
+'****************************************************************************************************
 Function SequenceRangeSelect(InputString As String, IndexRange As String, Optional DNA As Boolean = False, Optional Separator As String = "-") As String
 
 '====================================================================================================
@@ -76,6 +109,7 @@ Function StringCharCount(InputString As String, ParamArray Substrings() As Varia
 
 Dim i As Long
 Dim temp() As Long
+Dim N As Long
 
 N = UBound(Substrings) - LBound(Substrings) + 1
 ReDim temp(1 To N)
@@ -87,9 +121,9 @@ For i = 1 To N
     temp(i) = (StringLength - Len(Replace(InputString, Substrings(i - 1), ""))) / Len(Substrings(i - 1))
 Next i
 
-Dim result As Long
-result = WorksheetFunction.Sum(temp)
-StringCharCount = result
+Dim Result As Long
+Result = WorksheetFunction.Sum(temp)
+StringCharCount = Result
 
 End Function
 
@@ -105,7 +139,7 @@ Function StringCharCount_IncludeOverlap(InputString As String, ParamArray Substr
 '====================================================================================================
 
 Dim i As Long, j As Long
-Dim result As Long
+Dim Result As Long
 Dim N As Long
 
 N = UBound(Substrings) - LBound(Substrings) + 1
@@ -113,7 +147,7 @@ N = UBound(Substrings) - LBound(Substrings) + 1
 Dim StringLength As Long, SubstringLength As Long, Limit As Long
 StringLength = Len(InputString)
 
-result = 0
+Result = 0
 
 For i = 1 To N
 
@@ -122,13 +156,13 @@ For i = 1 To N
     j = InStr(1, InputString, Substrings(i - 1))
             
     Do While j > 0
-        result = result + 1
+        Result = Result + 1
         j = InStr(j + 1, InputString, Substrings(i - 1))
     Loop
          
 Next i
 
-StringCharCount_IncludeOverlap = result
+StringCharCount_IncludeOverlap = Result
 
 End Function
 
@@ -142,7 +176,7 @@ Function StringCompare(a As String, b As String, Optional Limit As Long = 10, Op
 '====================================================================================================
 
 Dim i As Long, j As Long
-Dim result As String, S As String
+Dim Result As String, S As String
 Dim LA As Long, Lb As Long
 Dim counter As Long: counter = 0
 Dim cA As String, cB As String
@@ -162,7 +196,7 @@ Do
     
     If cA <> cB Then
         counter = counter + 1
-        result = result & S & i
+        Result = Result & S & i
     End If
 Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
 
@@ -179,24 +213,24 @@ Do
     
     If cA <> cB Then
         counter = counter + 1
-        result = result & S & i & "(" & cA & ">" & cB & ")"
+        Result = Result & S & i & "(" & cA & ">" & cB & ")"
     End If
 Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
 
 If counter = 0 And LA = Lb Then
-    result = "Exact Copy!"
+    Result = "Exact Copy!"
     GoTo 99
 End If
 
 End Select
 
-If LA <> Lb Then result = result & S & "LenDiff=" & LA - Lb
+If LA <> Lb Then Result = Result & S & "LenDiff=" & LA - Lb
 
-If Len(result) > 0 Then result = Right(result, Len(result) - Len(S))
+If Len(Result) > 0 Then Result = Right(Result, Len(Result) - Len(S))
 
-If counter > Limit And Limit > 0 Then result = "Threshold (" & Limit & ") reached!"
+If counter > Limit And Limit > 0 Then Result = "Threshold (" & Limit & ") reached!"
 
-99 StringCompare = result
+99 StringCompare = Result
 
 End Function
 
@@ -329,8 +363,39 @@ Select Case k
                     & Join(TempResultAsStrings, ";")
 End Select
 
+'Debug.Print (k & " matches were found")
+
 999 StringFindOverlap = tempResult
 
+End Function
+
+'****************************************************************************************************
+Function LongestCommonSubstring(S1 As String, S2 As String) As String
+
+    Dim MaxSubstrStart
+    Dim MaxLenFound
+    Dim i1
+    Dim i2
+    Dim x
+    
+
+    MaxSubstrStart = 1
+    MaxLenFound = 0
+    For i1 = 1 To Len(S1)
+        For i2 = 1 To Len(S2)
+            x = 0
+            While i1 + x <= Len(S1) And _
+                i2 + x <= Len(S2) And _
+                    Mid(S1, i1 + x, 1) = Mid(S2, i2 + x, 1)
+                    x = x + 1
+            Wend
+            If x > MaxLenFound Then
+                MaxLenFound = x
+                MaxSubstrStart = i1
+            End If
+        Next
+    Next
+    LongestCommonSubstring = Mid(S1, MaxSubstrStart, MaxLenFound)
 End Function
 
 '****************************************************************************************************
