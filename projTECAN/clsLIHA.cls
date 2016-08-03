@@ -10,9 +10,12 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private Const conDefaultLiquidClass As String = "Water"
+Private Const conTemplateLiquidClass As String = "Seq_Template"
+Private Const conPrimerLiquidClass As String = "Seq_Primer"
 Private Const conDefaultSpacing As Integer = 1
 
-'Public Enum ePipettingStates
+Private Const conDefaultSampleVolume As Double = 3
+Private Const conDefaultPrimerVolume As Double = 4
     
 'programming constants
 Private Const conQ As String = """"
@@ -21,6 +24,7 @@ Private Const conQ As String = """"
 Private Const conDefaultPipetteNumber As Integer = 8 'setup of our TECAN EVO instrument (2016-03-09)
 Private Const conMaxPipetteNumber As Integer = 12   'defined by TECAN EVO instrument
 Private Const conMaximumSpacing As Integer = 4      'defined by TECAN EVO instrument
+Private Const conMaximumAspirationVolume As Double = 950      'defined by TECAN EVO instrument diluters
 
 'system definition
 Private pPipetteNumber As Integer
@@ -30,6 +34,9 @@ Private pWorktable As clsWorktableSetup
 Private pPipettes() As clsPipette
 Private pCommands As clsCommandSequence
 Private pVolumes() As Double
+
+Public TargetSampleVolume As Double
+Public TargetPrimerVolume As Double
 
 'state variables
 Private pPipetteUsed() As Boolean
@@ -50,6 +57,9 @@ Private Sub Class_Initialize()
         pVolumes(i) = 0
         Set pPipettes(i) = New clsPipette
     Next i
+    
+    TargetSampleVolume = conDefaultSampleVolume
+    TargetPrimerVolume = conDefaultPrimerVolume
 
 End Sub
 
@@ -65,6 +75,10 @@ Private Sub Class_Terminate()
     Set pCommands = Nothing
 
 End Sub
+
+Public Property Get MaxAllowedAspirationVolume() As Double
+    MaxAllowedAspirationVolume = conMaximumAspirationVolume
+End Property
 
 Public Property Get PipetteNumber() As Integer
     PipetteNumber = pPipetteNumber
@@ -251,9 +265,8 @@ Private Function DefineVolumesString(InpVolumes As Variant) As String
 End Function
 
 '****************************************************************************************************
-Private Function LiquidCommand(CommandType As String, _
-                        Worktable As clsWorktableSetup, _
-                        tipMask As String, _
+Private Function LiquidCommandString(CommandType As String, _
+                        TipMask As String, _
                         liquidClass As String, _
                         VolumesString As String, _
                         Grid As Integer, _
@@ -273,7 +286,7 @@ Const conParametersCount As Integer = 8
 Const connoOfLoopOptions As Integer = 0
 Const conSeparator As String = ","
                     
-Dim Parameters(1 To 8) As String
+Dim Parameters(1 To conParametersCount) As String
 Dim Parameter0 As String
 
 Select Case UCase(CommandType)
@@ -285,7 +298,7 @@ Select Case UCase(CommandType)
         '#TODO Give error
 End Select
 
-Parameters(1) = CStr(tipMask)
+Parameters(1) = CStr(TipMask)
 Parameters(2) = conQ & liquidClass & conQ
 Parameters(3) = VolumesString
 Parameters(4) = CStr(Grid)
@@ -294,8 +307,62 @@ Parameters(6) = CStr(Spacing)
 Parameters(7) = conQ & WellSelectionString & conQ
 Parameters(8) = CStr(connoOfLoopOptions)
 
-LiquidCommand = Parameter0 & "(" & Join(Parameters, conSeparator) & ");"
+LiquidCommandString = Parameter0 & "(" & Join(Parameters, conSeparator) & ");"
                     
+                    
+End Function
+
+'****************************************************************************************************
+Private Function WashCommandString( _
+                            ByVal TipMask As String, _
+                            ByVal WasteGrid As Integer, _
+                            ByVal WasteSite As Integer, _
+                            ByVal CleanerGrid As Integer, _
+                            ByVal CleanerSite As Integer, _
+                            ByVal WasteVolume As Integer, _
+                            ByVal WasteTimeDelay As Integer, _
+                            ByVal CleanerVolume As Integer, _
+                            ByVal CleanerTimeDelay As Integer, _
+                            ByVal AirgapVolume As Integer, _
+                            ByVal AirgapSpeed As Integer, _
+                            ByVal RetractSpeed As Integer, _
+                            ByVal FastWash As Byte, _
+                            ByVal PinchValve As Byte, _
+                            ByVal ActiveTipFrequency As Integer _
+                            ) As String
+
+'====================================================================================================
+'
+'Juraj Ahel, 2016-08-01
+'Last update 2016-08-01
+'====================================================================================================
+                    
+    Const conParametersCount As Integer = 15
+    Const conSeparator As String = ","
+                        
+    Dim Parameters(1 To conParametersCount) As String
+    Dim Parameter0 As String
+    
+    Parameter0 = "Wash"
+    
+    Parameters(1) = CStr(TipMask)
+    Parameters(2) = CStr(WasteGrid)
+    Parameters(3) = CStr(WasteSite)
+    Parameters(4) = CStr(CleanerGrid)
+    Parameters(5) = CStr(CleanerSite)
+    Parameters(6) = conQ & CStr(WasteVolume) & conQ
+    Parameters(7) = CStr(WasteTimeDelay)
+    Parameters(8) = conQ & CStr(CleanerVolume) & conQ
+    Parameters(9) = CStr(CleanerTimeDelay)
+    Parameters(10) = CStr(AirgapVolume)
+    Parameters(11) = CStr(AirgapSpeed)
+    Parameters(12) = CStr(RetractSpeed)
+    Parameters(13) = CStr(FastWash)
+    Parameters(14) = CStr(PinchValve)
+    Parameters(15) = CStr(ActiveTipFrequency)
+    
+    WashCommandString = Parameter0 & "(" & Join(Parameters, conSeparator) & ");"
+                        
                     
 End Function
 
@@ -335,124 +402,180 @@ Next i
 
 End Sub
 '****************************************************************************************************
-Public Function AspirateCommand(Optional CommandType As String = "Default") As String
+
+Public Function AspirateCommand(ByVal CommandType As String) As String
 
 '====================================================================================================
 '
 'Juraj Ahel, 2016-01-xx
 'Last update 2016-03-18
 '====================================================================================================
-
-'1 iterate through pipettes, check for each pipette whether it's used
-'2 find its required sample
-'3 locate the required sample in the Worktable, getting Grid, site, and well
-'  and construct the string that defines the well(s) used
-'3b check for uniqueness, just to be sure, give critical error if not unique
-'4? try to suck more than one in parallel if by chance possible
-'5 assemble the pipette command
-
-Const conDefaultLiquidClass As String = "Water"
-Const conDefaultSpacing As Integer = 1
-
-Dim i As Integer
-
-Dim tipMask As String
-Dim liquidClass As String
-Dim VolumesString As String
-Dim Grid As Integer
-Dim Site As Integer
-Dim Spacing As Integer
-Dim WellSelectionString As String
-Dim tempString As String
-
-Dim tempLocation As clsWorktableSampleLocation
-Dim tempPipetting As clsPipettingCommand
-
-Dim Volumes(1 To conMaxPipetteNumber) As Double
-
-liquidClass = conDefaultLiquidClass
-
-ResetArray Volumes, 0
-
-For i = 1 To PipetteNumber
+'2016-08-01 big update, first version that works
+'2016-08-03 made multiple pipettes aspirate at the same time whenever possible, so far restricted on spacing = 1
     
-    If Pipette(i).Used Then
-        Worktable.Locate Pipette(i).Sample
-    End If
+    '1 iterate through pipettes, check for each pipette whether it's used
+    '2 find its required sample
+    '3 locate the required sample in the Worktable, getting Grid, site, and well
+    '  and construct the string that defines the well(s) used
+    '3b check for uniqueness, just to be sure, give critical error if not unique
+    '4? try to suck more than one in parallel if by chance possible
+    '5 assemble the pipette command
     
-Next i
-
-tempString = ""
-
-For i = 1 To PipetteNumber
-
-    With Pipette(i)
+    Dim i As Integer
+    Dim j As Integer
     
-        If .Used Then
-        
-            Set tempLocation = .Sample.Location
+    Dim TipMask As String
+    Dim liquidClass As String
+    Dim VolumesString As String
+    Dim Grid As Integer
+    Dim Site As Integer
+    Dim Spacing As Integer
+    Dim WellSelectionString As String
+    'Dim tempString As String
+    
+    Dim tempLocation As clsWorktableSampleLocation
+    Dim tempPipetting As clsPipettingCommand
+    
+    Dim Volumes(1 To conMaxPipetteNumber) As Double
+    Dim IShouldPipetteThis(1 To conMaxPipetteNumber) As Boolean
+    
+    Dim tSamplesCollection As VBA.Collection
+    Dim tempPipetteString As String
+    
+    Dim LastColumn As Integer
+    Dim LastRow As Integer
+    Dim lastContainer As clsWorktableContainer
+    
+    'liquidClass = conDefaultLiquidClass
+    
+    Select Case UCase$(CommandType)
+        Case "SAMPLES", "S"
+            liquidClass = conTemplateLiquidClass
+        Case "PRIMERS", "P"
+            liquidClass = conPrimerLiquidClass
+    End Select
             
-            If Not (tempLocation Is Nothing) Then
-                
-                tipMask = BitFlag(CStr(i), conMaxPipetteNumber)
-                
+    'initialize variables
+        ResetArray Volumes, 0
+        ResetArray IShouldPipetteThis, False
+        
+        Set lastContainer = Nothing
+        LastColumn = -1
+        LastRow = -1
+        
+        Spacing = conDefaultSpacing
+        
+        For i = 1 To PipetteNumber
+        
+            If Pipette(i).Used Then
+                Worktable.Locate Pipette(i).Sample
+                IShouldPipetteThis(i) = True
+            End If
+        
+        Next i
+    
+    'carry out the pipetting
+        For j = 1 To PipetteNumber
+        
+            If IShouldPipetteThis(j) Then
+            
                 ResetArray Volumes, 0
-                Volumes(i) = .Volume
-                VolumesString = DefineVolumesString(Volumes)
+                tempPipetteString = ""
+                Set tSamplesCollection = New VBA.Collection
+            
+                For i = j To PipetteNumber
+                    With Pipette(i)
+                        If .Used Then
+                            
+                            Set tempLocation = .Sample.Location
+                            
+                            If Not (tempLocation Is Nothing) Then
+                                
+                                'if it's the first tested location, or the next position fits
+                                If (i = j) _
+                                    Or ((tempLocation.Container Is lastContainer) _
+                                    And (tempLocation.WellColumn = LastColumn) _
+                                    And (tempLocation.WellRow = j + Spacing * (i - j))) Then
+                                                            
+                                    If .Volume <= conMaximumAspirationVolume Then
+                                        Volumes(i) = .Volume
+                                    Else
+                                        Call ErrorReportGlobal(5090, "Tried to aspirate more than allowed volume (" & .Volume & " ul)!")
+                                    End If
+                                    
+                                    tSamplesCollection.Add .Sample
+                                                                
+                                    tempPipetteString = tempPipetteString & CStr(i)
+                                    IShouldPipetteThis(i) = False
+                                    
+                                    Set lastContainer = tempLocation.Container
+                                    LastColumn = tempLocation.WellColumn
+                                    LastRow = tempLocation.WellRow
+                                
+                                End If
+                                    
+                            End If
+                            
+                        End If
+                    End With
+                Next i
                 
-                With .Sample.Location
+                Set tempLocation = tSamplesCollection.Item(1).Location
+                            
+                With tempLocation
                     Grid = .Grid
                     Site = .Site
+                    WellSelectionString = .Container.DefineWellSelectionString(tSamplesCollection)
                 End With
                 
-                Spacing = conDefaultSpacing
-                
-                WellSelectionString = tempLocation.Container.DefineWellSelectionString(.Sample)
+                TipMask = BitFlag(tempPipetteString, conMaxPipetteNumber)
+                VolumesString = DefineVolumesString(Volumes)
                                     
                 Set tempPipetting = New clsPipettingCommand
-                                    
-                tempPipetting.Define "Aspirate", tipMask, liquidClass, VolumesString, Grid, Site, Spacing, WellSelectionString
-                                                    
-                'tempString = tempString & _
-                '    LiquidCommand("Aspirate", Worktable, tipMask, liquidClass, VolumesString, Grid, Site, Spacing, WellSelectionString) & _
-                '    vbCrLf
-                
-                tempString = tempString & tempPipetting.FullCommandText & vbCrLf
+                tempPipetting.Define "Aspirate", TipMask, liquidClass, VolumesString, Grid, Site, Spacing, WellSelectionString
                 
                 AddPipettingStep tempPipetting
                 
+                Set tempLocation = Nothing
                 Set tempPipetting = Nothing
-                    
+                Set tSamplesCollection = Nothing
+                
+                Set lastContainer = Nothing
+                LastColumn = -1
+                LastRow = -1
+                
             End If
+            
+        Next j
+              
+    'output the results
+        If Not Commands Is Nothing Then
+            AspirateCommand = Commands.Output
+            Commands.Purge
         End If
-        
-        Set tempLocation = Nothing
-        
-    End With
     
-Next i
-          
-AspirateCommand = Commands.Output
-
-Commands.Purge
-
-Set tempLocation = Nothing
-Set tempPipetting = Nothing
+    'clean up
+        Set tSamplesCollection = Nothing
+        Set tempLocation = Nothing
+        Set tempPipetting = Nothing
+        Set lastContainer = Nothing
 
 End Function
 
 '****************************************************************************************************
 Private Function FindSampleInPlateColumn( _
             ByRef Sample As clsSample, _
-            ByRef InputContainer As clsWorktableSeqPlate, _
+            ByRef TargetContainer As clsWorktableSeqPlate, _
             ByVal CurrentColumn As Integer, _
-            Optional ByVal StartingRow As Integer = 1 _
+            ByVal StartingRow As Integer, _
+            ByVal CommandType As String _
             ) As Integer
 '====================================================================================================
 '
 'Juraj Ahel, 2016-03-09
 'Last update 2016-03-14
 '====================================================================================================
+'2016-08-01 add support for pipetting primers as well
     
     Const conMaxRow = 8
     
@@ -465,9 +588,12 @@ Private Function FindSampleInPlateColumn( _
     Dim tempIndex As Integer
     
     Dim tempFound As Boolean
+    Dim UseWell As Boolean
+    
+    Dim tempSample As String
           
-    'FinalRowNo = conMaxRow 'replace later with info from InputContainer
-    FinalRowNo = InputContainer.maxRow
+    'FinalRowNo = conMaxRow 'replace later with info from TargetContainer
+    FinalRowNo = TargetContainer.maxRow
     
     If Sample Is Nothing Then 'just in case, catch null input
         FindSampleInPlateColumn = 0
@@ -490,23 +616,52 @@ Private Function FindSampleInPlateColumn( _
     'search for it
     Do While Not tempFound And CurrentRow <= FinalRowNo
         
-        With InputContainer 'go row by row in the container and try to find the sample
+        With TargetContainer 'go row by row in the container and try to find the sample
         
             tempIndex = .GetIndexFromXY(CurrentColumn, CurrentRow)
             
-            Select Case .State(tempIndex)
-                Case eTaken, ePrimerPipetted 'if sample hasn't been pipetted yet
-                    If (.Well(tempIndex).Template.Name = CurrentSample) Then
+            UseWell = False
+                            
+            'check whether the current well is something that needs to be checked
+                Select Case .State(tempIndex)
+                
+                    Case eTaken
+                        UseWell = True
+                        
+                    Case ePrimerPipetted
+                        Select Case UCase(CommandType)
+                            Case "SAMPLES", "S"
+                                UseWell = True
+                        End Select
+                        
+                    Case eTemplatePipetted
+                        Select Case UCase(CommandType)
+                            Case "PRIMERS", "P"
+                                UseWell = True
+                        End Select
+                        
+                End Select
+            
+            'if the well needs to be checked, check if it matches!
+                If UseWell Then
+                    
+                    Select Case UCase$(CommandType)
+                        Case "SAMPLES", "S"
+                            tempSample = .Well(tempIndex).Template.Name
+                        Case "PRIMERS", "P"
+                            tempSample = .Well(tempIndex).Primer.Name
+                    End Select
+                    
+                    If (tempSample = CurrentSample) Then
                         tempFound = True
                     End If
                     
-                Case Else
-                    'do nothing
-            End Select
+                End If
             
-            If Not tempFound Then
-                CurrentRow = CurrentRow + 1
-            End If
+            'otherwise, check next well in row
+                If Not tempFound Then
+                    CurrentRow = CurrentRow + 1
+                End If
                   
         End With
         
@@ -525,7 +680,8 @@ Private Function FindBestSpacing( _
             MainPipette As Integer, _
             InputContainer As clsWorktableSeqPlate, _
             CurrentColumn As Integer, _
-            MainRow As Integer _
+            MainRow As Integer, _
+            CommandType As String _
             ) As Integer
 
 '====================================================================================================
@@ -547,7 +703,7 @@ Private Function FindBestSpacing( _
                 
     'flow control
     Dim IFoundAnotherSampleDownstream As Boolean
-    
+        
     'iterators
     Dim i As Integer
         
@@ -563,12 +719,13 @@ Private Function FindBestSpacing( _
     Do While (tempSampleNo <= PipetteNumber) _
         And (tempSampleNo > 0) _
         And (Not IFoundAnotherSampleDownstream)
-        
+                        
         tempSampleLocation = FindSampleInPlateColumn( _
                                 Sample:=Pipette(tempSampleNo).Sample, _
-                                InputContainer:=InputContainer, _
+                                TargetContainer:=InputContainer, _
                                 CurrentColumn:=CurrentColumn, _
-                                StartingRow:=MainRow + PipetteDistance)
+                                StartingRow:=MainRow + PipetteDistance, _
+                                CommandType:=CommandType)
         
         If tempSampleLocation <> 0 Then 'if the current sample was found downstream
             IFoundAnotherSampleDownstream = True
@@ -590,6 +747,7 @@ Private Function FindBestSpacing( _
             
             If tempResult = 0 Then
                 IFoundAnotherSampleDownstream = False 'I found it, but it can't be done
+                tempSampleNo = 0 'not sure if this is optimal in EVERY case but should be fine
             End If
         End If
                 
@@ -609,7 +767,8 @@ Private Sub DispenseCommandHere( _
             ByVal ReferencePipetteNo As Integer, _
             ByVal ReferenceRow As Integer, _
             ByVal TargetColumn As Integer, _
-            ByVal Spacing As Integer)
+            ByVal Spacing As Integer, _
+            ByVal CommandType As String)
 
 '====================================================================================================
 'Cross references the samples in the LIHA pipettes and the chosen SeqPlate, aligned on ReferencePipetteNo
@@ -618,9 +777,7 @@ Private Sub DispenseCommandHere( _
 'Juraj Ahel, 2016-03-15
 'Last update 2016-03-15
 '====================================================================================================
-    
-    Const conSampleVolume = 3
-    Const conPrimerVolume = 4
+'2016-08-02 big update, made it work
     
     Dim PipetteToPlateOffset As Integer
     
@@ -639,8 +796,15 @@ Private Sub DispenseCommandHere( _
     Dim tempSampleName As String
     Dim tempcPipetting As clsPipettingCommand
     
+    Dim tempState As enPlateStates
     
-    VolumeToPipette = conSampleVolume
+    Select Case UCase$(CommandType)
+        Case "SAMPLES", "S"
+            VolumeToPipette = TargetSampleVolume
+        Case "PRIMERS", "P"
+            VolumeToPipette = TargetPrimerVolume
+    End Select
+        
     ResetArray Volumes, 0
     
     PipetteToPlateOffset = (ReferenceRow - 1) - (Spacing * (ReferencePipetteNo - 1))
@@ -663,17 +827,39 @@ Private Sub DispenseCommandHere( _
             
             If tempRow > 0 And tempRow <= maxRow Then 'if we are even in the plate
                                                
-                If Not (SeqPlate.WellXY(TargetColumn, tempRow) Is Nothing) Then
+                If Not (SeqPlate.WellXY(TargetColumn, tempRow) Is Nothing) Then 'if something is supposed to be in this well at all
+                
+                    tempState = SeqPlate.State(SeqPlate.GetIndexFromXY(TargetColumn, tempRow))
+                
+                    Select Case UCase$(CommandType)
+                        Case "SAMPLES", "S"
+                            If tempState = eTaken Or tempState = ePrimerPipetted Then
+                                tempSampleName = SeqPlate.WellXY(TargetColumn, tempRow).Template.Name
+                            Else
+                                GoTo NextIteration
+                            End If
+                                
+                        Case "PRIMERS", "P"
+                            If tempState = eTaken Or tempState = eTemplatePipetted Then
+                                tempSampleName = SeqPlate.WellXY(TargetColumn, tempRow).Primer.Name
+                            Else
+                                GoTo NextIteration
+                            End If
+                    End Select
                     
-                    tempSampleName = SeqPlate.WellXY(TargetColumn, tempRow).Template.Name
-                    
-                    If tempSampleName = Pipette(i).Sample.Name Then
+                    If tempSampleName = Pipette(i).Sample.Name Then 'if sample from THIS pipette is supposed to be in thiswell
                     
                         tempFlag = tempFlag & i
                         Volumes(i) = VolumeToPipette
                                             
                         Pipette(i).DecreaseVolume VolumeToPipette 'empty the virtual pipette correspondingly
-                        SeqPlate.ToggleTemplatePipetted tempRow, TargetColumn 'update the state of the sample, maybe problematic as it is byref...
+                        
+                        Select Case UCase$(CommandType)
+                            Case "SAMPLES", "S"
+                                SeqPlate.ToggleTemplatePipetted tempRow, TargetColumn 'update the state of the sample, maybe problematic as it is byref...
+                            Case "PRIMERS", "P"
+                                SeqPlate.TogglePrimerPipetted tempRow, TargetColumn 'update the state of the sample, maybe problematic as it is byref...
+                        End Select
                         
                         Plate2D(TargetColumn, tempRow) = 1 'the bit field needed to construct the targeting string for gemini
                                                 
@@ -685,14 +871,22 @@ Private Sub DispenseCommandHere( _
             
         End If
         
+NextIteration:
     Next i
     
     Set tempcPipetting = New clsPipettingCommand
     
     With tempcPipetting
         .CommandType = "D"
-        .tipMask = BitFlag(tempFlag, conMaxPipetteNumber)
-        .liquidClass = conDefaultLiquidClass
+        .TipMask = BitFlag(tempFlag, conMaxPipetteNumber)
+
+        Select Case UCase$(CommandType)
+            Case "SAMPLES", "S"
+                .liquidClass = conTemplateLiquidClass
+            Case "PRIMERS", "P"
+                .liquidClass = conPrimerLiquidClass
+        End Select
+        
         .VolumesString = DefineVolumesString(Volumes)
         .Spacing = Spacing
         .Grid = SeqPlate.Grid
@@ -706,6 +900,12 @@ Private Sub DispenseCommandHere( _
     
 End Sub
 
+Private Sub Pipette_CleanedWhileNotEmpty(SampleName As String, Volume As Double)
+
+    Debug.Print ("Pipette was cleaned while there was still some sample in it! (" & SampleName & ": " & Volume & " uL)")
+
+End Sub
+
 '****************************************************************************************************
 Public Sub Purge(Optional InputParameter As Variant = "0")
 '====================================================================================================
@@ -713,9 +913,11 @@ Public Sub Purge(Optional InputParameter As Variant = "0")
 'Juraj Ahel, 2016-03-16
 'Last update 2016-03-16
 '====================================================================================================
+'2016-08-01 clean up a bit, add debug logging
 '0 means purge all
 
     Dim i As Integer
+    Dim tempPipette As clsPipette
 
     Select Case UCase(InputParameter)
         Case "0"
@@ -725,7 +927,16 @@ Public Sub Purge(Optional InputParameter As Variant = "0")
     '###TEMP
     
     For i = 1 To PipetteNumber
-        Pipette(i).CleanMe
+    
+        Set tempPipette = Pipette(i)
+        
+        With tempPipette
+            If .IsDirty Then
+                .CleanMe
+                Debug.Print ("Pipette " & i & " virtually purged.")
+            End If
+        End With
+        
     Next i
 
 End Sub
@@ -740,17 +951,141 @@ Public Function WashCommand( _
 'Juraj Ahel, 2016-03-16
 'Last update 2016-03-16
 '====================================================================================================
-
-    Select Case UCase(WashingOption)
-        Case "DEFAULT"
-    End Select
-
-
+        
+    'constants
+        Const conDefaultDelay As Integer = 500 '500 ms delay
+        Const conDefaultAirGap As Integer = 20
+        Const conDefaultAirGapSpeed As Integer = 70
+        Const conDefaultRetractSpeed As Integer = 30
+        Const conDefaultActiveFreq As Integer = 1000
+    
+    'Gemini variables
+        Dim TipMask As Integer
+        
+        Dim WasteGrid As Integer
+        Dim WasteSite As Integer
+        Dim CleanerGrid As Integer
+        Dim CleanerSite As Integer
+        
+        Dim WasteVolume As Integer
+        Dim WasteTimeDelay As Integer
+        Dim CleanerVolume As Integer
+        Dim CleanerTimeDelay As Integer
+        
+        Dim AirgapVolume As Integer
+        Dim AirgapSpeed As Integer
+        Dim RetractSpeed As Integer
+        
+        Dim FastWash As Byte
+        Dim PinchValve As Byte
+        
+        Dim ActiveTipFrequency As Integer
+        
+    'programming variables
+        Dim tString As String
+        Dim i As Integer
+    
+    'define values that will almost certainly be constant
+        WasteTimeDelay = conDefaultDelay
+        CleanerTimeDelay = conDefaultDelay
+        AirgapVolume = conDefaultAirGap
+        AirgapSpeed = conDefaultAirGapSpeed
+        RetractSpeed = conDefaultRetractSpeed
+        ActiveTipFrequency = conDefaultActiveFreq
+    
+    
+    With Worktable
+    
+        WasteGrid = .GetGrid("WASTE")
+        WasteSite = .GetSite("WASTE")
+            
+        Select Case UCase(WashingOption)
+        
+            Case "DEFAULT"
+                CleanerGrid = .GetGrid("CLEANERDEEP")
+                CleanerSite = .GetSite("CLEANERDEEP")
+                
+            Case Else
+                CleanerGrid = .GetGrid("CLEANERDEEP")
+                CleanerSite = .GetSite("CLEANERDEEP")
+                
+        End Select
+    
+    End With
+    
+    PinchValve = 0
+    
+    'select only dirty pipettes
+        For i = 1 To PipetteNumber
+            If Pipette(i).IsDirty Then
+                Debug.Print ("Pipette " & i & " wash command issued.")
+                TipMask = TipMask + 2 ^ (i - 1)
+            End If
+        Next i
+    
+    
+    'quick rinse with fastwash
+        CleanerVolume = 5
+        WasteVolume = 5
+        FastWash = 1
+        
+        tString = WashCommandString( _
+                    TipMask:=TipMask, _
+                    WasteGrid:=WasteGrid, _
+                    WasteSite:=WasteSite, _
+                    CleanerGrid:=CleanerGrid, _
+                    CleanerSite:=CleanerSite, _
+                    WasteVolume:=WasteVolume, _
+                    WasteTimeDelay:=WasteTimeDelay, _
+                    CleanerVolume:=CleanerVolume, _
+                    CleanerTimeDelay:=CleanerTimeDelay, _
+                    AirgapVolume:=AirgapVolume, _
+                    AirgapSpeed:=AirgapSpeed, _
+                    RetractSpeed:=RetractSpeed, _
+                    FastWash:=FastWash, _
+                    PinchValve:=PinchValve, _
+                    ActiveTipFrequency:=ActiveTipFrequency)
+                    
+        Commands.Append tString
+    
+    'proper wash
+        CleanerVolume = 2.5
+        WasteVolume = 2.5
+        FastWash = 0
+        tString = WashCommandString( _
+                    TipMask:=TipMask, _
+                    WasteGrid:=WasteGrid, _
+                    WasteSite:=WasteSite, _
+                    CleanerGrid:=CleanerGrid, _
+                    CleanerSite:=CleanerSite, _
+                    WasteVolume:=WasteVolume, _
+                    WasteTimeDelay:=WasteTimeDelay, _
+                    CleanerVolume:=CleanerVolume, _
+                    CleanerTimeDelay:=CleanerTimeDelay, _
+                    AirgapVolume:=AirgapVolume, _
+                    AirgapSpeed:=AirgapSpeed, _
+                    RetractSpeed:=RetractSpeed, _
+                    FastWash:=FastWash, _
+                    PinchValve:=PinchValve, _
+                    ActiveTipFrequency:=ActiveTipFrequency)
+                    
+        Commands.Append tString
+    
+    
+    'export resulting string
+        WashCommand = Commands.Output
+    
+    'purge / clean the virtual pipettes
+        Call Purge
+    
+    'purge commands from buffer
+        Commands.Purge
+    
 End Function
 
 
 '****************************************************************************************************
-Public Function DispenseCommand() As String
+Public Function DispenseCommand(ByVal CommandType As String) As String
 '====================================================================================================
 '
 'Juraj Ahel, 2016-03-09
@@ -822,9 +1157,10 @@ Public Function DispenseCommand() As String
         Do 'repeat while I can still find this sample in this column
             
             CurrentRow = FindSampleInPlateColumn(Sample:=Pipette(MainPipetteIndex).Sample, _
-                                                InputContainer:=FinalPlates(CurrentContainer), _
+                                                TargetContainer:=FinalPlates(CurrentContainer), _
                                                 CurrentColumn:=CurrentColumn, _
-                                                StartingRow:=CurrentRow)
+                                                StartingRow:=CurrentRow, _
+                                                CommandType:=CommandType)
             
             If CurrentRow <> 0 Then
                 
@@ -832,10 +1168,13 @@ Public Function DispenseCommand() As String
                     Spacing = FindBestSpacing(MainPipette:=MainPipetteIndex, _
                                         InputContainer:=FinalPlates(CurrentContainer), _
                                         CurrentColumn:=CurrentColumn, _
-                                        MainRow:=CurrentRow)
+                                        MainRow:=CurrentRow, _
+                                        CommandType:=CommandType)
                 Else
                     Spacing = conDefaultSpacing
                 End If
+                
+                Debug.Print (PrintMatrixYX(FinalPlates(CurrentContainer).PrimersArray))
                 
                 'construct the actual command and update all the object states
                 DispenseCommandHere _
@@ -843,11 +1182,12 @@ Public Function DispenseCommand() As String
                     ReferencePipetteNo:=MainPipetteIndex, _
                     ReferenceRow:=CurrentRow, _
                     TargetColumn:=CurrentColumn, _
-                    Spacing:=Spacing
+                    Spacing:=Spacing, _
+                    CommandType:=CommandType
                 
             End If
                     
-        Loop Until CurrentRow = 0 Or Free
+        Loop Until CurrentRow = 0 Or Not Pipette(MainPipetteIndex).Used
             
         If Free Then 'if the LIHA is emptied, don't check for samples further
             TryNextFlow = False
@@ -856,38 +1196,58 @@ Public Function DispenseCommand() As String
         End If
         
         'try next pipette in same column
-        If TryNextFlow And MainPipetteIndex < PipetteNumber Then
+        If TryNextFlow Then
             
-            MainPipetteIndex = FirstUsedPipette(AfterPipetteNo:=MainPipetteIndex)
+            'reset row
+            CurrentRow = StartRow
             
-            If MainPipetteIndex <> 0 Then
+            If MainPipetteIndex < PipetteNumber Then
             
-                TryNextFlow = False
-                        
+                MainPipetteIndex = FirstUsedPipette(AfterPipetteNo:=MainPipetteIndex)
+                                
+                If MainPipetteIndex <> 0 Then
+                    TryNextFlow = False
+                Else
+                    TryNextFlow = True
+                End If
+                
             Else
-            
+                
+ActuallyFalse:  'try next search layer
                 TryNextFlow = True
-                MainPipetteIndex = FirstUsedPipette
                 
             End If
+            
         End If
                 
         'try next column in same container
         If TryNextFlow Then
-            If CurrentColumn < FinalColumn Then
+        
+            'reset row and pipette
+            CurrentRow = StartRow
+            MainPipetteIndex = FirstUsedPipette
             
+            If CurrentColumn < FinalColumn Then
+                        
                 CurrentColumn = CurrentColumn + 1
                 TryNextFlow = False
                 
             Else
-            
-                CurrentColumn = StartColumn
-                TryNextFlow = True
+                
+                TryNextFlow = True 'try next search layer
+                
             End If
+            
         End If
         
         'try next container
         If TryNextFlow Then
+            
+            'reset column, row, and pipette
+            CurrentColumn = StartColumn
+            CurrentRow = StartRow
+            MainPipetteIndex = FirstUsedPipette
+        
             If CurrentContainer < FinalContainer Then
             
                 CurrentContainer = CurrentContainer + 1

@@ -41,7 +41,7 @@ Public Property Let MyType(CT As VbVarType)
     If pCollection.Count = 0 Then
         pType = CT
     Else
-        modGlobal.ErrorReport 1001
+        ErrorReport 1001
     End If
 End Property
 
@@ -76,7 +76,7 @@ Public Sub Add(Added As Variant, Optional Key As String)
         Keys.Add Key, Key
         
     Else
-        modGlobal.ErrorReport 1000
+        ErrorReport 1000
     End If
                 
 End Sub

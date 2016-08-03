@@ -72,3 +72,42 @@ Sub ArrayCopy(ByVal SourceArray As Variant, _
               
 End Sub
 
+'****************************************************************************************************
+Function ArrayMaxElement(TestArray As Variant, _
+    Optional DimensionIndex As Long = 1, _
+    Optional col1 As Long, _
+    Optional col2 As Long, _
+    Optional col3 As Long, _
+    Optional col4 As Long, _
+    Optional col5 As Long _
+    ) As Long
+'====================================================================================================
+'Finds the index of the maximum value in an array, using the dimension DimensionIndex
+'supports arrays up to dim5 in size
+'https://support.microsoft.com/en-us/kb/152288
+'Microsoft, taken 2016-01-08
+'Last update 2016-01-08
+'====================================================================================================
+
+    Dim FirstIndex As Long
+    Dim LastIndex As Long
+    Dim MaxValue
+    Dim i As Long
+    Dim MaxIndex As Long
+    
+    FirstIndex = LBound(TestArray, DimensionIndex)
+    LastIndex = UBound(TestArray, DimensionIndex)
+    
+    MaxIndex = FirstIndex
+    MaxValue = TestArray(FirstIndex)
+    
+    For i = FirstIndex + 1 To LastIndex
+        If TestArray(i) > MaxValue Then
+            MaxValue = TestArray(i)
+            MaxIndex = i
+        End If
+    Next i
+    
+    ArrayMaxElement = MaxIndex
+
+End Function

@@ -1,13 +1,38 @@
 Attribute VB_Name = "XmodCollections"
 Option Explicit
 
+
+'****************************************************************************************************
+Function IsMemberOf(TestElement As Variant, SetList As Collection) As Boolean
+'====================================================================================================
+'test whether an element is a member of a collection by value, not by key
+'Juraj Ahel, 2016-03-09
+'Last update 2016-03-09
+'====================================================================================================
+
+    Dim i As Long
+    
+    If SetList Is Nothing Then GoTo 999
+    
+    For i = 1 To SetList.Count
+        If TestElement = SetList.Item(i) Then IsMemberOf = True
+    Next i
+    
+
+999 End Function
+
+
+
+
 '****************************************************************************************************
 '====================================================================================================
 '
 'Juraj Ahel, 2016-03-09
 'Last update 2016-03-09
 '====================================================================================================
-Public Function IsElementOf(sKey As String, oCollection As Collection) As Boolean
+'2016-08-02 made sKey get passed by value
+
+Public Function IsElementOf(ByVal sKey As String, oCollection As Collection) As Boolean
     'Const scSOURCE As String = "IsElementOf"
 
     Dim lErrNumber As Long

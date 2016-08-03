@@ -14,6 +14,8 @@ Private pVolume As Double
 'Private pCount As Integer
 Private pDirty As Boolean
 
+Public Event CleanedWhileNotEmpty(SampleName As String, Volume As Double)
+
 Private Sub Class_Initialize()
     
     Set pSample = New clsSample
@@ -25,6 +27,8 @@ Private Sub Class_Terminate()
     Set pSample = Nothing
 
 End Sub
+
+
 
 Public Property Get IsDirty() As Boolean
     IsDirty = pDirty
@@ -45,6 +49,7 @@ End Property
 
 Public Property Let Volume(N As Double)
     pVolume = N
+    If Volume > 0 Then IsDirty = True
 End Property
 
 'Public Property Get Count() As Integer
@@ -64,6 +69,11 @@ Public Property Set Sample(N As clsSample)
 End Property
 
 Public Sub CleanMe()
+    
+    If Volume > 0 Then
+        RaiseEvent CleanedWhileNotEmpty(Sample.Name, Volume)
+    End If
+    
     Volume = 0
     'Count = 0
     IsDirty = False
