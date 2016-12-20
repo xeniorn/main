@@ -441,3 +441,73 @@ StringSubstract = Join(TemplateArray, "")
 
 End Function
 
+
+
+'****************************************************************************************************
+Function StringSubRegions( _
+                        InputString As String, _
+                        Optional ExcludeString As String = "", _
+                        Optional Exclude As Boolean = True, _
+                        Optional Separator = "" _
+                        ) As String
+
+'====================================================================================================
+'Converts a string to indexed classes
+' "AAAABBBCDEEEEEEAAAE" -> "[A]1-4[B]5-7[C]8-8[D]9-9[E]10-15[A]16-18[E]19-19"
+'Juraj Ahel, 2015-04-13, for converting sequence secondary structure data to ranges
+'Last update 2015-04-23
+'====================================================================================================
+
+    Const D As String = "-"
+    
+    Dim RegionSymbol As String, RegionMarker As String
+    Dim IndexStart As Long, IndexEnd As Long, LengthString As Long
+    Dim TempSymbol As String, CtrlSymbol As String
+    
+    Dim i As Long
+    Dim IncludeThisSymbol As Boolean
+    
+    LengthString = Len(InputString)
+    CtrlSymbol = Mid(InputString, 1, 1)
+    IndexStart = 1
+    IndexEnd = LengthString
+    
+    For i = 2 To LengthString
+    
+        TempSymbol = Mid(InputString, i, 1)
+        
+        If TempSymbol <> CtrlSymbol Then
+        
+            IndexEnd = i - 1
+            RegionMarker = "[" & CtrlSymbol & "]"
+            
+            IncludeThisSymbol = InStr(1, ExcludeString, CtrlSymbol) = 0
+            If Not Exclude Then IncludeThisSymbol = Not (IncludeThisSymbol)
+            
+            If IncludeThisSymbol Then
+                TempOut = TempOut & RegionMarker & IndexStart & D & IndexEnd
+            End If
+            
+            IndexStart = i
+            CtrlSymbol = TempSymbol
+            
+        End If
+    Next i
+    
+    If IndexStart = Len(InputString) Then
+        
+        RegionMarker = "[" & CtrlSymbol & "]"
+        IndexEnd = LengthString
+        CtrlSymbol = Right(InputString, 1)
+            
+            IncludeThisSymbol = InStr(1, ExcludeString, CtrlSymbol) = 0
+            If Not Exclude Then IncludeThisSymbol = Not (IncludeThisSymbol)
+            
+            If IncludeThisSymbol Then
+                TempOut = TempOut & RegionMarker & IndexStart & D & IndexEnd
+            End If
+    End If
+    
+    StringSubRegions = TempOut
+
+End Function

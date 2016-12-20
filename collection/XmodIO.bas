@@ -326,10 +326,11 @@ Function FileSystem_GetTempFolder( _
 'Juraj Ahel, 2016-06-08
 'Last update 2016-06-08
 '===============================================================================
+'2016-12-20 Change fixed \ to Application.PathSeparator
 
     Dim WshWasNothing As Boolean
     
-    Const PathSeparator As String = "\"
+    Const PathSeparator As String = Application.PathSeparator
     
     If wsh Is Nothing Then
         WshWasNothing = True
@@ -567,7 +568,7 @@ Function CreateEmptyFile(ByVal OutputFilename As String) As Boolean
 End Function
 
 '****************************************************************************************************
-Function WriteTextFile(OutputText As String, OutputFilename As String) As Boolean
+Function WriteTextFile(OutputText As String, OutputFilename As String, Optional ByVal Append As Boolean) As Boolean
 '===============================================================================
 'reads the entire contents of a binary file into a string
 'poorly written, should be redone properly with checks, but there was an error
@@ -575,12 +576,23 @@ Function WriteTextFile(OutputText As String, OutputFilename As String) As Boolea
 'Juraj Ahel, 2016-05-31, writing text files
 'Last update 2016-05-31
 '2016-06-27 changed default file handle to 10
+'2016-12-20 make it select a free file handle
 '===============================================================================
-    
-    Open OutputFilename For Output As #10
+        
+    Dim ActiveFile As Integer
+        
+    'Get free file handle
+    ActiveFile = VBA.FileSystem.FreeFile()
+        
+    If Append Then
+        Open OutputFilename For Append As #ActiveFile
+    Else
+        Open OutputFilename For Output As #ActiveFile
+    End If
+        
 
-    Print #10, OutputText
-    Close #10
+    Print #ActiveFile, OutputText
+    Close #ActiveFile
     
 End Function
 
@@ -651,7 +663,7 @@ For i = 1 To DataSource.Rows.Count
     HeaderLine = ">" & CStr(DataSource(i, 1).Value)
     Sequence = DataSource(i, 2).Value
     OutputFile = FilePath & CStr(DataSource(i, 1).Value) & "_seq.txt"
-    Call WriteTextFile(HeaderLine & vbCrLf & Sequence, OutputFile)
+    Call ExportDataToTextFile(HeaderLine & vbCrLf & Sequence, OutputFile)
 Next i
 
 End Sub
@@ -678,7 +690,7 @@ Dim DataSource As Range
 
 
     OutputFile = FilePath & FilenameBase & Extension
-    Call WriteTextFile(SourceData(1, 1).Value, OutputFile)
+    Call ExportDataToTextFile(SourceData(1, 1).Value, OutputFile)
 
 
 End Sub
@@ -705,7 +717,7 @@ Set DataSource = SourceData
 
 For i = 1 To DataSource.Rows.Count
     OutputFile = FilePath & FilenameBase & i & Extension
-    Call WriteTextFile(DataSource(i, 1).Value, OutputFile)
+    Call ExportDataToTextFile(DataSource(i, 1).Value, OutputFile)
 Next i
 
 End Sub
