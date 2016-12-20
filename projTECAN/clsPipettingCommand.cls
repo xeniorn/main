@@ -30,7 +30,7 @@ Public Property Let CommandType(InpVarCommandType As String)
     pCommandType = InpVarCommandType
 End Property
 
-Public Property Let tipMask(InpVartipMask As String)
+Public Property Let TipMask(InpVartipMask As String)
     ptipMask = ConvertFlagToValue(InpVartipMask)
 End Property
 
@@ -62,8 +62,8 @@ Public Property Get CommandType() As String
     CommandType = pCommandType
 End Property
 
-Public Property Get tipMask() As String
-    tipMask = ptipMask
+Public Property Get TipMask() As String
+    TipMask = ptipMask
 End Property
 
 Public Property Get liquidClass() As String
@@ -101,7 +101,7 @@ Public Sub Define(iCommandType As String, _
     
 
 CommandType = iCommandType
-tipMask = itipMask
+TipMask = itipMask
 liquidClass = iliquidClass
 VolumesString = iVolumesString
 Grid = iGrid
@@ -145,7 +145,7 @@ Public Property Get FullCommandText() As String
             ErrorReportGlobal 72, "Invalid pipetting command type parameter!", "clsPipettingCommand"
     End Select
     
-    Parameters(1) = tipMask
+    Parameters(1) = TipMask
     Parameters(2) = conQ & liquidClass & conQ
     Parameters(3) = VolumesString
     Parameters(4) = CStr(Grid)

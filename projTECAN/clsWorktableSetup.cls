@@ -19,6 +19,14 @@ Const conAllowedPlateLocationsNumber As Byte = 6
 
 Private pAllowedLocations() As String
 
+Private ptWasteGrid As Integer
+Private ptWasteSite As Integer
+
+Private ptShallowCleanerGrid As Integer
+Private ptShallowCleanerSite As Integer
+
+Private ptDeepCleanerGrid As Integer
+Private ptDeepCleanerSite As Integer
 
 Private pContainters As Collection
 
@@ -64,6 +72,41 @@ Public Property Get Containers() As Collection
     Set Containers = pContainters
 
 End Property
+
+Public Property Get GetGrid(ByVal ComponentName As String) As Integer
+
+    Dim tempValue As Integer
+    
+    Select Case UCase(ComponentName)
+        Case "CLEANERDEEP"
+            tempValue = ptDeepCleanerGrid
+        Case "CLEANERSHALLOW"
+            tempValue = ptShallowCleanerGrid
+        Case "WASTE"
+            tempValue = ptWasteGrid
+    End Select
+    
+    GetGrid = tempValue
+
+End Property
+
+Public Property Get GetSite(ByVal ComponentName As String) As Integer
+
+    Dim tempValue As Integer
+    
+    Select Case UCase(ComponentName)
+        Case "CLEANERDEEP"
+            tempValue = ptDeepCleanerSite
+        Case "CLEANERSHALLOW"
+            tempValue = ptShallowCleanerSite
+        Case "WASTE"
+            tempValue = ptWasteSite
+    End Select
+    
+    GetSite = tempValue
+
+End Property
+
 
 Private Sub LegalCheck(LocationCode As String, Optional SetStatus As String = "")
 
@@ -112,6 +155,23 @@ Private Sub RefreshStatus()
 
 End Sub
 
+
+Public Sub ImportComponent(ByVal ComponentName As String, ByVal Grid As Integer, ByVal Site As Integer)
+    
+    Select Case UCase(ComponentName)
+        Case "CLEANERDEEP"
+            ptDeepCleanerGrid = Grid
+            ptDeepCleanerSite = Site
+        Case "CLEANERSHALLOW"
+            ptShallowCleanerGrid = Grid
+            ptShallowCleanerSite = Site
+        Case "WASTE"
+            ptWasteGrid = Grid
+            ptWasteSite = Site
+    End Select
+
+End Sub
+
 '****************************************************************************************************
 Public Sub Locate(InputSample As clsSample)
 '====================================================================================================
@@ -120,10 +180,12 @@ Public Sub Locate(InputSample As clsSample)
 'Juraj Ahel, 2015-12-xx
 'Last update 2016-03-15
 '====================================================================================================
-    
+'Does not handle if there is a primer and a sample with the same name!!!
+
 Dim i As Integer
 Dim tempFound As Boolean
 Dim tempcLocation As clsWorktableSampleLocation
+Dim tfoundLocation As clsWorktableSampleLocation
 Dim tempcContainer As clsWorktableContainer
 
 'Set tempcLocation = New clsWorktableSampleLocation
@@ -135,13 +197,14 @@ For i = 1 To Containers.Count
     If TypeOf Containers.Item(i) Is clsWorktableContainer Then
         
         Set tempcContainer = Containers.Item(i)
-        Set tempcLocation = tempcContainer.LocateSample(InputSample)
+        Set tempcLocation = tempcContainer.LocateSample(InputSample) 'new location instance
             
         If Not (tempcLocation Is Nothing) Then
             If tempcLocation.Unique Then
                 
                 If Not tempFound Then
                     tempFound = True
+                    Set tfoundLocation = tempcLocation
                 Else
                     ErrorReport 1, "Sample name ambiguity: more than one sample with one name in inputs (" & InputSample.Name & ")"
                     Set tempcLocation = Nothing
@@ -154,14 +217,15 @@ For i = 1 To Containers.Count
     
 Next i
 
-If tempcLocation Is Nothing Then
+If tfoundLocation Is Nothing Then
     ' sample wasn't found at all
     ErrorReport 2, "Sample name not found in inputs: (" & InputSample.Name & ")"
 Else
-    Set InputSample.Location = tempcLocation 'NOT GOOD, IT HAS MULTIPLE LOCATIONS! (input, output...), possible multiple of both
+    Set InputSample.Location = tfoundLocation 'NOT GOOD, IT HAS MULTIPLE LOCATIONS! (input, output...), possible multiple of both - be careful
 End If
     
 Set tempcLocation = Nothing
+Set tfoundLocation = Nothing
 Set InputSample = Nothing
     
 End Sub
@@ -223,10 +287,11 @@ End Sub
 '****************************************************************************************************
 Sub DefineSequencingPlatesFromVirtual(VirtualPlate As clsVirtualSequencingPlate)
 '====================================================================================================
-'creates physical plates from the virtual plate (split to 12x8 arrays, define location on worktable)
+'creates physical plates from the virtual plate (split to 8x12 arrays, define location on worktable)
 'Juraj Ahel, 2016-03-07
 'Last update 2016-03-07
 '====================================================================================================
+'2016-08-01 try to fix the row-column mixup
 
 Dim NumberOfPlates As Integer
 Dim i As Integer
@@ -236,7 +301,7 @@ NumberOfPlates = VirtualPlate.NumberOfPlates
 
 For i = 1 To NumberOfPlates
     
-    Set tempcSeqPlate = VirtualPlate.ExtractPlate(1)
+    Set tempcSeqPlate = VirtualPlate.ExtractPlate(i)
     
     FindFreeLocationFor tempcSeqPlate
     

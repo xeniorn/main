@@ -74,11 +74,11 @@ NumberOfPlates = pPlateNumber
 End Property
 
 Public Property Get RowsCount() As Integer
-    RowsCount = pXDim
+    RowsCount = pYDim
 End Property
 
 Public Property Get ColumnsCount() As Integer
-    ColumnsCount = pYDim
+    ColumnsCount = pXDim
 End Property
 
 Public Property Get Well(x As Integer, y As Integer) As clsSeqReaction
@@ -196,7 +196,7 @@ Private Function FindFree(Optional Direction As pDirections = eTopLeft) As Integ
         
 999 End Function
 
-Private Function ImportRange(InputRange As Range) As Variant
+Private Function ImportRange(ByRef InputRange As Excel.Range) As Variant
     
     Dim InputArray() As Variant
     
@@ -209,14 +209,8 @@ Private Function ImportRange(InputRange As Range) As Variant
 
 End Function
 
-Public Sub ImportSequencingList()
-    
-    Const IAmDebugging = True
-    
-    'input variables (temp?)
-    Dim InputRange As Range
-    Dim InputArray() As Variant
-        
+Private Sub PrimerOptimizedSequencingList(ByRef InputArray As Variant)
+         
     'data collection
     Dim SequencingSamples As clsSeqSamples
     Dim Primers As clsPrimers
@@ -241,103 +235,60 @@ Public Sub ImportSequencingList()
     'control variables
     Dim ElementNotIn As Boolean
     
-    If IAmDebugging Then
-        Set InputRange = Range("TESTINPUTR")
-    Else
-        Set InputRange = Selection
-    End If
     
-    InputArray = ImportRange(InputRange)
+    '####START
         
     'Put all the primers, DNAs, and Seq Reactions into appropriate collections
-    For i = 1 To TotalSeqReactionNumber
-        
-        tempDNAText = InputArray(i, 1)
-        tempPrimerText = InputArray(i, 2)
-        
-        
-        'if this sample wasn't added yet, add it
-        ElementNotIn = Not (IsElementOf(tempDNAText, SequencingSamples.SeqSamples))
-        If ElementNotIn Then
+        For i = 1 To TotalSeqReactionNumber
             
-            'adding the template part
-            Set ctempDNA = New clsDNA
-            Set ctempSeqSample = New clsSeqSample
-            ctempDNA.Name = tempDNAText
-            Set ctempSeqSample.Template = ctempDNA
-            SequencingSamples.Add ctempSeqSample
-        
-        Else
-        
-            Set ctempSeqSample = SequencingSamples.SeqSample(tempDNAText)
+            tempDNAText = InputArray(i, 1)
+            tempPrimerText = InputArray(i, 2)
             
-        End If
-        
             
-        ElementNotIn = Not (IsElementOf(tempPrimerText, Primers.Primers))
-        If ElementNotIn Then
+            'if this sample wasn't added yet, add it
+            ElementNotIn = Not (IsElementOf(tempDNAText, SequencingSamples.SeqSamples))
+            If ElementNotIn Then
+                
+                'adding the template part
+                Set ctempDNA = New clsDNA
+                Set ctempSeqSample = New clsSeqSample
+                ctempDNA.Name = tempDNAText
+                Set ctempSeqSample.Template = ctempDNA
+                SequencingSamples.Add ctempSeqSample
             
-            'adding the primer to the list of primer used in this experiment
-            Set ctempPrimer = New clsPrimer
-            ctempPrimer.Name = tempPrimerText
-            Primers.AddPrimer ctempPrimer
-            PrimerCounts.Add 1, tempPrimerText
-                    
-        Else
+            Else
             
-            'Increase count of an element inside the collection
-            Set ctempPrimer = Primers.Primer(tempPrimerText)
-            tempCollectionMember = PrimerCounts.Item(tempPrimerText)
-            PrimerCounts.Remove tempPrimerText
-            PrimerCounts.Add tempCollectionMember + 1, tempPrimerText
-        
-        End If
+                Set ctempSeqSample = SequencingSamples.SeqSample(tempDNAText)
+                
+            End If
+            
+                
+            ElementNotIn = Not (IsElementOf(tempPrimerText, Primers.Primers))
+            If ElementNotIn Then
+                
+                'adding the primer to the list of primer used in this experiment
+                Set ctempPrimer = New clsPrimer
+                ctempPrimer.Name = tempPrimerText
+                Primers.AddPrimer ctempPrimer
+                PrimerCounts.Add 1, tempPrimerText
+                        
+            Else
+                
+                'Increase count of an element inside the collection
+                Set ctempPrimer = Primers.Primer(tempPrimerText)
+                tempCollectionMember = PrimerCounts.Item(tempPrimerText)
+                PrimerCounts.Remove tempPrimerText
+                PrimerCounts.Add tempCollectionMember + 1, tempPrimerText
+            
+            End If
         
         
         'add the annotations -> primer inside the seq sample, seq sample inside the primer
         ctempPrimer.SeqSamples.Add ctempSeqSample
         ctempSeqSample.Primers.AddPrimer ctempPrimer
         
-        '#OLD
-        'ElementNotIn = Not IsElementOf(tempPrimerText, SequencingSamples.SeqSample(tempDNAText).Primers.Primers)
-        'If ElementNotIn Then
-        
-        '    Set ctempPrimer = New clsPrimer
-        '    ctempPrimer.Name = tempPrimerText
-        '    SequencingSamples.SeqSample(tempDNAText).AddPrimer ctempPrimer
-            'Maybe also add the reverse annotation... Template in Primer!
-            
-        'End If
-        
-    
-        'If (Not IsElementOf(tempDNAText, Primers.Primer(tempPrimerText).SeqSamples)) Then
-        '
-        '    Set ctempSeqSample = New clsSeqSample
-        '    ctempPrimer.Name = tempPrimerText
-        '    SequencingSamples.SeqSample(tempDNAText).AddPrimer ctempPrimer
-        '    '###Maybe also add the reverse annotation... Template in Primer!
-       
-'        End If
-        
+               
     Next i
-    
-    '#OLD
-    'This is not necessary - it could have been done directly in the initial interation
-    'since objects can be passed by reference, and their values don't get "copied".
-    'That is, if a clsDNA object is set as a template for the clsSeqSample object, and
-    'later a name is added to this clsDNA object, it will automatically be updated "inside"
-    'the clsSeqSample object, as it's not really inside, it's just linked, like with a pointer!
-    'This also means there is no significant overhead from having "rich" objects that include links
-    'to other objects, as it is just the pointer!
-    'So, at some point this should be rewritten
-    'For i = 1 To SequencingSamples.Count
-    '    Set ctempSeqSample = SequencingSamples.SeqSamples(i)
-    '    For j = 1 To ctempSeqSample.Primers.Count
-    '        Set ctempPrimer = ctempSeqSample.Primers.Primers(j)
-    '        ctempPrimer.SeqSamples.Add ctempSeqSample
-    '        Primers.Primer(ctempPrimer.Name).SeqSamples.Add ctempSeqSample
-    '    Next j
-    'Next i
     
     'Sort primers by counts!
     Set sortedPrimers = New clsPrimers
@@ -364,12 +315,7 @@ Public Sub ImportSequencingList()
     Set Primers = Nothing
     Set ctempSeqSample = Nothing
     Set ctempPrimer = Nothing
-    
-    NumberOfPlates = TotalSeqReactionNumber \ PlateXDim * PlateYDim + (1 + ((TotalSeqReactionNumber Mod PlateXDim * PlateYDim) = 0))
-    Define PlateXDim * NumberOfPlates, PlateYDim '###add support for different plates
-    
-    
-    If pXDim * pYDim - TotalSeqReactionNumber > 0 Then BlockExcessTubes pXDim * pYDim - TotalSeqReactionNumber
+        
     
     FillWithPrimerList sortedPrimers, sortedPrimerCounts
     
@@ -377,6 +323,119 @@ Public Sub ImportSequencingList()
     Set sortedPrimers = Nothing
     Set sortedPrimerCounts = Nothing
 
+End Sub
+
+Private Sub PreserveOrderSequencingList(ByRef InputArray As Variant)
+
+    'data collection
+    Dim SequencingSamples As clsSeqSamples
+    Dim Primers As clsPrimers
+    
+    Set SequencingSamples = New clsSeqSamples
+    Set Primers = New clsPrimers
+        
+    'temp exchange vars and iterators
+    Dim ctempSeqSample As clsSeqSample
+    Dim ctempPrimer As clsPrimer
+    Dim ctempDNA As clsDNA
+    Dim tempDNAText As String, tempPrimerText As String
+    Dim tempCollectionMember As Variant
+    Dim i As Integer, j As Integer
+    
+    'control variables
+    Dim ElementNotIn As Boolean
+    
+    
+    '####START
+        
+    'Put all the primers, DNAs, and Seq Reactions into appropriate collections
+        For i = 1 To TotalSeqReactionNumber
+            
+            tempDNAText = InputArray(i, 1)
+            tempPrimerText = InputArray(i, 2)
+            
+            
+            'if this sample wasn't added yet, add it
+            ElementNotIn = Not (IsElementOf(tempDNAText, SequencingSamples.SeqSamples))
+            If ElementNotIn Then
+                
+                'adding the template part
+                Set ctempDNA = New clsDNA
+                Set ctempSeqSample = New clsSeqSample
+                ctempDNA.Name = tempDNAText
+                Set ctempSeqSample.Template = ctempDNA
+                SequencingSamples.Add ctempSeqSample
+            
+            Else
+            
+                Set ctempSeqSample = SequencingSamples.SeqSample(tempDNAText)
+                
+            End If
+            
+                
+            'same for primers
+            ElementNotIn = Not (IsElementOf(tempPrimerText, Primers.Primers))
+            If ElementNotIn Then
+                
+                'adding the primer to the list of primer used in this experiment
+                Set ctempPrimer = New clsPrimer
+                ctempPrimer.Name = tempPrimerText
+                Primers.AddPrimer ctempPrimer
+                        
+            Else
+
+                Set ctempPrimer = Primers.Primer(tempPrimerText)
+                
+            End If
+        
+        
+        'add the annotations -> primer inside the seq sample, seq sample inside the primer
+        ctempPrimer.SeqSamples.Add ctempSeqSample
+        ctempSeqSample.Primers.AddPrimer ctempPrimer
+        
+        
+        'immediately import the sequencing reaction
+        With pSeqReactionList(i)
+            Set .Template = ctempSeqSample
+            Set .Primer = ctempPrimer
+        End With
+        
+        'immediately toggle the state of the plate well
+        pStateLinear(startpos) = eTaken
+               
+    Next i
+
+End Sub
+
+Public Sub ImportSequencingList(Optional ByVal ImportMode As String = "OPTIMIZEPIPETTING")
+    
+    Const IAmDebugging = False
+    
+    'input variables (temp?)
+    Dim InputRange As Range
+    Dim InputArray() As Variant
+    
+    '####START
+    
+    'input the actual data
+        Set InputRange = Selection
+        InputArray = ImportRange(InputRange)
+    
+    'initialize plates
+        NumberOfPlates = TotalSeqReactionNumber \ PlateXDim * PlateYDim + (1 + ((TotalSeqReactionNumber Mod PlateXDim * PlateYDim) = 0))
+        
+        Define PlateXDim * NumberOfPlates, PlateYDim '###add support for different plates
+        
+        If pXDim * pYDim - TotalSeqReactionNumber > 0 Then BlockExcessTubes pXDim * pYDim - TotalSeqReactionNumber
+    
+    'call appropriate Importing function
+        Select Case UCase(ImportMode)
+            Case "PRESERVEORDER"
+                Call PreserveOrderSequencingList(InputArray)
+            Case Else
+                Call PrimerOptimizedSequencingList(InputArray)
+        End Select
+    
 End Sub
 
 Private Sub BlockExcessTubes(TubesToBlock As Integer)

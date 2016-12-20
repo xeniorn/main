@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+'2016-08-03 add GetColumn and GetRow functions
+
 Private pGrid As Integer
 Private pSite As Integer
 Private pType As String
@@ -64,6 +66,28 @@ End Property
 Public Property Set Well(i As Integer, q As clsSample)
     Set pWells(i) = q
 End Property
+
+Public Function GetRow(ByVal coordinate As Integer) As Integer
+
+    Dim x As Integer
+    Dim y As Integer
+    
+    Call WellIndexToXY(coordinate, x, y)
+    
+    GetRow = y
+
+End Function
+
+Public Function GetColumn(ByVal coordinate As Integer) As Integer
+
+    Dim x As Integer
+    Dim y As Integer
+    
+    Call WellIndexToXY(coordinate, x, y)
+    
+    GetColumn = x
+
+End Function
 
 Public Sub Define(PlateType As String, Grid As Integer, Site As Integer)
     
@@ -199,10 +223,10 @@ test1 = GetWellString(a)
 
 End Function
 
-Private Sub WellIndexToXY(Coordinate As Integer, x As Integer, y As Integer)
+Private Sub WellIndexToXY(coordinate As Integer, x As Integer, y As Integer)
 
-    x = 1 + (Coordinate - 1) \ pYDim
-    y = 1 + (Coordinate - 1) Mod pYDim
+    x = 1 + (coordinate - 1) \ pYDim
+    y = 1 + (coordinate - 1) Mod pYDim
 
 End Sub
 

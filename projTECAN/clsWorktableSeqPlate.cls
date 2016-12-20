@@ -157,20 +157,20 @@ Public Sub ToggleTemplatePipetted(InRow As Integer, InColumn As Integer)
         Case ePrimerPipetted
             State(tempIndex) = eAllPipetted
         Case Else
-            '###perhaps add error, there is some kind of an issue
+            ErrorReportGlobal 71, "clsWorktableSeqPlate: Tried to pipette Template DNA to a well supposed to be empty!"
     End Select
     
 End Sub
 
-Public Property Get Well(i As Integer) As clsSeqReaction
+Public Property Get Well(ByVal i As Integer) As clsSeqReaction
     Set Well = pSeqReactionList(i)
 End Property
 
-Public Property Set Well(i As Integer, q As clsSeqReaction)
+Public Property Set Well(ByVal i As Integer, q As clsSeqReaction)
     Set pSeqReactionList(i) = q
 End Property
 
-Public Sub DefineSite(Grid As Integer, Site As Integer)
+Public Sub DefineSite(ByVal Grid As Integer, ByVal Site As Integer)
 
     pGrid = Grid
     pSite = Site
@@ -208,10 +208,10 @@ Private Sub ErrorReport(ErrorNumber As Integer, ErrorString As String)
 
 End Sub
 
-Private Sub WellIndexToXY(Coordinate As Integer, x As Integer, y As Integer)
+Private Sub WellIndexToXY(coordinate As Integer, x As Integer, y As Integer)
 
-    x = 1 + (Coordinate - 1) \ pYDim
-    y = 1 + (Coordinate - 1) Mod pYDim
+    x = 1 + (coordinate - 1) \ pYDim
+    y = 1 + (coordinate - 1) Mod pYDim
 
 End Sub
 

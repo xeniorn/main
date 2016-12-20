@@ -9,6 +9,8 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
+'2016-08-03 add WellColumn and WellRow Properties
+
 Private pContainer As clsWorktableContainer
 Private pCoordinate As Integer
 Private pUnique As Boolean
@@ -35,6 +37,19 @@ Public Property Set Container(c As clsWorktableContainer)
     Set pContainer = c
     
 End Property
+
+Public Property Get WellRow() As Integer
+    If Not Container Is Nothing Then
+        WellRow = Container.GetRow(WellCoordinate)
+    End If
+End Property
+
+Public Property Get WellColumn() As Integer
+    If Not Container Is Nothing Then
+        WellColumn = Container.GetColumn(WellCoordinate)
+    End If
+End Property
+
 
 Public Property Get WellCoordinate() As Integer
     WellCoordinate = pCoordinate

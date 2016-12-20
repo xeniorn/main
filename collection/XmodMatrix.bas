@@ -1,5 +1,4 @@
 Attribute VB_Name = "XmodMatrix"
-
 Sub test160113MatrixOperations()
 
     Dim a(1 To 3, 1 To 2)
@@ -20,8 +19,8 @@ Sub test160113MatrixOperations()
     Set col3 = New Collection: col3.Add 3
     
     b = MatrixMaxCount(a)
-    C = MatrixMaxElement(a)
-    D = MatrixElementCount(1, a, 0, 0, col1, col2)
+    c = MatrixMaxElement(a)
+    d = MatrixElementCount(1, a, 0, 0, col1, col2)
     
     d1 = MatrixMaxElement(a, 0, 0)
     d2 = MatrixMaxElement(a, 0, 0, col2, col1)
@@ -148,37 +147,36 @@ End Function
 
 
 Function MaxMatrixInRow(InpRange As Range)
-
-Dim Arrayos(1 To 12) As Long
-Dim InpMatrix()
-InpMatrix = InpRange.Value
-Dim i As Long, j As Long, k As Long
-
-For k = 1 To InpRange.Rows.Count
-    For i = 1 To InpRange.Columns.Count
-        If InpMatrix(1, i) <> "" Then
-            Arrayos(i) = MatrixElementCount(InpMatrix(1, i), InpMatrix)
-        End If
+    
+    Dim Arrayos(1 To 12) As Long
+    Dim InpMatrix()
+    InpMatrix = InpRange.Value
+    Dim i As Long, j As Long, k As Long
+    
+    For k = 1 To InpRange.Rows.Count
+        For i = 1 To InpRange.Columns.Count
+            If InpMatrix(1, i) <> "" Then
+                Arrayos(i) = MatrixElementCount(InpMatrix(1, i), InpMatrix)
+            End If
+        Next i
+    Next k
+    
+    j = 1
+    
+    For i = 2 To InpRange.Columns.Count
+        If Arrayos(i) > Arrayos(j) Then j = i
     Next i
-Next k
-
-j = 1
-
-For i = 2 To InpRange.Columns.Count
-    If Arrayos(i) > Arrayos(j) Then j = i
-Next i
-
-MaxMatrixInRow = InpMatrix(1, j)
-If MaxMatrixInRow = "" Then MaxMatrixInRow = "EMPTY ROW"
+    
+    MaxMatrixInRow = InpMatrix(1, j)
+    If MaxMatrixInRow = "" Then MaxMatrixInRow = "EMPTY ROW"
 
 End Function
 
 
-Function MatrixMaxElement(Matrix As Variant, _
-                            Optional OnlyRowN As Long = 0, _
-                            Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+Function MatrixMaxElement(ByVal Matrix As Variant, _
+                            Optional ByVal OnlyRowN As Long = 0, _
+                            Optional ByVal OnlyColumnN As Long = 0, _
+                            Optional ByVal IgnoreList As Collection = Nothing _
                             ) As Variant
                             
                             
@@ -207,7 +205,7 @@ Function MatrixMaxElement(Matrix As Variant, _
     
     For i = s1 To e1
         For j = s2 To e2
-            tempcounter = MatrixElementCount(Matrix(i, j), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
+            tempcounter = MatrixElementCount(Matrix(i, j), Matrix, OnlyRowN, OnlyColumnN, IgnoreList)
             If tempcounter > maxcounter Then
                 MaxEl = Matrix(i, j)
                 maxcounter = tempcounter
@@ -226,8 +224,7 @@ End Function
 Function MatrixMaxCount(Matrix As Variant, _
                             Optional OnlyRowN As Long = 0, _
                             Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+                            Optional IgnoreList As Collection = Nothing _
                             ) As Variant
 
     Dim s1 As Long, s2 As Long, e1 As Long, e2 As Long
@@ -248,8 +245,8 @@ Function MatrixMaxCount(Matrix As Variant, _
         e2 = OnlyColumnN
     End If
     
-    MaxEl = MatrixMaxElement(Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
-    MatrixMaxCount = MatrixElementCount(MaxEl, Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
+    MaxEl = MatrixMaxElement(Matrix, OnlyRowN, OnlyColumnN, IgnoreList)
+    MatrixMaxCount = MatrixElementCount(MaxEl, Matrix, OnlyRowN, OnlyColumnN, IgnoreList)
     
 End Function
 
@@ -301,16 +298,10 @@ Function MatrixElementCount(ByVal Element As Variant, _
     
     counter = 0
       
-    Select Case Recursion
-        Case -1, 0
-            'leave it, either allowed infinitely or not allowed
-        Case Is > 1
-            'a limited number is allowed, reduced in every pass
-            Recursion = Recursion - 1
-        Case Else
-            'uknown parameter
-            ErrorReportGlobal 5075, "Unrecognized recursion type parameter (must be Long -1/0/+x)!", "modMatrix:MatrixElementCount"
-    End Select
+    If Recursion < -1 Then
+        'uknown parameter
+        ErrorReportGlobal 5075, "Unrecognized recursion type parameter (must be Long -1/0/+x)!", "modMatrix:MatrixElementCount"
+    End If
                     
     '[Parsing main inputs]
     'check if element is a simple object or a collection thereof, and recursively solve if recursion is allowed
@@ -321,14 +312,18 @@ Function MatrixElementCount(ByVal Element As Variant, _
             
             If TypeOf Element Is Collection Then
                 
-                If Recursion = 0 Then
-                    ErrorReportGlobal 5076, "Element is a collection, but recursion is deeper than allowed!", "modMatrix:MatrixElementCount"
-                End If
-                                
-                For i = 1 To Element.Count
-                    counter = counter + MatrixElementCount(Element.Item(i), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, CountAllExceptIgnored, Recursion)
-                Next i
+                Select Case Recursion
                 
+                    Case 0
+                        ErrorReportGlobal 5076, "Element is a collection, but recursion is deeper than allowed!", "modMatrix:MatrixElementCount"
+                        
+                    Case Is >= 1
+                        For i = 1 To Element.Count
+                            counter = counter + MatrixElementCount(Element.Item(i), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, CountAllExceptIgnored, Recursion - 1)
+                        Next i
+                        
+                End Select
+                        
             Else
             
                 ErrorReportGlobal 5077, "Element to be counted is not a simple object or a collection/array!", "modMatrix:MatrixElementCount"
@@ -338,30 +333,35 @@ Function MatrixElementCount(ByVal Element As Variant, _
         'Arrays are allowed - array type is defined by vbArray + vb[ArrayVarType], so VarType for an array is >vbArray
         Case Is > vbArray
         
-            If Recursion = 0 Then
-                ErrorReportGlobal 5078, "Element is a collection, but recursion is deeper than allowed!", "modMatrix:MatrixElementCount"
-            End If
+            Select Case Recursion
             
-            If MatrixDimesionNumber(Element) <> 1 Then
-                ErrorReportGlobal 5079, "Element is an Array, but not 1D!", "modMatrix:MatrixElementCount"
-            End If
+                Case 0
+                    ErrorReportGlobal 5076, "Element is a collection, but recursion is deeper than allowed!", "modMatrix:MatrixElementCount"
+                    
+                Case Is >= 1
+                    
+                    If MatrixDimesionNumber(Element) <> 1 Then
+                        ErrorReportGlobal 5079, "Element is an Array, but not 1D!", "modMatrix:MatrixElementCount"
+                    End If
+                    
+                    For i = LBound(Element) To UBound(Element)
+                        counter = counter + MatrixElementCount(Element(i), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, CountAllExceptIgnored, Recursion - 1)
+                    Next i
+                    
+            End Select
             
-            For i = LBound(Element) To UBound(Element)
-                counter = counter + MatrixElementCount(Element(i), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, CountAllExceptIgnored, Recursion)
-            Next i
-            
-            
-        Case Else  'simple type: vbBoolean, vbByte, vbLong, vbLong, vbSingle, vbDouble,vbString, vbDate, vbCurrency, vbDecimal
+        Case Else  'simple type: vbBoolean, vbByte, vbInteger, vbLong, vbSingle, vbDouble,vbString, vbDate, vbCurrency, vbDecimal
             'proceed to counting
     End Select
         
-    '[Counting] 'True is -1 as an Long, therefore multiplication of 3 true values is -1,
+    '[Counting] 'True is -1 as an integer, therefore multiplication of 3 true values is -1,
                 'so it must be "substracted" from counter to increase it
     For i = s1 To e1
         For j = s2 To e2
-    
-            ShouldICount = ((Element = Matrix(i, j)) Or CountAllExceptIgnored) And Not (IsMemberOf(Element, IgnoreList))
-            counter = counter + ShouldICount
+            
+            'something should be counted if it is not in the ignore list, AND if either matches the probe element OR CountAll is on
+            ShouldICount = ((Element = Matrix(i, j)) Or CountAllExceptIgnored) And Not (IsMemberOf(Matrix(i, j), IgnoreList))
+            counter = counter + Abs(ShouldICount)
 
         Next j
     Next i
@@ -375,8 +375,7 @@ Sub MatrixElementReplace(Element As Variant, _
                             Optional Replacement As Variant = Empty, _
                             Optional OnlyRowN As Long = 0, _
                             Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+                            Optional IgnoreList As Collection = Nothing _
                             )
 
     Dim s1 As Long, s2 As Long, e1 As Long, e2 As Long
@@ -437,3 +436,5 @@ Function MatrixSum(Matrix As Variant, Optional OnlyRowN As Long = 0, Optional On
     MatrixSum = tempsum
 
 End Function
+
+

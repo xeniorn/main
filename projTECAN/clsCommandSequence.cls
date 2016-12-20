@@ -31,12 +31,26 @@ End Sub
 Public Property Get Output(Optional Delimiter As String = vbCrLf) As String
 
     Dim i As Integer
+    Dim tempArray() As String
+    Dim tempResult As String
     
-    For i = 1 To pCommands.Count - 1
-        Output = Output & pCommands.Item(i) & Delimiter
-    Next i
+    tempResult = ""
     
-    Output = Output & pCommands.Item(pCommands.Count)
+    If Not (pCommands Is Nothing) Then
+        If pCommands.Count > 0 Then
+        
+            ReDim tempArray(1 To pCommands.Count)
+            For i = LBound(tempArray) To UBound(tempArray)
+                tempArray(i) = pCommands.Item(i)
+            Next i
+            tempResult = Join(tempArray, Delimiter)
+        
+        End If
+    End If
+                
+    
+    
+    Output = tempResult
 
 End Property
 
