@@ -330,7 +330,7 @@ Function FileSystem_GetTempFolder( _
 
     Dim WshWasNothing As Boolean
     
-    Const PathSeparator As String = Application.PathSeparator
+    Dim PathSeparator As String: PathSeparator = Application.PathSeparator
     
     If wsh Is Nothing Then
         WshWasNothing = True

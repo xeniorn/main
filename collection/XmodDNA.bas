@@ -998,7 +998,143 @@ Function PCRWithOverhangs(Template As String, _
 
 End Function
 
+'****************************************************************************************************
+Function PCRGetFragmentFromTemplate( _
+    ByVal TargetSequence As String, _
+    ByVal Template As String, _
+    Optional ByVal TargetPrimerTm As Double = 60, _
+    Optional ByVal MinPrimerLength As Long = 15, _
+    Optional ByVal TemplateCircular As Boolean = False, _
+    Optional ByVal TryReverseComplement As Boolean = False, _
+    Optional ByVal MaxExtension As Long = 50 _
+    ) As VBA.Collection
 
+'====================================================================================================
+'Calculates optimal primers for getting a target sequence from a chosen template, allowing for extension
+'Juraj Ahel, 2016-12-21, general purposes and Gibson
+
+'====================================================================================================
+'TODO: add check whether the primers anneal elsewhere in the sequence
+'TODO: add check whether primers anneal to each other
+
+    Dim OverlappingSequence As String
+    Dim TempSeq As String
+    Dim RCTemplate As String
+    Dim TargetLength As Long, TemplateLength As Long, OverlapLength As Long
+    Dim i As Long
+    Dim RCIsBetter As Boolean
+    
+    Dim LeftExtensionLength As Long
+    Dim RightExtensionLength As Long
+        
+    'find best overlap between template and target sequence - anything outside it is overlap
+        If TemplateCircular Then
+            For i = 1 To TemplateLength
+                TempSeq = StringFindOverlap(TargetSequence, DNAReindex(Template, i))
+                If Len(TempSeq) = Len(OverlappingSequence) Then
+                    OverlappingSequence = TempSeq
+                End If
+            Next i
+        Else
+            OverlappingSequence = StringFindOverlap(TargetSequence, Template)
+        End If
+        
+        RCIsBetter = False
+        
+    'check if a better overlap can be achieved with reverse complement
+        If TryReverseComplement Then
+            RCTemplate = DNAReverseComplement(Template)
+            If TemplateCircular Then
+                For i = 1 To TemplateLength
+                    TempSeq = StringFindOverlap(TargetSequence, DNAReindex(RCTemplate, i))
+                    If Len(TempSeq) > Len(OverlappingSequence) Then
+                        OverlappingSequence = TempSeq
+                        RCIsBetter = True
+                    End If
+                Next i
+            Else
+                TempSeq = StringFindOverlap(TargetSequence, RCTemplate)
+                If Len(TempSeq) > Len(OverlappingSequence) Then
+                    OverlappingSequence = TempSeq
+                    RCIsBetter = True
+                End If
+            End If
+        End If
+        
+    'If RC was better, simply pretend RC is the actual template during the calculation
+    If RCIsBetter Then
+        Template = RCTemplate
+        Debug.Print ("Using Reverse Complement")
+    End If
+            
+    TargetLength = Len(TargetSequence)
+    TemplateLength = Len(Template)
+    OverlapLength = Len(OverlappingSequence)
+    
+    'check if a PCR is feasible
+        If TargetLength > OverlapLength + 2 * MaxExtension Then
+            Call Err.Raise(1, , "Target sequence too long for template with given primer extension limit (" & MaxExtension & "). Total " & _
+            (TargetLength - TemplateLength) & "-residue extension required.")
+        End If
+        
+    LeftExtensionLength = InStr(1, TargetSequence, OverlappingSequence) - 1
+    RightExtensionLength = TargetLength - OverlapLength - LeftExtensionLength
+    
+    If LeftExtensionLength > MaxExtension Then
+        Call Err.Raise(1, , "Required 5' extension too long (" & LeftExtensionLength & ", allowed " & MaxExtension & ").")
+    End If
+    
+    If RightExtensionLength > MaxExtension Then
+        Call Err.Raise(1, , "Required 3' extension too long (" & RightExtensionLength & ", allowed " & MaxExtension & ").")
+    End If
+    
+    Dim FAnneal As String, RAnneal As String
+    Dim LeftExtension As String, RightExtension As String
+    Dim FPrimer As String, RPrimer As String
+        
+    LeftExtension = Left(TargetSequence, LeftExtensionLength)
+    RightExtension = Right(TargetSequence, RightExtensionLength)
+        
+    FAnneal = PCROptimizePrimer(OverlappingSequence, TargetPrimerTm, MinPrimerLength)
+    RAnneal = PCROptimizePrimer(DNAReverseComplement(OverlappingSequence), TargetPrimerTm, MinPrimerLength)
+    
+    FPrimer = LeftExtension & FAnneal
+    RPrimer = DNAReverseComplement(RightExtension) & RAnneal
+    
+    'confirm
+        If PCRWithOverhangs(Template, FPrimer, RPrimer, TemplateCircular, True, True, False, MinPrimerLength) = TargetSequence Then
+            Debug.Print ("Sequence ok!")
+        Else
+            Call Err.Raise(1, , "Simulated PCR result doesn't match target sequence!")
+        End If
+            
+    Set PCRGetFragmentFromTemplate = New VBA.Collection
+        With PCRGetFragmentFromTemplate
+            .Add FPrimer, "F"
+            .Add RPrimer, "R"
+            .Add OligoTm(FAnneal), "TmF"
+            .Add OligoTm(RAnneal), "TmR"
+            .Add FAnneal, "AnnealF"
+            .Add RAnneal, "AnnealR"
+        End With
+           
+    Debug.Print (TargetSequence)
+    Debug.Print (Template)
+    For i = 1 To PCRGetFragmentFromTemplate.Count
+        Debug.Print (PCRGetFragmentFromTemplate.Item(i))
+    Next i
+        
+
+End Function
+
+Sub testx()
+
+Dim a As VBA.Collection
+
+Set a = PCRGetFragmentFromTemplate("AAAAAAAAAAACATCATCATCATCATCATCATCATCATCATCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGGGGGGGGGGG", "TTTTTTTTTTTTTTTTTTTTTTTTTTACATCATCATCATCATCATCATCATCATCATCCCCCCCCCCCTTTTTTTTTTTTTTTTTTTTTTTTTT")
+
+
+End Sub
 
 '****************************************************************************************************
 Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double = 60, Optional MinLength As Long = 15) As String

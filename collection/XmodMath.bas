@@ -2,6 +2,29 @@ Attribute VB_Name = "XmodMath"
 Option Explicit
 
 '****************************************************************************************************
+Function RangeOverlaps( _
+    ByVal ProbeStart As Long, _
+    ByVal ProbeEnd As Long, _
+    ByVal RangeStart As Long, _
+    ByVal RangeEnd As Long _
+    ) As Boolean
+    
+'====================================================================================================
+'Tests if two numeric ranges overlap
+'Juraj Ahel, 2016-12-20, for Gibson assembly
+
+'====================================================================================================
+'This should be overloaded for each data type...
+
+    If ((ProbeStart < RangeStart) And (ProbeEnd < RangeStart)) Or ((ProbeStart > RangeEnd) And (ProbeEnd > RangeEnd)) Then
+        RangeOverlaps = False
+    Else
+        RangeOverlaps = True
+    End If
+
+End Function
+
+'****************************************************************************************************
 Sub SwapValue(a As Variant, b As Variant)
 
 '====================================================================================================
@@ -10,11 +33,11 @@ Sub SwapValue(a As Variant, b As Variant)
 'Last update 2015-04-30
 '====================================================================================================
 
-Dim C
+Dim c
 
-C = a
+c = a
 a = b
-b = C
+b = c
 
 End Sub
 

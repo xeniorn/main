@@ -16,6 +16,304 @@ Const RNAFoldPath As String = "C:\Program Files (x86)\ViennaRNA Package\RNAfold.
 
 
 '****************************************************************************************************
+Private Function DNAGibsonConstructOverlaps( _
+    ByVal Sequence1 As String, _
+    ByVal Sequence2 As String, _
+    ByVal Sequence3 As String, _
+    ByVal ForbiddenRegions As String, _
+    ByVal TargetLength As Long, _
+    ByVal TargetTm As Double, _
+    ByVal MaxDistanceFromCenter As Long, _
+    ByVal MaxLength As Long _
+    ) As VBA.Collection
+    
+'====================================================================================================
+'Constructs the collection of overlaps to be used for Gibson
+'Juraj Ahel, 2016-12-20, for Gibson assembly
+
+'====================================================================================================
+
+    Dim i As Long
+    Dim MiddleIndex As Long
+    
+    Dim Len1 As Long, Len2 As Long, Len3 As Long
+    Dim SearchStart As Long, SearchEnd As Long
+    
+    Dim CurrentLength As Long
+    Dim CurrentStart As Long
+    Dim CurrentEnd As Long
+        
+    Dim OverlapAllowed As Boolean
+    Dim tOverlap As String
+    Dim FinalSequence As String
+    
+    Dim PutativeOverlaps As VBA.Collection
+    Dim tColl As VBA.Collection
+    
+    Len1 = Len(Sequence1)
+    Len2 = Len(Sequence2)
+    Len3 = Len(Sequence3)
+    
+    FinalSequence = Sequence1 & Sequence2 & Sequence3
+    
+    FinalLength = Len1 + Len2 + Len3
+    
+    MiddleIndex = 1 + Len1 + Len2 \ 2
+    
+    Set PutativeOverlaps = New VBA.Collection
+    'Sequence, start index'
+    
+    FinalSequence = Sequence1 & Sequence2 & Sequence3
+    
+    SearchStart = MiddleIndex - MaxDistanceFromCenter
+    If SearchStart < 1 Then SearchStart = 1
+    
+    'test all allowed lengths
+    For CurrentLength = TargetLength To MaxLength
+        
+        
+        SearchEnd = MiddleIndex + MaxDistanceFromCenter - CurrentLength
+        If SearchEnd > FinalLength - CurrentLength Then SearchEnd = FinalLength - CurrentLength
+        
+        'all allowed positions for a given length
+        For CurrentStart = SearchStart To SearchEnd
+            CurrentEnd = CurrentStart + CurrentLength - 1
+        
+            OverlapAllowed = True
+            
+            'if it isn't in any of the forbidden regions
+                If OverlapAllowed Then
+                    If InStr(1, ForbiddenRegions, "1") <> 0 Then
+                        If RangeOverlaps(CurrentStart, CurrentEnd, 1, Len1) Then
+                            OverlapAllowed = False
+                        End If
+                    End If
+                End If
+                
+                If OverlapAllowed Then
+                    If InStr(1, ForbiddenRegions, "2") <> 0 Then
+                        If RangeOverlaps(CurrentStart, CurrentEnd, Len1 + 1, Len1 + Len2) Then
+                            OverlapAllowed = False
+                        End If
+                    End If
+                End If
+                
+                If OverlapAllowed Then
+                    If InStr(1, ForbiddenRegions, "3") <> 0 Then
+                        If RangeOverlaps(CurrentStart, CurrentEnd, Len1 + Len2 + 1, Len1 + Len2 + Len3) Then
+                            OverlapAllowed = False
+                        End If
+                    End If
+                End If
+            
+            
+            If OverlapAllowed Then
+                tOverlap = SubSequenceSelect(FinalSequence, CurrentStart, CurrentEnd)
+                ' if the Tm is allowed
+                If OligoTm(tOverlap) >= TargetTm Then
+                    ' and it doesn't have multiple annealing sites
+                    If StringCharCount_IncludeOverlap(FinalSequence, tOverlap) > 1 Then
+                        Debug.Print ("Multiple annealing sites for " & tOverlap)
+                    Else
+                        Set tColl = New VBA.Collection
+                        tColl.Add tOverlap
+                        tColl.Add CurrentStart
+                        PutativeOverlaps.Add tColl
+                    End If
+                End If
+            End If
+            
+        Next CurrentStart
+        
+    Next CurrentLength
+    
+    Set DNAGibsonConstructOverlaps = PutativeOverlaps
+    
+    Set tColl = Nothing
+    Set PutativeOverlaps = Nothing
+
+
+End Function
+    
+
+
+
+'****************************************************************************************************
+Function DNAGibsonOptimizeFragments( _
+    ByVal Sequence1 As String, _
+    ByVal Sequence2 As String, _
+    ByVal Sequence3 As String, _
+    Optional ByVal ForbiddenRegions As String = "", _
+    Optional ByVal TargetLength As Long = 20, _
+    Optional ByVal TargetTm As Double = 50, _
+    Optional ByVal MaxDistanceFromCenter As Long = 50, _
+    Optional ByVal MaxLength As Long = 25 _
+    ) As VBA.Collection
+    
+'====================================================================================================
+'Calculates the optimal Gibson overlap for annealing sequences 1 and 3, with inserting sequence 2 in between
+'Juraj Ahel, 2016-12-20, for Gibson assembly
+
+'====================================================================================================
+    
+    Dim i As Long
+
+    Dim SequencesFound As Long
+    Dim tOverlap As String
+    
+    Dim PutativeOverlaps As VBA.Collection
+        
+    ' Construct collection of overlaps
+    Set PutativeOverlaps = DNAGibsonConstructOverlaps( _
+        Sequence1:=Sequence1, _
+        Sequence2:=Sequence2, _
+        Sequence3:=Sequence3, _
+        ForbiddenRegions:=ForbiddenRegions, _
+        TargetLength:=TargetLength, _
+        TargetTm:=TargetTm, _
+        MaxDistanceFromCenter:=MaxDistanceFromCenter, _
+        MaxLength:=MaxLength _
+        )
+    
+    
+    Dim RNAFoldPath As String
+    Dim RNAFoldCommand As String
+    Dim TempInput As String
+    Dim TempOutput As String
+    Dim TempFilenameBase As String
+    
+    TempFilenameBase = FileSystem_GetTempFolder(True) & "JA_Gibson_" & TempTimeStampName
+    'TempFilenameBase = "C:\Users\juraj.ahel\AppData\Local\Temp\" & "JA_Gibson_" & TempTimeStampName
+    TempInput = TempFilenameBase & "_in"
+    TempOutput = TempFilenameBase & "_out"
+    Call CreateEmptyFile(TempInput)
+    'Call CreateEmptyFile(TempOutput)
+    
+    'calculate secondary structure energies (ViennaRNA/RNAfold)
+        
+        For i = 1 To PutativeOverlaps.Count
+            'Debug.Print (PutativeOverlaps.Item(i).Item(1))
+            Call WriteTextFile(PutativeOverlaps.Item(i).Item(1), TempInput, True)
+        Next i
+        
+        RNAFoldPath = "C:\ViennaRNA\"
+        RNAFoldCommand = "RNAfold.exe"
+        
+        Call CallProgram(RNAFoldCommand, RNAFoldPath, "--noGU --noPS -T 10 --infile=" & TempInput & " --outfile=" & TempOutput)
+         
+        TempOutput = TempOutput & ".fold" 'ViennaRNA 2.3 does it'
+    
+    Dim OutputLines() As String
+    Dim tempdGString As String
+    Dim tempdG As Double
+    Dim regEX As New RegExp
+    Dim SortedCollection As VBA.Collection
+    Dim tColl As VBA.Collection
+    Dim k As Long
+    
+    'extract results
+        With regEX
+            .Global = True
+            .MultiLine = False
+            .IgnoreCase = True
+            .Pattern = ".*\( *(-?[0-9]+\.[0-9]+)\)"
+        End With
+                
+        OutputLines = Split(ReadTextFile(TempOutput), vbCrLf)
+        Set SortedCollection = New VBA.Collection
+        
+    'sort results into a collection
+        For i = 1 To PutativeOverlaps.Count
+    
+            tempdG = val(regEX.Replace(OutputLines(2 * i - 1), "$1"))
+            Set tColl = PutativeOverlaps.Item(i)
+            tColl.Add tempdG
+                           
+            If i = 1 Then
+                SortedCollection.Add tColl
+            Else
+                j = 1
+                Do While j <= SortedCollection.Count
+                    If tempdG < SortedCollection.Item(j).Item(3) Then
+                        j = j + 1
+                    Else
+                        Exit Do
+                    End If
+                Loop
+                
+                If j > SortedCollection.Count Then
+                    SortedCollection.Add tColl
+                Else
+                    SortedCollection.Add tColl, before:=j
+                End If
+                
+            End If
+            
+        Next i
+        
+    Set DNAGibsonOptimizeFragments = DNAGibsonExtractBestFragments(SortedCollection, Sequence1 & Sequence2 & Sequence3)
+    
+    For i = 1 To DNAGibsonOptimizeFragments.Count
+        Debug.Print (DNAGibsonOptimizeFragments.Item(i))
+    Next i
+    
+    Set SortedCollection = Nothing
+    Set PutativeOverlaps = Nothing
+    Set tColl = Nothing
+    
+
+End Function
+
+Private Function DNAGibsonExtractBestFragments( _
+    ByRef SortedCollection As VBA.Collection, _
+    ByVal FinalSequence As String _
+    ) As VBA.Collection
+    
+    Dim tColl As VBA.Collection
+    Dim Fragment1 As String
+    Dim Fragment2 As String
+    Dim OverlapLength As Long
+    
+    Set tColl = SortedCollection.Item(1)
+    
+    OverlapLength = Len(tColl.Item(1))
+    Fragment1 = SubSequenceSelect(FinalSequence, 1, tColl.Item(2) + OverlapLength - 1)
+    Fragment2 = SubSequenceSelect(FinalSequence, tColl.Item(2), Len(FinalSequence))
+    
+    Set tColl = New VBA.Collection
+    
+    With tColl
+        .Add SortedCollection.Item(1).Item(1), "OVERLAP"
+        .Add SortedCollection.Item(1).Item(3), "TM"
+        .Add Fragment1, "1"
+        .Add Fragment2, "2"
+    End With
+    
+    Set DNAGibsonExtractBestFragments = tColl
+    
+    Set tColl = Nothing
+            
+End Function
+
+
+
+Sub test()
+
+Dim a As String
+Dim b As String
+Dim c As String
+
+a = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+b = "GGGGGGG"
+c = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+
+Debug.Print (DNAGibsonOptimizeFragments(a, b, c, "").Item(1))
+
+
+End Sub
+
+
+'****************************************************************************************************
 Sub GibsonTest()
 
 '====================================================================================================
@@ -661,7 +959,7 @@ Sub GibsonMacro()
            
     Dim myRange As Range, cell As Range
     Dim tempResults() As Variant
-    Dim tempOutput() As Variant
+    Dim TempOutput() As Variant
     
     Dim AssemblyCount As Long
     
@@ -679,7 +977,7 @@ Sub GibsonMacro()
     
     AssemblyCount = myRange.Cells.Count
     
-    ReDim tempOutput(1 To AssemblyCount, 1 To ParameterNumber)
+    ReDim TempOutput(1 To AssemblyCount, 1 To ParameterNumber)
     ReDim tempResults(1 To ParameterNumber)
     
     j = 0
@@ -692,7 +990,7 @@ Sub GibsonMacro()
             Call GibsonRun(cell.Value, tempResults)
             
             For i = 1 To ParameterNumber
-                tempOutput(j, i) = tempResults(i)
+                TempOutput(j, i) = tempResults(i)
             Next i
             
         End If
@@ -701,7 +999,7 @@ Sub GibsonMacro()
     
     Set myRange = myRange.Offset(0, 1).Resize(AssemblyCount, ParameterNumber)
     
-    myRange.Value = tempOutput
+    myRange.Value = TempOutput
     
     Set myRange = Nothing
     
@@ -859,7 +1157,7 @@ Data = Mid(Source, StartIndex, EndIndex - StartIndex + 1)
 End Function
 
 
-Sub CallPythonScript(inputfile As String, RunDir As String, OutputFile As String)
+Sub CallPythonScript(InputFile As String, RunDir As String, OutputFile As String)
 
 '====================================================================================================
 'Wrapper for calling the python script
@@ -874,7 +1172,7 @@ prog = Python27ProgramName
 path = PathToPython27
 
 argum = jaQuote & PythonScriptPath & jaQuote & _
-        " " & jaQuote & inputfile & jaQuote & _
+        " " & jaQuote & InputFile & jaQuote & _
         " " & jaQuote & RNAFoldPath & jaQuote & _
         " " & jaQuote & ExcelExportFolder & jaQuote
 
