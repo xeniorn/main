@@ -1,6 +1,9 @@
 Attribute VB_Name = "XmodDNA"
 Option Explicit
 
+Private Const DNAAllowedSet As String = "[ATGC]"
+Private Const DNAExtendedAllowedSet As String = "[ACGTRYWSMKBDHVUN]"
+
 '****************************************************************************************************
 Function DNAEqual( _
     ByVal Input1 As String, _
@@ -65,9 +68,7 @@ Function DNAParseTextInput( _
 'Juraj Ahel, 2016-06-28
 '
 '====================================================================================================
-    
-    Const AllowedSet As String = "[ATGC]"
-    Const ExtendedAllowedSet As String = "[ACGTRYWSMKBDHVUN]"
+'TODO: add proper support for upercase in input / output...
     
     Dim i As Long
     Dim InputArray() As String, OutputArray() As String
@@ -82,9 +83,9 @@ Function DNAParseTextInput( _
     End If
     
     If ExtendedSymbolSet = True Then
-        Filter = ExtendedAllowedSet
+        Filter = DNAExtendedAllowedSet
     Else
-        Filter = AllowedSet
+        Filter = DNAAllowedSet
     End If
     
     InputLength = Len(InputString)
@@ -481,14 +482,29 @@ NextLoop:
 
 End Function
 
+'****************************************************************************************************
+Function IsDNA(ByVal Sequence As String, Optional ByVal Extended As Boolean = False) As Boolean
+'====================================================================================================
+'checks if target is a valid DNA sequence
+'Juraj Ahel, 2016-12-22
+'====================================================================================================
+    
+    If Extended Then
+        IsDNA = (UCase(Sequence) = DNAParseTextInput(Sequence, Uppercase:=True, ExtendedSymbolSet:=True))
+    Else
+        IsDNA = (UCase(Sequence) = DNAParseTextInput(Sequence, Uppercase:=True, ExtendedSymbolSet:=False))
+    End If
+
+End Function
+
 
 '****************************************************************************************************
 Function OligoTm( _
-                 Sequence As String, _
-                 Optional EffectiveMonovalentCation_mM As Double = 50, _
-                 Optional OligoConcentration_nM As Double = 500, _
-                 Optional mode As String = "DNA", _
-                 Optional TargetSequence As String = "" _
+                 ByVal Sequence As String, _
+                 Optional ByVal EffectiveMonovalentCation_mM As Double = 50, _
+                 Optional ByVal OligoConcentration_nM As Double = 500, _
+                 Optional ByVal mode As String = "DNA", _
+                 Optional ByVal Template As String = "" _
                 ) As Double
 
 '====================================================================================================
@@ -502,13 +518,23 @@ Function OligoTm( _
 'still lacks additional energy by terminal GC or AT on either side (can take also from PrecisePrimer manual)
 'for this, I would first implement the possibility of selecting the subsequence that actually anneals, + mismatches
 'Also, I would like to implement the effect of Magnesium (and other divalent) ions, and possibly DMSO
+'
+'2016-12-22 make it byval
+'           add checks for sequence and template
+'           add support for calculating Tm vs an actual template (max overlap region)
 
     Dim Pairs() As Variant, dHTable() As Variant, dSTable() As Variant
     Pairs = Array("AA", "TT", "AT", "TA", "CA", "TG", "GT", "AC", "CT", "AG", "GA", "TC", "CG", "GC", "GG", "CC")
     dHTable = Array(7.9, 7.9, 7.2, 7.2, 8.5, 8.5, 8.4, 8.4, 7.8, 7.8, 8.2, 8.2, 10.6, 9.8, 8, 8)
     dSTable = Array(22.2, 22.2, 20.4, 21.3, 22.7, 22.7, 22.4, 22.4, 21, 21, 22.2, 22.2, 27.2, 24.4, 19.9, 19.9)
     
-    Sequence = UCase(Sequence)
+    If IsDNA(Sequence) Then Sequence = UCase$(Sequence)
+    If IsDNA(Template) Then Template = UCase$(Template)
+    
+    If Len(Template) > 0 Then
+        Debug.Print ("Calculating anneal to template...")
+        Sequence = StringFindOverlap(Sequence, Template, False)
+    End If
     
     Dim i As Long
     Dim Seq() As String, Seqp() As String
@@ -568,7 +594,7 @@ Function OligoTm( _
 End Function
 
 '****************************************************************************************************
-Function DNAReverseComplement(InputSequence As String) As String
+Function DNAReverseComplement(ByVal InputSequence As String) As String
 
 '====================================================================================================
 'Outputs a DNA reverse complement of a given input sequence
@@ -780,10 +806,10 @@ Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
 
 End Function
 
-Function PCRSimulate(Template As String, _
-                    ForwardPrimer As String, ReversePrimer As String, _
-                    Optional Circular = False, _
-                    Optional Perfect = True _
+Function PCRSimulate(ByVal Template As String, _
+                    ByVal ForwardPrimer As String, ByVal ReversePrimer As String, _
+                    Optional ByVal Circular = False, _
+                    Optional ByVal Perfect = True _
                     ) As String
 
 '====================================================================================================
@@ -793,12 +819,25 @@ Function PCRSimulate(Template As String, _
 'Last update 2015-05-05
 '2016-06-27 put a condition Fsite > 1 - it was crashing when Primer would anneal at position 1!!!
 '====================================================================================================
+'2016-12-22 make byval
+'           make sure the correct result is given even when the sequence is so short the primers actually overlap!
+'           add DNAReIndex instead of manual reindexing
 
     Dim ErrorPrefix As String
     ErrorPrefix = "#! "
     
     Dim PrimerFCount As Long, PrimerRCount As Long
     Dim Result As String
+    
+    If Len(Template) = 0 Then
+        PCRSimulate = "#! empty template"
+        Exit Function
+    End If
+    
+    If Len(Template) < Len(ForwardPrimer) Or Len(Template) < Len(ReversePrimer) Then
+        PCRSimulate = "#! primers too long for template"
+        Exit Function
+    End If
     
     PrimerFCount = StringCharCount_IncludeOverlap(Template, ForwardPrimer, DNAReverseComplement(ForwardPrimer))
     PrimerRCount = StringCharCount_IncludeOverlap(Template, DNAReverseComplement(ReversePrimer))
@@ -831,8 +870,7 @@ Function PCRSimulate(Template As String, _
     'and remap the indexing
     If Circular Then
         If FSite > 1 Then
-            Template = SubSequenceSelect(Template, FSite, Len(Template)) & _
-                        SubSequenceSelect(Template, 1, FSite - 1)
+            Template = DNAReindex(Template, FSite)
             RSite = RSite - FSite + 1
             FSite = 1
             If RSite < 1 Then RSite = Len(Template) + RSite
@@ -854,25 +892,26 @@ Function PCRSimulate(Template As String, _
     
     FLen = Len(ForwardPrimer)
     RLen = Len(ReversePrimer)
-    
-    Result = ForwardPrimer & SubSequenceSelect(Template, FSite + FLen, RSite - 1) & DNAReverseComplement(ReversePrimer)
-    
-    If Len(Result) < FLen + RLen Then Result = ErrorPrefix & "Primers too close."
-    
-    If FSite > RSite Then Result = ErrorPrefix & "Reverse primer anneals upstream of Forward primer, check sequences."
-    
-999     PCRSimulate = Result
+        
+    If (FSite + FLen > RSite + RLen) Or (RSite < FSite) Then
+        Result = ErrorPrefix & "Primers extend over each other, check sequences."
+    Else
+        Result = SubSequenceSelect(Template, FSite, RSite + RLen - 1)
+    End If
+        
+999 PCRSimulate = Result
 
 End Function
 
 '****************************************************************************************************
-Function PCRWithOverhangs(Template As String, _
-                    ForwardPrimer As String, ReversePrimer As String, _
-                    Optional Circular = False, _
-                    Optional Perfect = True, _
-                    Optional IgnoreBestMatch = True, _
-                    Optional Details = False, _
-                    Optional MinimalOverlap = 15 _
+Function PCRWithOverhangs(ByVal Template As String, _
+                    ByVal ForwardPrimer As String, ByVal ReversePrimer As String, _
+                    Optional ByVal Circular = False, _
+                    Optional ByVal Perfect = True, _
+                    Optional ByVal IgnoreBestMatch = True, _
+                    Optional ByVal Details = False, _
+                    Optional ByVal MinimalOverlap = 15, _
+                    Optional ByVal TryReverseComplement As Boolean = True _
                     ) As String
 
 '====================================================================================================
@@ -885,6 +924,8 @@ Function PCRWithOverhangs(Template As String, _
 '2016-06-28 added explicit variable declaration + indentation
 '2016-07-21 if the entire primer was annealing it would give horribly wrong result (N-1 !)
 '====================================================================================================
+'2016-12-22 add support for also PCRing from the reverse complement!
+'2016-12-22 add byval
 
     Dim OverhangF As String, OverhangR As String
     Dim OverlapF As String, OverlapR As String
@@ -893,6 +934,7 @@ Function PCRWithOverhangs(Template As String, _
     Dim i As Long
     
     Dim tempResult As String
+    Dim tempRC As String
     
     Dim NCheck As Long: NCheck = 3
     Dim ErrorMsg() As String
@@ -994,18 +1036,30 @@ Function PCRWithOverhangs(Template As String, _
         tempResult = tempResult & " R:" & OligoTm(OverlapR) & " °C, " & Len(OverlapR)
     End If
     
-999     PCRWithOverhangs = tempResult
+999 If TryReverseComplement Then
+        tempRC = PCRWithOverhangs(DNAReverseComplement(Template), ForwardPrimer, ReversePrimer, Circular, Perfect, IgnoreBestMatch, Details, MinimalOverlap, False)
+        If InStr(1, tempRC, "#!") = 0 Then
+            If InStr(1, tempResult, "#!") = 0 Then
+                tempResult = "#! Primers anneal both to forward and reverse strand!"
+            Else
+                tempResult = tempRC
+            End If
+        End If
+    End If
+
+PCRWithOverhangs = tempResult
 
 End Function
+
 
 '****************************************************************************************************
 Function PCRGetFragmentFromTemplate( _
     ByVal TargetSequence As String, _
     ByVal Template As String, _
-    Optional ByVal TargetPrimerTm As Double = 60, _
+    Optional ByVal TargetPrimerTm As Double = 62, _
     Optional ByVal MinPrimerLength As Long = 15, _
     Optional ByVal TemplateCircular As Boolean = False, _
-    Optional ByVal TryReverseComplement As Boolean = False, _
+    Optional ByVal TryReverseComplement As Boolean = True, _
     Optional ByVal MaxExtension As Long = 50 _
     ) As VBA.Collection
 
@@ -1016,6 +1070,9 @@ Function PCRGetFragmentFromTemplate( _
 '====================================================================================================
 'TODO: add check whether the primers anneal elsewhere in the sequence
 'TODO: add check whether primers anneal to each other
+'2016-12-21 add input parsing / error handling
+'2016-12-22 change default primer Tm to 62
+'           add check for Tm of non-anneal region
 
     Dim OverlappingSequence As String
     Dim TempSeq As String
@@ -1026,34 +1083,41 @@ Function PCRGetFragmentFromTemplate( _
     
     Dim LeftExtensionLength As Long
     Dim RightExtensionLength As Long
+    
+    Dim TmF As Double
+    Dim TmR As Double
+        
+    If Len(TargetSequence) = 0 Then Call Err.Raise(1, , "Empty target sequence")
+    If Len(Template) = 0 Then Call Err.Raise(1, , "Empty template")
+        
+    RCTemplate = DNAReverseComplement(Template)
         
     'find best overlap between template and target sequence - anything outside it is overlap
         If TemplateCircular Then
             For i = 1 To TemplateLength
-                TempSeq = StringFindOverlap(TargetSequence, DNAReindex(Template, i))
+                TempSeq = StringFindOverlap(TargetSequence, DNAReindex(Template, i), False)
                 If Len(TempSeq) = Len(OverlappingSequence) Then
                     OverlappingSequence = TempSeq
                 End If
             Next i
         Else
-            OverlappingSequence = StringFindOverlap(TargetSequence, Template)
+            OverlappingSequence = StringFindOverlap(TargetSequence, Template, False)
         End If
         
         RCIsBetter = False
         
     'check if a better overlap can be achieved with reverse complement
         If TryReverseComplement Then
-            RCTemplate = DNAReverseComplement(Template)
             If TemplateCircular Then
                 For i = 1 To TemplateLength
-                    TempSeq = StringFindOverlap(TargetSequence, DNAReindex(RCTemplate, i))
+                    TempSeq = StringFindOverlap(TargetSequence, DNAReindex(RCTemplate, i), False)
                     If Len(TempSeq) > Len(OverlappingSequence) Then
                         OverlappingSequence = TempSeq
                         RCIsBetter = True
                     End If
                 Next i
             Else
-                TempSeq = StringFindOverlap(TargetSequence, RCTemplate)
+                TempSeq = StringFindOverlap(TargetSequence, RCTemplate, False)
                 If Len(TempSeq) > Len(OverlappingSequence) Then
                     OverlappingSequence = TempSeq
                     RCIsBetter = True
@@ -1063,7 +1127,7 @@ Function PCRGetFragmentFromTemplate( _
         
     'If RC was better, simply pretend RC is the actual template during the calculation
     If RCIsBetter Then
-        Template = RCTemplate
+        Call SwapValue(Template, RCTemplate)
         Debug.Print ("Using Reverse Complement")
     End If
             
@@ -1080,35 +1144,94 @@ Function PCRGetFragmentFromTemplate( _
     LeftExtensionLength = InStr(1, TargetSequence, OverlappingSequence) - 1
     RightExtensionLength = TargetLength - OverlapLength - LeftExtensionLength
     
-    If LeftExtensionLength > MaxExtension Then
-        Call Err.Raise(1, , "Required 5' extension too long (" & LeftExtensionLength & ", allowed " & MaxExtension & ").")
-    End If
-    
-    If RightExtensionLength > MaxExtension Then
-        Call Err.Raise(1, , "Required 3' extension too long (" & RightExtensionLength & ", allowed " & MaxExtension & ").")
-    End If
-    
-    Dim FAnneal As String, RAnneal As String
-    Dim LeftExtension As String, RightExtension As String
-    Dim FPrimer As String, RPrimer As String
+    'check if extensions are well-calcualted / feasible
+        Debug.Assert (LeftExtensionLength >= 0 And RightExtensionLength >= 0)
         
-    LeftExtension = Left(TargetSequence, LeftExtensionLength)
-    RightExtension = Right(TargetSequence, RightExtensionLength)
+        If LeftExtensionLength > MaxExtension Then
+            Call Err.Raise(1, , "Required 5' extension too long (" & LeftExtensionLength & ", allowed " & MaxExtension & ").")
+        End If
         
-    FAnneal = PCROptimizePrimer(OverlappingSequence, TargetPrimerTm, MinPrimerLength)
-    RAnneal = PCROptimizePrimer(DNAReverseComplement(OverlappingSequence), TargetPrimerTm, MinPrimerLength)
+        If RightExtensionLength > MaxExtension Then
+            Call Err.Raise(1, , "Required 3' extension too long (" & RightExtensionLength & ", allowed " & MaxExtension & ").")
+        End If
+        
+    'calculate annealing sequences and extension sequences
+        Dim FAnneal As String, RAnneal As String
+        Dim LeftExtension As String, RightExtension As String
+        Dim FPrimer As String, RPrimer As String
+            
+        LeftExtension = Left(TargetSequence, LeftExtensionLength)
+        RightExtension = Right(TargetSequence, RightExtensionLength)
+            
+        FAnneal = PCROptimizePrimer(OverlappingSequence, TargetPrimerTm, MinPrimerLength)
+        RAnneal = PCROptimizePrimer(DNAReverseComplement(OverlappingSequence), TargetPrimerTm, MinPrimerLength)
     
+    'Confirm annealing sites indeed correspond to termini
+        Debug.Assert (Left(OverlappingSequence, Len(FAnneal)) = FAnneal)
+        Debug.Assert (Right(OverlappingSequence, Len(RAnneal)) = DNAReverseComplement(RAnneal))
+        
+    
+    'check if annealing sites are unique
+        
+        Dim tempc(1 To 4) As Long
+        
+        tempc(1) = StringCharCount_IncludeOverlap(Template, FAnneal)
+        If TryReverseComplement Then
+            tempc(2) = StringCharCount_IncludeOverlap(RCTemplate, FAnneal)
+            tempc(3) = StringCharCount_IncludeOverlap(Template, RAnneal)
+        End If
+        tempc(4) = StringCharCount_IncludeOverlap(RCTemplate, RAnneal)
+        
+        If RCIsBetter Then
+            Call SwapValue(tempc(1), tempc(2))
+            Call SwapValue(tempc(3), tempc(4))
+        End If
+            
+        
+        Select Case True
+            Case tempc(1) + tempc(2) > 1
+                Call Err.Raise(1, , "forward anneal site (" & FAnneal & ") anneals at multiple sites - main strand: " & tempc(1) & " reverse strand: " & tempc(2) & "! Check sequence.")
+            Case tempc(3) + tempc(4) > 1
+                Call Err.Raise(1, , "reverse anneal site (" & RAnneal & ") anneals at multiple sites - main strand: " & tempc(3) & " reverse strand: " & tempc(4) & "! Check sequence.")
+        End Select
+        
+        
     FPrimer = LeftExtension & FAnneal
     RPrimer = DNAReverseComplement(RightExtension) & RAnneal
     
-    'confirm
-        If PCRWithOverhangs(Template, FPrimer, RPrimer, TemplateCircular, True, True, False, MinPrimerLength) = TargetSequence Then
-            Debug.Print ("Sequence ok!")
+    TmF = OligoTm(FAnneal)
+    TmR = OligoTm(RAnneal)
+        
+    'confirm primers don't anneal better elsewhere
+        If LeftExtensionLength > 0 Then
+            If DNAAnnealToTemplate(Left(FPrimer, Len(FPrimer) - 2), Template) >= TmF - 2 Then
+                Call Err.Raise(1, , "forward primer anneals to alternative site too well!")
+            End If
+            If DNAAnnealToTemplate(FPrimer, DNAReverseComplement(Template)) >= TmF - 5 Then
+                Call Err.Raise(1, , "forward primer anneals to alternative site on RC strand too well!")
+            End If
+        End If
+        
+        If RightExtensionLength > 0 Then
+            If DNAAnnealToTemplate(Left(RPrimer, Len(RPrimer) - 2), RCTemplate) >= TmR - 2 Then
+                Call Err.Raise(1, , "reverse primer anneals to alternative site on RC strand too well!")
+            End If
+            If DNAAnnealToTemplate(RPrimer, Template) >= TmR - 5 Then
+                Call Err.Raise(1, , "forward primer anneals to alternative site on primary too well!")
+            End If
+        End If
+            
+    
+    
+    'confirm in silico PCR
+        If PCRWithOverhangs(Template, FPrimer, RPrimer, TemplateCircular, True, True, False, MinPrimerLength, True) = TargetSequence Then
+            Debug.Print ("Simulated PCR successful!")
         Else
             Call Err.Raise(1, , "Simulated PCR result doesn't match target sequence!")
         End If
             
-    Set PCRGetFragmentFromTemplate = New VBA.Collection
+    'output
+        Set PCRGetFragmentFromTemplate = New VBA.Collection
         With PCRGetFragmentFromTemplate
             .Add FPrimer, "F"
             .Add RPrimer, "R"
@@ -1117,27 +1240,300 @@ Function PCRGetFragmentFromTemplate( _
             .Add FAnneal, "AnnealF"
             .Add RAnneal, "AnnealR"
         End With
-           
-    Debug.Print (TargetSequence)
-    Debug.Print (Template)
-    For i = 1 To PCRGetFragmentFromTemplate.Count
-        Debug.Print (PCRGetFragmentFromTemplate.Item(i))
-    Next i
+               
+    'Debug output
+        'Debug.Print (TargetSequence)
+        'Debug.Print (Template)
+        For i = 1 To PCRGetFragmentFromTemplate.Count
+            Debug.Print (PCRGetFragmentFromTemplate.Item(i))
+        Next i
         
 
 End Function
 
-Sub testx()
+'****************************************************************************************************
+Function DNAAnnealToTemplate( _
+    ByVal Probe As String, _
+    ByVal Template As String, _
+    Optional ByVal MaxLengthToTest As Long = 100, _
+    Optional ByVal MinLengthToTest = 10 _
+    ) As Double
 
-Dim a As VBA.Collection
+'====================================================================================================
+'Calculates the highest anneal temperature for a given oligo sequence binding to a given template
+'Juraj Ahel, 2016-12-22, general purposes
 
-Set a = PCRGetFragmentFromTemplate("AAAAAAAAAAACATCATCATCATCATCATCATCATCATCATCCCCCCCCCCCCCCCCCCCCCCCCCCCCCGGGGGGGGGGG", "TTTTTTTTTTTTTTTTTTTTTTTTTTACATCATCATCATCATCATCATCATCATCATCCCCCCCCCCCTTTTTTTTTTTTTTTTTTTTTTTTTT")
+'====================================================================================================
 
+    Dim i As Long, j As Long
+    Dim TestColl As VBA.Collection
+    Dim tempString As String
+    Dim tempTm As Double
+    Dim bestTm As Double
+    
+    'Input parsing
+        If MinLengthToTest < 1 Then MinLengthToTest = 1
+        
+        If Len(Probe) > MaxLengthToTest Then
+            Call Err.Raise(1, , "Probe larger than largest allowed probe length (" & MaxLengthToTest & "). Increase the limit if you want to continue.")
+        End If
+        
+        If Not (IsDNA(Probe) And IsDNA(Template)) Then
+            Call Err.Raise(1, , "Inputs need to be proper DNA sequences")
+        End If
+        
+    Set TestColl = New VBA.Collection
+    
+    'for all different substrings of Probe of target minimal length
+        For i = 1 To Len(Probe) - MinLengthToTest + 1
+            For j = i + MinLengthToTest - 1 To Len(Probe)
+            
+                tempString = SubSequenceSelect(Probe, i, j)
+                
+                'test if they have already been tested
+                    If Not (IsElementOf(tempString, TestColl)) Then
+                        TestColl.Add tempString, tempString
+                        'if not, see if they exist in template
+                            If InStr(1, Template, tempString) > 0 Then
+                            
+                                tempTm = OligoTm(tempString)
+                                'and if their Tm is good, take it as the result
+                                If tempTm > bestTm Then bestTm = tempTm
+                                
+                            End If
+                    End If
+                
+            Next j
+        Next i
+    
+    DNAAnnealToTemplate = bestTm
+    
+    'cleanup
+        Set TestColl = Nothing
+
+End Function
+
+
+
+Private Sub test_PCRSimulate()
+
+    Const TestNumber As Long = 7
+    Const FunctionName As String = "PCRSimulate"
+    
+    Dim N As Long
+    Dim TestResults(1 To TestNumber) As Long
+    Dim Test As String
+    Dim Input1 As String, Input2 As String, Input3 As String
+    
+    On Error Resume Next
+    
+    '1 empty inputs
+        N = 1
+        Test = PCRSimulate("AAAAA", vbNullString, vbNullString)
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '2 empty inputs
+        N = 2
+        Test = PCRSimulate("AAAAAAAAAAAAAAAAAAAAA", "AAAAA", vbNullString)
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '3 empty inputs
+        N = 3
+        Test = PCRSimulate("AAAAAAAAAAAAAAAAAAAAA", vbNullString, "AAAAA")
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '4 multiple anneal sites (repetitive sequence)
+        N = 4
+        Input3 = "TGAGGGGGAAAGTGGTGAGTG"
+        Input1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" & DNAReverseComplement(Input3)
+        Input2 = "AAAAAAAAAAAAAAAAAAAAAA"
+        Test = PCRSimulate(Input1, Input2, Input3)
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '5 positive control no overhangs
+        N = 5
+        Input2 = "AAAAAAAAAAAAAAAA"
+        Input3 = "GGGGGGGGGGGGGGGG"
+        Input1 = Input2 & "TTTTTTTTTTTTTTTTTTTTT" & DNAReverseComplement(Input3)
+        
+        Test = PCRSimulate(Input1, Input2, Input3)
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '6 positive control with overhangs
+        N = 6
+        Input1 = "TTTTT" & "AAAAAGGGGGTTTTTCCCCC" & "TTTTTTTTTTTTTTTTT" & "AGTCAGTCAGTCAGTCAGTC" & "TTTTT"
+        Input2 = "AAAAAGGGGGTTTTTCCCCC"
+        Input3 = DNAReverseComplement("AGTCAGTCAGTCAGTCAGTC")
+        Test = PCRSimulate(Input1, Input2, Input3)
+        If Err.Number = 0 Then
+            If Test = "AAAAAGGGGGTTTTTCCCCC" & "TTTTTTTTTTTTTTTTT" & "AGTCAGTCAGTCAGTCAGTC" Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '7 primers overlap on sequence
+        N = 7
+        Input1 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC"
+        Input2 = "AAAAAGGGGGTTTTTCCCCCAGT"
+        Input3 = DNAReverseComplement("CCC" & "AGTCAGTCAGTCAGTCAGTC")
+        Test = PCRSimulate(Input1, Input2, Input3)
+        If Err.Number = 0 Then
+            If Test = Input1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+    
+    
+    
+    On Error GoTo 0
+    
+    Dim i As Long
+    Dim j As Long
+    
+    For i = 1 To TestNumber
+        If TestResults(i) <> 1 Then
+            Debug.Print ("Test #" & i & " failed!")
+            j = j + 1
+        End If
+    Next i
+    
+    If j = 0 Then
+        Debug.Print (FunctionName & ": All tests successfully passed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": All tests successfully passed!")
+    Else
+        Debug.Print (FunctionName & ": " & j & " tests failed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": " & j & " tests failed!")
+    End If
 
 End Sub
 
+
+Private Sub test_PCRGetFragmentFromTemplate()
+
+    Const TestNumber As Long = 9
+    Const FunctionName As String = "PCRGetFragmentFromTemplate"
+    
+    Dim TestResults(1 To TestNumber) As Long
+    Dim Test As VBA.Collection
+    Dim Input1 As String, Input2 As String
+    
+    On Error Resume Next
+    
+    '1 empty inputs
+        Set Test = PCRGetFragmentFromTemplate(vbNullString, vbNullString)
+        If Err.Number = 1 Then TestResults(1) = 1
+        Err.Clear
+        
+    '2 empty inputs
+        Set Test = PCRGetFragmentFromTemplate(vbNullString, "A")
+        If Err.Number = 1 Then TestResults(2) = 1
+        Err.Clear
+        
+    '3 empty inputs
+        Set Test = PCRGetFragmentFromTemplate("A", vbNullString)
+        If Err.Number = 1 Then TestResults(3) = 1
+        Err.Clear
+        
+    '4 multiple anneal sites (repetitive sequence)
+        Input1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input1)
+        If Err.Number = 1 Then TestResults(4) = 1
+        Err.Clear
+        
+    '5 positive control no overhangs
+        Input1 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC"
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input1)
+        If Err.Number = 0 Then
+            If PCRWithOverhangs(Input1, Test.Item(1), Test.Item(2)) = Input1 Then
+                TestResults(5) = 1
+            End If
+        End If
+        Err.Clear
+        
+    '6 positive control with overhangs
+        Input1 = "TTTTT" & "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "TTTTT"
+        Input2 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC"
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input2)
+        If Err.Number = 0 Then
+            If PCRWithOverhangs(Input2, Test.Item(1), Test.Item(2)) = Input1 Then
+                TestResults(6) = 1
+            End If
+        End If
+        Err.Clear
+        
+    '7 template has repeat sequence
+        Input1 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC"
+        Input2 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "AGTCAGTCAGTCAGTCAGTC"
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input2)
+        If Err.Number = 1 Then TestResults(7) = 1
+        Err.Clear
+        
+    '8 positive control with overhangs and extra stuff in template
+        Input1 = "TTTTT" & "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "TTTTT"
+        Input2 = "TAGGGATTAGGGATTAGGGAT" & "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "CCTTCCTTCTCTCCTTCCTCTCT"
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input2)
+        If Err.Number = 0 Then
+            If PCRWithOverhangs(Input2, Test.Item(1), Test.Item(2)) = Input1 Then
+                TestResults(8) = 1
+            End If
+        End If
+        Err.Clear
+        
+    'test 9 - positive control with overhangs and extra stuff in template
+        Input1 = "TTTTT" & "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "TTTTT"
+        Input2 = DNAReverseComplement("TAGGGATTAGGGATTAGGGAT" & "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "CCTTCCTTCTCTCCTTCCTCTCT")
+        Set Test = PCRGetFragmentFromTemplate(Input1, Input2)
+        If Err.Number = 0 Then
+            If PCRWithOverhangs(Input2, Test.Item(1), Test.Item(2)) = Input1 Then
+                TestResults(9) = 1
+            End If
+        End If
+        Err.Clear
+    
+    'test 10 - primer extension annealing too well - better than normal anneal
+        
+    
+    
+    
+    
+    On Error GoTo 0
+    
+    Dim i As Long
+    Dim j As Long
+    
+    For i = 1 To TestNumber
+        If TestResults(i) <> 1 Then
+            Debug.Print ("Test #" & i & " failed!")
+            j = j + 1
+        End If
+    Next i
+    
+    If j = 0 Then
+        Debug.Print (FunctionName & ": All tests successfully passed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": All tests successfully passed!")
+    Else
+        Debug.Print (FunctionName & ": " & j & " tests failed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": " & j & " tests failed!")
+    End If
+
+End Sub
+
+
 '****************************************************************************************************
-Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double = 60, Optional MinLength As Long = 15) As String
+Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal TargetTm As Double = 60, Optional ByVal MinLength As Long = 15) As String
 
 '====================================================================================================
 'Designs a simple primer for regular PCR amplification, trying to optimize the Tm and trying to
@@ -1148,76 +1544,79 @@ Function PCROptimizePrimer(TargetSequence As String, Optional TargetTm As Double
 'Juraj Ahel, 2015-03-24, general purposes
 'Last update 2015-03-24
 '====================================================================================================
+'2016-12-22 make byval
 
-Const NumberOfVariants = 40
-
-Dim Result As String
-Dim Tm As Double
-Dim Length As Long
-Dim Score() As Double, MaxScore As Long
-Dim Variants() As String
-Dim i As Long, j As Long
-Dim PrimerStart As String, PrimerEnd As String
-
-ReDim Score(1 To NumberOfVariants)
-ReDim Variants(1 To NumberOfVariants)
-
-j = 0
-MaxScore = -30000
-
-For i = 1 To NumberOfVariants
-
-    Variants(i) = Left(TargetSequence, MinLength + i - 1)
-    Score(i) = -((OligoTm(Variants(i)) - TargetTm)) ^ 2
-    PrimerStart = Left(Variants(i), 1)
-    PrimerEnd = Right(Variants(i), 1)
-    If PrimerStart = "A" Or PrimerStart = "T" Then Score(i) = Score(i) - 4
-    If PrimerEnd = "A" Or PrimerEnd = "T" Then Score(i) = Score(i) - 10
-    If Score(i) > MaxScore Then
-        MaxScore = Score(i)
-        j = i
-    End If
-
-Next i
-
-PCROptimizePrimer = Variants(j)
+    Const NumberOfVariants = 40
+    
+    Dim Result As String
+    Dim Tm As Double
+    Dim Length As Long
+    Dim Score() As Double, MaxScore As Long
+    Dim Variants() As String
+    Dim i As Long, j As Long
+    Dim PrimerStart As String, PrimerEnd As String
+    
+    ReDim Score(1 To NumberOfVariants)
+    ReDim Variants(1 To NumberOfVariants)
+    
+    j = 0
+    MaxScore = -30000
+    
+    For i = 1 To NumberOfVariants
+    
+        Variants(i) = Left(TargetSequence, MinLength + i - 1)
+        Score(i) = -((OligoTm(Variants(i)) - TargetTm)) ^ 2
+        PrimerStart = Left(Variants(i), 1)
+        PrimerEnd = Right(Variants(i), 1)
+        If PrimerStart = "A" Or PrimerStart = "T" Then Score(i) = Score(i) - 4
+        If PrimerEnd = "A" Or PrimerEnd = "T" Then Score(i) = Score(i) - 10
+        If Score(i) > MaxScore Then
+            MaxScore = Score(i)
+            j = i
+        End If
+    
+    Next i
+    
+    PCROptimizePrimer = Variants(j)
 
 End Function
 
 '****************************************************************************************************
-Function DNAGCContent(Sequence As String) As Double
+Function DNAGCContent(ByVal Sequence As String) As Double
 '====================================================================================================
 'Calculates GC % as sum(G+C) / total length
 'Juraj Ahel, 2015-09-28, for general purposes
 'Last update 2015-09-28
 '====================================================================================================
+'2016-12-22 make byval
 
-DNAGCContent = StringCharCount(UCase(Sequence), "G", "C", "S") / Len(Sequence)
+    DNAGCContent = StringCharCount(UCase(Sequence), "G", "C", "S") / Len(Sequence)
 
 End Function
 
 '****************************************************************************************************
-Function DNAReindex(DNASequence As String, NewStartBase As Long) As String
+Function DNAReindex(ByVal DNASequence As String, ByVal NewStartBase As Long) As String
 
 '====================================================================================================
 'Reindexes a circular DNA sequence
 'Juraj Ahel, 2015-09-27
 'Last update 2015-09-28
 '====================================================================================================
+'2016-12-22 make byval
 
-Dim SeqLength As Long, Offset As Long
-
-SeqLength = Len(DNASequence)
-
-Offset = NewStartBase - 1
-
-Select Case Offset
-    Case 0
-        DNAReindex = DNASequence
-    Case Is > 0
-        DNAReindex = Right(DNASequence, SeqLength - Offset) & Left(DNASequence, Offset)
-    Case Else
-        DNAReindex = Right(DNASequence, -Offset) & Right(DNASequence, SeqLength + Offset)
-End Select
+    Dim SeqLength As Long, Offset As Long
+    
+    SeqLength = Len(DNASequence)
+    
+    Offset = NewStartBase - 1
+    
+    Select Case Offset
+        Case 0
+            DNAReindex = DNASequence
+        Case Is > 0
+            DNAReindex = Right(DNASequence, SeqLength - Offset) & Left(DNASequence, Offset)
+        Case Else
+            DNAReindex = Right(DNASequence, -Offset) & Right(DNASequence, SeqLength + Offset)
+    End Select
 
 End Function

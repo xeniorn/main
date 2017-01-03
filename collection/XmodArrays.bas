@@ -2,6 +2,7 @@ Attribute VB_Name = "XmodArrays"
 Option Explicit
 
 '************************************************************************************************
+'************************************************************************************************
 Function IsArrayAllocated(Arr As Variant) As Boolean
 '===============================================================================
 'taken from Chip Pearson    http://www.cpearson.com/excel/isarrayallocated.aspx
@@ -111,3 +112,4 @@ Function ArrayMaxElement(TestArray As Variant, _
     ArrayMaxElement = MaxIndex
 
 End Function
+

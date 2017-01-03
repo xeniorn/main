@@ -31,7 +31,8 @@ Sub CallProgram( _
                 Optional WindowMode As String = "1", _
                 Optional RunDirectory As String = "", _
                 Optional RunAsRawCmd As Boolean = True, _
-                Optional OutputFile As String = "" _
+                Optional OutputFile As String = "", _
+                Optional InputFile As String = "" _
                )
 
 '====================================================================================================
@@ -42,6 +43,7 @@ Sub CallProgram( _
 '2016-06-28 tranfered to XmodTools module, added explicit var declaration
 '====================================================================================================
 'Made for Excel Professional Plus 2013 under Windows 8.1
+'2016-12-20 add support for input files
 
     Dim wsh As Object
     Dim WaitOnReturn As Boolean: WaitOnReturn = WaitUntilFinished
@@ -69,7 +71,7 @@ Sub CallProgram( _
     RunCommand = ProgramCommandTemp
     ProgramFullPath = ProgramPathTemp & RunCommand
     
-    RunCommand = ProgramFullPath & " " & ParsedArguments
+    RunCommand = """" & ProgramFullPath & """ " & ParsedArguments
     
     'Parse the visibility options
     Select Case UCase(WindowMode)
@@ -85,14 +87,49 @@ Sub CallProgram( _
     Set wsh = VBA.CreateObject("WSCript.Shell")
     
     ParsedRunDirectory = RunDirectory
+    If ParsedRunDirectory = "" Then ParsedRunDirectory = FileSystem_GetTempFolder
+    
     wsh.CurrentDirectory = ParsedRunDirectory
     
     If RunAsRawCmd Then RunCommand = "%comspec% /c " & RunCommand
+    'If RunAsRawCmd Then RunCommand = "%comspec% /k " & RunCommand
+        
+    If InputFile <> "" Then RunCommand = RunCommand & " <""" & InputFile & """"
+    If OutputFile <> "" Then RunCommand = RunCommand & " >""" & OutputFile & """"
     
     '2>&1 at the end ensures that the error log will be appended to the result! Cool!
-    If OutputFile <> "" Then RunCommand = RunCommand & " >""" & OutputFile & """ 2>&1"
+    RunCommand = RunCommand & " 2>&1"
     
     Call wsh.Run(RunCommand, WindowVisibilityType, WaitOnReturn)
+
+End Sub
+
+'****************************************************************************************************
+Sub TestCallProgram( _
+                ProgramCommand As String, _
+                Optional ProgramPath As String = "", _
+                Optional ArgList As String = "", _
+                Optional WaitUntilFinished As Boolean = True, _
+                Optional WindowMode As String = "1", _
+                Optional RunDirectory As String = "", _
+                Optional RunAsRawCmd As Boolean = True, _
+                Optional OutputFile As String = "", _
+                Optional InputFile As String = "" _
+               )
+
+    Dim RunCommand As String
+    
+    RunCommand = """" & ProgramPath & ProgramCommand & """ " & ArgList
+    
+    If InputFile <> "" Then RunCommand = RunCommand & " <""" & InputFile & """"
+    If OutputFile <> "" Then RunCommand = RunCommand & " >""" & OutputFile & """"
+    
+    '2>&1 at the end ensures that the error log will be appended to the result! Cool!
+    RunCommand = RunCommand & " 2>&1"
+    
+    Call Shell(RunCommand, vbNormalFocus)
+    
+    
 
 End Sub
 
@@ -221,16 +258,16 @@ Function DTT(x, Optional y = 0, Optional DateFormat As String = "YYMMDDhhmm", _
     
     End If
     
-    Dim result As Single
-    result = timex - timey
+    Dim Result As Single
+    Result = timex - timey
     
     Select Case Output
     Case "d"
     Case "h"
-        result = 24 * result
+        Result = 24 * Result
         RoundingMode = 1
     Case "m"
-        result = 60 * 24 * result
+        Result = 60 * 24 * Result
         RoundingMode = 1
     End Select
     
@@ -239,9 +276,9 @@ Function DTT(x, Optional y = 0, Optional DateFormat As String = "YYMMDDhhmm", _
             Case -2
             Case -1
             Case Else
-            result = Round(result, RoundingMode)
+            Result = Round(Result, RoundingMode)
         End Select
         
-    DTT = result
+    DTT = Result
     
 End Function

@@ -203,7 +203,7 @@ Sub HSV2RGB(ByVal H As Double, _
             
     Dim rR As Double, rG As Double, rB As Double
     Dim rH As Double
-    Dim C As Double
+    Dim c As Double
     Dim x As Double
     Dim m As Double
     Dim Hdegree As Double
@@ -212,7 +212,7 @@ Sub HSV2RGB(ByVal H As Double, _
     rH = H / (Pi / 3)
     
     'total color intensity is value reduced by saturation %
-    C = V * S
+    c = V * S
     
     'ratio in the second color
     x = V * S * (1 - Abs(FMod(rH, 2) - 1))
@@ -223,37 +223,37 @@ Sub HSV2RGB(ByVal H As Double, _
     
     
     If rH >= 0 And rH < 1 Then
-        rR = C
+        rR = c
         rG = x
         rB = 0
     End If
     
     If rH >= 1 And rH < 2 Then
         rR = x
-        rG = C
+        rG = c
         rB = 0
     End If
     
     If rH >= 2 And rH < 3 Then
         rR = 0
-        rG = C
+        rG = c
         rB = x
     End If
     
     If rH >= 3 And rH < 4 Then
         rR = 0
         rG = x
-        rB = C
+        rB = c
     End If
     
     If rH >= 4 And rH < 5 Then
         rR = x
         rG = 0
-        rB = C
+        rB = c
     End If
     
     If rH >= 5 And rH < 6 Then
-        rR = C
+        rR = c
         rG = 0
         rB = x
     End If

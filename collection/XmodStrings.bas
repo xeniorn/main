@@ -45,19 +45,24 @@ Function SequenceRangeSelect(InputString As String, IndexRange As String, Option
 'Last update 2015-02-16
 '====================================================================================================
 
-Dim StartIndex As Long, EndIndex As Long, SeparatorIndex As Long
-
-SeparatorIndex = InStr(1, IndexRange, Separator)
-
-StartIndex = CInt(Left(IndexRange, SeparatorIndex - 1))
-EndIndex = CInt(Right(IndexRange, Len(IndexRange) - SeparatorIndex))
-
-SequenceRangeSelect = SubSequenceSelect(InputString, StartIndex, EndIndex, DNA)
+    Dim StartIndex As Long, EndIndex As Long, SeparatorIndex As Long
+    
+    SeparatorIndex = InStr(1, IndexRange, Separator)
+    
+    StartIndex = CInt(Left(IndexRange, SeparatorIndex - 1))
+    EndIndex = CInt(Right(IndexRange, Len(IndexRange) - SeparatorIndex))
+    
+    SequenceRangeSelect = SubSequenceSelect(InputString, StartIndex, EndIndex, DNA)
 
 End Function
 
 '****************************************************************************************************
-Function SubSequenceSelect(InputString As String, StartIndex As Long, EndIndex As Long, Optional DNA As Boolean = False) As String
+Function SubSequenceSelect( _
+    ByVal InputString As String, _
+    ByVal StartIndex As Long, _
+    ByVal EndIndex As Long, _
+    Optional ByVal DNA As Boolean = False _
+    ) As String
 
 '====================================================================================================
 'Like "Mid" function, but taking indices as arguments, not start index + length
@@ -66,34 +71,35 @@ Function SubSequenceSelect(InputString As String, StartIndex As Long, EndIndex A
 'Juraj Ahel, 2015-02-16, for vector subselection and general purposes
 'Last update 2015-02-16
 '====================================================================================================
+'2016-12-23 make byval
 
-Dim tempString As String
-
-If StartIndex <= EndIndex Then
-
-    tempString = Mid(InputString, StartIndex, EndIndex - StartIndex + 1)
-
-Else
+    Dim tempString As String
     
+    If StartIndex <= EndIndex Then
     
-    tempString = Mid(InputString, EndIndex, StartIndex - EndIndex + 1)
+        tempString = Mid(InputString, StartIndex, EndIndex - StartIndex + 1)
     
-    Dim N As Long, i As Long
-    Dim TempStringChars() As String
-    
-    N = Len(tempString)
-    ReDim TempStringChars(1 To N)
-    
-    If DNA Then
-        tempString = DNAReverseComplement(tempString)
     Else
-        For i = 1 To N: TempStringChars(i) = Mid(tempString, N - i + 1, 1): Next i
-        tempString = Join(TempStringChars, "")
+        
+        
+        tempString = Mid(InputString, EndIndex, StartIndex - EndIndex + 1)
+        
+        Dim N As Long, i As Long
+        Dim TempStringChars() As String
+        
+        N = Len(tempString)
+        ReDim TempStringChars(1 To N)
+        
+        If DNA Then
+            tempString = DNAReverseComplement(tempString)
+        Else
+            For i = 1 To N: TempStringChars(i) = Mid(tempString, N - i + 1, 1): Next i
+            tempString = Join(TempStringChars, "")
+        End If
+        
     End If
     
-End If
-
-SubSequenceSelect = tempString
+    SubSequenceSelect = tempString
 
 End Function
 '****************************************************************************************************
@@ -107,23 +113,23 @@ Function StringCharCount(InputString As String, ParamArray Substrings() As Varia
 'Last update 2015-02-04
 '====================================================================================================
 
-Dim i As Long
-Dim temp() As Long
-Dim N As Long
-
-N = UBound(Substrings) - LBound(Substrings) + 1
-ReDim temp(1 To N)
-
-Dim StringLength As Long
-StringLength = Len(InputString)
-
-For i = 1 To N
-    temp(i) = (StringLength - Len(Replace(InputString, Substrings(i - 1), ""))) / Len(Substrings(i - 1))
-Next i
-
-Dim Result As Long
-Result = WorksheetFunction.Sum(temp)
-StringCharCount = Result
+    Dim i As Long
+    Dim temp() As Long
+    Dim N As Long
+    
+    N = UBound(Substrings) - LBound(Substrings) + 1
+    ReDim temp(1 To N)
+    
+    Dim StringLength As Long
+    StringLength = Len(InputString)
+    
+    For i = 1 To N
+        temp(i) = (StringLength - Len(Replace(InputString, Substrings(i - 1), ""))) / Len(Substrings(i - 1))
+    Next i
+    
+    Dim Result As Long
+    Result = WorksheetFunction.Sum(temp)
+    StringCharCount = Result
 
 End Function
 
@@ -137,32 +143,38 @@ Function StringCharCount_IncludeOverlap(InputString As String, ParamArray Substr
 'Last update 2015-02-18
 '2015-03-24 Result was resetting after each iteration, moved Result = 0 outside of loop
 '====================================================================================================
+'2016-12-23 protect against 0-length substrings
+'TODO: add support for arrays and collections as substrings...
 
-Dim i As Long, j As Long
-Dim Result As Long
-Dim N As Long
-
-N = UBound(Substrings) - LBound(Substrings) + 1
-
-Dim StringLength As Long, SubstringLength As Long, Limit As Long
-StringLength = Len(InputString)
-
-Result = 0
-
-For i = 1 To N
-
-    SubstringLength = Len(Substrings(i - 1))
+    Dim i As Long, j As Long
+    Dim Result As Long
+    Dim N As Long
     
-    j = InStr(1, InputString, Substrings(i - 1))
+    N = UBound(Substrings) - LBound(Substrings) + 1
+    
+    Dim StringLength As Long, SubstringLength As Long, Limit As Long
+    StringLength = Len(InputString)
+    
+    Result = 0
+    
+    For i = 1 To N
             
-    Do While j > 0
-        Result = Result + 1
-        j = InStr(j + 1, InputString, Substrings(i - 1))
-    Loop
-         
-Next i
-
-StringCharCount_IncludeOverlap = Result
+        SubstringLength = Len(Substrings(i - 1))
+        
+        If SubstringLength > 0 Then
+            
+            j = InStr(1, InputString, Substrings(i - 1))
+                    
+            Do While j > 0
+                Result = Result + 1
+                j = InStr(j + 1, InputString, Substrings(i - 1))
+            Loop
+            
+        End If
+             
+    Next i
+    
+    StringCharCount_IncludeOverlap = Result
 
 End Function
 
@@ -175,62 +187,62 @@ Function StringCompare(a As String, b As String, Optional Limit As Long = 10, Op
 'Last update 2015-02-12
 '====================================================================================================
 
-Dim i As Long, j As Long
-Dim Result As String, S As String
-Dim LA As Long, Lb As Long
-Dim counter As Long: counter = 0
-Dim cA As String, cB As String
-
-LA = Len(a): Lb = Len(b)
-
-S = "; "
-
-Select Case UCase(mode)
-
-Case "SHORT", "S"
-
-Do
-    i = i + 1
-    cA = Mid(a, i, 1)
-    cB = Mid(b, i, 1)
+    Dim i As Long, j As Long
+    Dim Result As String, S As String
+    Dim LA As Long, Lb As Long
+    Dim counter As Long: counter = 0
+    Dim cA As String, cB As String
     
-    If cA <> cB Then
-        counter = counter + 1
-        Result = Result & S & i
-    End If
-Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
-
-
-Case "VERBOSE", "V"
-GoTo 50
-
-Case Else
+    LA = Len(a): Lb = Len(b)
+    
+    S = "; "
+    
+    Select Case UCase(mode)
+    
+        Case "SHORT", "S"
+    
+            Do
+                i = i + 1
+                cA = Mid(a, i, 1)
+                cB = Mid(b, i, 1)
+                
+                If cA <> cB Then
+                    counter = counter + 1
+                    Result = Result & S & i
+                End If
+            Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
+    
+    
+        Case "VERBOSE", "V"
+            GoTo 50
+    
+        Case Else
 50
-Do
-    i = i + 1
-    cA = Mid(a, i, 1)
-    cB = Mid(b, i, 1)
+            Do
+                i = i + 1
+                cA = Mid(a, i, 1)
+                cB = Mid(b, i, 1)
+                
+                If cA <> cB Then
+                    counter = counter + 1
+                    Result = Result & S & i & "(" & cA & ">" & cB & ")"
+                End If
+            Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
+            
+            If counter = 0 And LA = Lb Then
+                Result = "Exact Copy!"
+                GoTo 99
+            End If
     
-    If cA <> cB Then
-        counter = counter + 1
-        Result = Result & S & i & "(" & cA & ">" & cB & ")"
-    End If
-Loop Until i = LA Or i = Lb Or ((counter > Limit) And (Limit > 0))
-
-If counter = 0 And LA = Lb Then
-    Result = "Exact Copy!"
-    GoTo 99
-End If
-
-End Select
-
-If LA <> Lb Then Result = Result & S & "LenDiff=" & LA - Lb
-
-If Len(Result) > 0 Then Result = Right(Result, Len(Result) - Len(S))
-
-If counter > Limit And Limit > 0 Then Result = "Threshold (" & Limit & ") reached!"
-
-99 StringCompare = Result
+    End Select
+    
+    If LA <> Lb Then Result = Result & S & "LenDiff=" & LA - Lb
+    
+    If Len(Result) > 0 Then Result = Right(Result, Len(Result) - Len(S))
+    
+    If counter > Limit And Limit > 0 Then Result = "Threshold (" & Limit & ") reached!"
+    
+99     StringCompare = Result
 
 End Function
 
@@ -261,19 +273,22 @@ Function StringJoin(RangeToJoin As Range, Optional Separator As String = "", Opt
 '====================================================================================================
 'Direction not yet implemented
 
-Dim tempString As String
-Dim cell As Range
-
-For Each cell In RangeToJoin
-    tempString = tempString & cell.Value & Separator
-Next cell
-
-StringJoin = tempString
+    Dim tempString As String
+    Dim cell As Range
+    
+    For Each cell In RangeToJoin
+        tempString = tempString & cell.Value & Separator
+    Next cell
+    
+    StringJoin = tempString
 
 End Function
 
 '****************************************************************************************************
-Function StringFindOverlap(Probe As String, Target As String)
+Function StringFindOverlap( _
+    ByVal Probe As String, _
+    ByVal Target As String, _
+    Optional ByVal Verbose As Boolean = True)
 
 '====================================================================================================
 'Finds the (largest) continuous perfectoverlap between two strings
@@ -281,91 +296,95 @@ Function StringFindOverlap(Probe As String, Target As String)
 'Last update 2015-04-30
 '2016-06-28 explicit variable declaration
 '====================================================================================================
+'2016-12-21 add verbose option, make byval
 
-Dim ProbeLength As Long, TargetLength As Long
-Dim Results() As Long
-Dim wStart As Long
-Dim tempResult As String
-Dim OverlapWidth As Long
-
-ProbeLength = Len(Probe)
-TargetLength = Len(Target)
-
-If ProbeLength > TargetLength Then
-    Call SwapValue(Probe, Target)
-    Call SwapValue(ProbeLength, TargetLength)
-End If
+    Dim ProbeLength As Long, TargetLength As Long
+    Dim Results() As Long
+    Dim wStart As Long
+    Dim tempResult As String
+    Dim OverlapWidth As Long
     
-wStart = ProbeLength
-
-If wStart = 0 Then
-    tempResult = "Zero-string probe or target."
-    GoTo 999
-End If
-
-'- if I want to map them all
-'ReDim Results(1 To wStart, 1 To wStart)
-
-'- if I want to extract the longest ones only
-ReDim Results(1 To wStart)
-
-Dim i As Long, j As Long, k As Long, W As Long
-Dim TempProbe As String
-Dim FoundOverlap As Boolean
-
-W = wStart
-
-Do
-    k = 0
+    ProbeLength = Len(Probe)
+    TargetLength = Len(Target)
     
-    For i = 1 To 1 + (wStart - W)
-    
-        TempProbe = Mid(Probe, i, W)
+    If ProbeLength > TargetLength Then
+        Call SwapValue(Probe, Target)
+        Call SwapValue(ProbeLength, TargetLength)
+    End If
         
-        j = 0
-        Do
-            j = InStr(j + 1, Target, TempProbe)
-            FoundOverlap = (j > 0)
-            
-            'k = k + FoundOverlap
-            'Results(w, k) = FoundOverlap * j
-            
-            If FoundOverlap Then
-                k = k + 1
-                Results(k) = j
-            End If
-        Loop Until Not FoundOverlap
+    wStart = ProbeLength
+    
+    If wStart = 0 Then
+        tempResult = vbNullString
+        GoTo 999
+    End If
+    
+    '- if I want to map them all
+    'ReDim Results(1 To wStart, 1 To wStart)
+    
+    '- if I want to extract the longest ones only
+    ReDim Results(1 To wStart)
+    
+    Dim i As Long, j As Long, k As Long, W As Long
+    Dim TempProbe As String
+    Dim FoundOverlap As Boolean
+    
+    W = wStart
+    
+    Do
+        k = 0
         
-    Next i
-    
-    W = W - 1
-    
-Loop Until k <> 0 Or W = 0
-
-OverlapWidth = W + 1
-
-Dim TempResultAsStrings() As String
-
-Select Case k
-    Case 0
-        tempResult = "#! No overlap found."
-    Case 1
-        tempResult = Mid(Target, Results(1), OverlapWidth)
-    Case Is > 1
-        ReDim TempResultAsStrings(1 To k)
-        For i = 1 To k
-            TempResultAsStrings(i) = CStr(Results(i))
+        For i = 1 To 1 + (wStart - W)
+        
+            TempProbe = Mid(Probe, i, W)
+            
+            j = 0
+            Do
+                j = InStr(j + 1, Target, TempProbe)
+                FoundOverlap = (j > 0)
+                
+                'k = k + FoundOverlap
+                'Results(w, k) = FoundOverlap * j
+                
+                If FoundOverlap Then
+                    k = k + 1
+                    Results(k) = j
+                End If
+            Loop Until Not FoundOverlap
+            
         Next i
-    
         
-        tempResult = "Multiple equivalent results of length " _
-                    & OverlapWidth & " at positions: " _
-                    & Join(TempResultAsStrings, ";")
-End Select
-
-'Debug.Print (k & " matches were found")
-
-999 StringFindOverlap = tempResult
+        W = W - 1
+        
+    Loop Until k <> 0 Or W = 0
+    
+    OverlapWidth = W + 1
+    
+    Dim TempResultAsStrings() As String
+    
+    Select Case k
+        Case 0
+            tempResult = "#! No overlap found."
+        Case 1
+            tempResult = Mid(Target, Results(1), OverlapWidth)
+        Case Is > 1
+            ReDim TempResultAsStrings(1 To k)
+            For i = 1 To k
+                TempResultAsStrings(i) = CStr(Results(i))
+            Next i
+        
+            If Verbose Then
+                tempResult = "Multiple equivalent results of length " _
+                            & OverlapWidth & " at positions: " _
+                            & Join(TempResultAsStrings, ";")
+            Else
+                tempResult = Mid(Target, Results(1), OverlapWidth)
+            End If
+    End Select
+    
+    'Debug.Print (k & " matches were found")
+    
+999     StringFindOverlap = tempResult
 
 End Function
 
@@ -408,106 +427,47 @@ Function StringSubstract(Template As String, _
 'Juraj Ahel, 2015-04-30, for general purposes
 'Last update 2015-04-30
 '====================================================================================================
+'2016-12-22 add control for empty string in substractions / template
 
-Dim TemplateLength As Long, SubstractionLengths() As Long
-Dim TemplateArray() As String
-Dim NumberOfSubstractions As Long
-Dim i, j As Long
-Dim FoundTarget As Boolean
-
-TemplateLength = Len(Template)
-ReDim TemplateArray(1 To TemplateLength)
-
-For i = 1 To TemplateLength
-    TemplateArray(i) = Mid(Template, i, 1)
-Next i
-
-NumberOfSubstractions = UBound(Substractions) - LBound(Substractions) + 1
-
-For i = 1 To NumberOfSubstractions
-    j = 0
-    Do
-        j = InStr(j + 1, Template, Substractions(i - 1))
-        FoundTarget = (j > 0)
-        If FoundTarget Then
-            For k = 1 To Len(Substractions(i - 1))
-                TemplateArray(j + k - 1) = ""
-            Next k
-        End If
-    Loop Until Not FoundTarget
-Next i
-
-StringSubstract = Join(TemplateArray, "")
-
-End Function
-
-
-
-'****************************************************************************************************
-Function StringSubRegions( _
-                        InputString As String, _
-                        Optional ExcludeString As String = "", _
-                        Optional Exclude As Boolean = True, _
-                        Optional Separator = "" _
-                        ) As String
-
-'====================================================================================================
-'Converts a string to indexed classes
-' "AAAABBBCDEEEEEEAAAE" -> "[A]1-4[B]5-7[C]8-8[D]9-9[E]10-15[A]16-18[E]19-19"
-'Juraj Ahel, 2015-04-13, for converting sequence secondary structure data to ranges
-'Last update 2015-04-23
-'====================================================================================================
-
-    Const D As String = "-"
+    Dim TemplateLength As Long, SubstractionLengths() As Long
+    Dim TemplateArray() As String
+    Dim NumberOfSubstractions As Long
+    Dim i As Long, j As Long, k As Long
+    Dim FoundTarget As Boolean
     
-    Dim RegionSymbol As String, RegionMarker As String
-    Dim IndexStart As Long, IndexEnd As Long, LengthString As Long
-    Dim TempSymbol As String, CtrlSymbol As String
+    TemplateLength = Len(Template)
     
-    Dim i As Long
-    Dim IncludeThisSymbol As Boolean
+    If TemplateLength = 0 Then
+        StringSubstract = vbNullString
+        Exit Function
+    End If
     
-    LengthString = Len(InputString)
-    CtrlSymbol = Mid(InputString, 1, 1)
-    IndexStart = 1
-    IndexEnd = LengthString
+    ReDim TemplateArray(1 To TemplateLength)
     
-    For i = 2 To LengthString
+    For i = 1 To TemplateLength
+        TemplateArray(i) = Mid(Template, i, 1)
+    Next i
     
-        TempSymbol = Mid(InputString, i, 1)
-        
-        If TempSymbol <> CtrlSymbol Then
-        
-            IndexEnd = i - 1
-            RegionMarker = "[" & CtrlSymbol & "]"
-            
-            IncludeThisSymbol = InStr(1, ExcludeString, CtrlSymbol) = 0
-            If Not Exclude Then IncludeThisSymbol = Not (IncludeThisSymbol)
-            
-            If IncludeThisSymbol Then
-                TempOut = TempOut & RegionMarker & IndexStart & D & IndexEnd
-            End If
-            
-            IndexStart = i
-            CtrlSymbol = TempSymbol
-            
+    NumberOfSubstractions = UBound(Substractions) - LBound(Substractions) + 1
+    
+    For i = 1 To NumberOfSubstractions
+        If Len(Substractions(i - 1)) > 0 Then
+            j = 0
+            Do
+                j = InStr(j + 1, Template, Substractions(i - 1))
+                FoundTarget = (j > 0)
+                If FoundTarget Then
+                    For k = 1 To Len(Substractions(i - 1))
+                        TemplateArray(j + k - 1) = ""
+                    Next k
+                End If
+            Loop Until Not FoundTarget
         End If
     Next i
     
-    If IndexStart = Len(InputString) Then
-        
-        RegionMarker = "[" & CtrlSymbol & "]"
-        IndexEnd = LengthString
-        CtrlSymbol = Right(InputString, 1)
-            
-            IncludeThisSymbol = InStr(1, ExcludeString, CtrlSymbol) = 0
-            If Not Exclude Then IncludeThisSymbol = Not (IncludeThisSymbol)
-            
-            If IncludeThisSymbol Then
-                TempOut = TempOut & RegionMarker & IndexStart & D & IndexEnd
-            End If
-    End If
-    
-    StringSubRegions = TempOut
+    StringSubstract = Join(TemplateArray, "")
 
 End Function
+
+
+
