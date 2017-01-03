@@ -177,7 +177,7 @@ Private Function DNAFindORFsRecursion( _
         tempCount = ORFs.Count
     End If
     
-    Debug.Print ("SeqLen: " & Len(Sequence) & " | ORFs: " & tempCount)
+    'Debug.Print ("SeqLen: " & Len(Sequence) & " | ORFs: " & tempCount)
     
     Set DNAFindORFsRecursion = ORFs
     
@@ -193,14 +193,14 @@ Function DNAFindORFs( _
     Optional ByVal MinimumORFLength As Long = 50, _
     Optional ByVal AllowORFOverlap As Boolean = False, _
     Optional ByVal AllowReverseStrand As Boolean = True _
-    ) As Collection
+    ) As VBA.Collection
 '====================================================================================================
 'Finds the longest ORF in a DNA sequence, read in forward direction, assuming it's circular by default
 'Juraj Ahel, 2016-06-28
 '2016-07-14 add quick hack to allow the case where the entire circular construct is an ORF, which does not start at 1
 '====================================================================================================
 'AllowORFOverlap not yet implemented - but it can be easily acquired by just running DNALongestORF
-
+'2017-01-03 implement so that it returns empty collection even if nothing is found - never return "nothing" unless it's an error state
             
     Dim ORFs As VBA.Collection
     Dim tColl As VBA.Collection
@@ -271,6 +271,8 @@ Function DNAFindORFs( _
         If ORFs.Count > 1 Then
             Call SortStringCollectionByLength(ORFs)
         End If
+    Else
+        Set ORFs = New VBA.Collection
     End If
         
     Set DNAFindORFs = ORFs
@@ -640,7 +642,10 @@ End Function
 
 
 '****************************************************************************************************
-Function DNATranslate(ByVal InputSequence As String) As String
+Function DNATranslate( _
+    ByVal InputSequence As String, _
+    Optional IncludeStopCodon As Boolean = False _
+    ) As String
 
 '====================================================================================================
 'Translates a DNA sequence to a protein sequence, using standard code
@@ -649,6 +654,7 @@ Function DNATranslate(ByVal InputSequence As String) As String
 'Juraj Ahel, 2015-01-25, for general purposes
 'Last update 2016-01-15
 '====================================================================================================
+'2017-01-03 make Stop Codon optional, default false
     
     Dim i As Long, SequenceLength As Long, ProteinLength As Long
     Dim Aminoacid As String, OutputSequence As String, Codon As String
@@ -716,18 +722,23 @@ Function DNATranslate(ByVal InputSequence As String) As String
             Case "GTA", "GTC", "GTG", "GTT"
             Aminoacid = "V"
             Case "TAA", "TAG", "TGA"
-            Aminoacid = "*"
+            If IncludeStopCodon Then
+                Aminoacid = "*"
+            Else
+                Aminoacid = ""
+            End If
             Case Else
             Aminoacid = "X"
         End Select
         
-        OutputSequence = OutputSequence & Aminoacid
+        'OutputSequence = OutputSequence & Aminoacid
         AminoAcids(i) = Aminoacid
         
     Next i
     
 '99     DNATranslate = OutputSequence
-99     DNATranslate = Join(AminoAcids, "")
+99  DNATranslate = Join(AminoAcids, "")
+    
 
 End Function
 
@@ -1054,14 +1065,14 @@ End Function
 
 '****************************************************************************************************
 Function PCRGetFragmentFromTemplate( _
-    ByVal TargetSequence As String, _
-    ByVal Template As String, _
-    Optional ByVal TargetPrimerTm As Double = 62, _
-    Optional ByVal MinPrimerLength As Long = 15, _
-    Optional ByVal TemplateCircular As Boolean = False, _
-    Optional ByVal TryReverseComplement As Boolean = True, _
-    Optional ByVal MaxExtension As Long = 50 _
-    ) As VBA.Collection
+         ByVal TargetSequence As String, _
+         ByVal Template As String, _
+         Optional ByVal TargetPrimerTm As Double = 62, _
+         Optional ByVal MinPrimerLength As Long = 15, _
+         Optional ByVal TemplateCircular As Boolean = False, _
+         Optional ByVal TryReverseComplement As Boolean = True, _
+         Optional ByVal MaxExtension As Long = 50 _
+         ) As VBA.Collection
 
 '====================================================================================================
 'Calculates optimal primers for getting a target sequence from a chosen template, allowing for extension
@@ -1104,7 +1115,7 @@ Function PCRGetFragmentFromTemplate( _
             OverlappingSequence = StringFindOverlap(TargetSequence, Template, False)
         End If
         
-        RCIsBetter = False
+    RCIsBetter = False
         
     'check if a better overlap can be achieved with reverse complement
         If TryReverseComplement Then
@@ -1126,31 +1137,31 @@ Function PCRGetFragmentFromTemplate( _
         End If
         
     'If RC was better, simply pretend RC is the actual template during the calculation
-    If RCIsBetter Then
-        Call SwapValue(Template, RCTemplate)
-        Debug.Print ("Using Reverse Complement")
-    End If
-            
-    TargetLength = Len(TargetSequence)
-    TemplateLength = Len(Template)
-    OverlapLength = Len(OverlappingSequence)
+        If RCIsBetter Then
+            Call SwapValue(Template, RCTemplate)
+            Debug.Print ("Using Reverse Complement")
+        End If
+                
+        TargetLength = Len(TargetSequence)
+        TemplateLength = Len(Template)
+        OverlapLength = Len(OverlappingSequence)
     
     'check if a PCR is feasible
         If TargetLength > OverlapLength + 2 * MaxExtension Then
             Call Err.Raise(1, , "Target sequence too long for template with given primer extension limit (" & MaxExtension & "). Total " & _
-            (TargetLength - TemplateLength) & "-residue extension required.")
+                               (TargetLength - TemplateLength) & "-residue extension required.")
         End If
-        
-    LeftExtensionLength = InStr(1, TargetSequence, OverlappingSequence) - 1
-    RightExtensionLength = TargetLength - OverlapLength - LeftExtensionLength
+            
+        LeftExtensionLength = InStr(1, TargetSequence, OverlappingSequence) - 1
+        RightExtensionLength = TargetLength - OverlapLength - LeftExtensionLength
     
     'check if extensions are well-calcualted / feasible
         Debug.Assert (LeftExtensionLength >= 0 And RightExtensionLength >= 0)
-        
+            
         If LeftExtensionLength > MaxExtension Then
             Call Err.Raise(1, , "Required 5' extension too long (" & LeftExtensionLength & ", allowed " & MaxExtension & ").")
         End If
-        
+            
         If RightExtensionLength > MaxExtension Then
             Call Err.Raise(1, , "Required 3' extension too long (" & RightExtensionLength & ", allowed " & MaxExtension & ").")
         End If
@@ -1159,10 +1170,10 @@ Function PCRGetFragmentFromTemplate( _
         Dim FAnneal As String, RAnneal As String
         Dim LeftExtension As String, RightExtension As String
         Dim FPrimer As String, RPrimer As String
-            
+                
         LeftExtension = Left(TargetSequence, LeftExtensionLength)
         RightExtension = Right(TargetSequence, RightExtensionLength)
-            
+                
         FAnneal = PCROptimizePrimer(OverlappingSequence, TargetPrimerTm, MinPrimerLength)
         RAnneal = PCROptimizePrimer(DNAReverseComplement(OverlappingSequence), TargetPrimerTm, MinPrimerLength)
     
@@ -1174,33 +1185,33 @@ Function PCRGetFragmentFromTemplate( _
     'check if annealing sites are unique
         
         Dim tempc(1 To 4) As Long
-        
+            
         tempc(1) = StringCharCount_IncludeOverlap(Template, FAnneal)
         If TryReverseComplement Then
             tempc(2) = StringCharCount_IncludeOverlap(RCTemplate, FAnneal)
             tempc(3) = StringCharCount_IncludeOverlap(Template, RAnneal)
         End If
         tempc(4) = StringCharCount_IncludeOverlap(RCTemplate, RAnneal)
-        
+            
         If RCIsBetter Then
             Call SwapValue(tempc(1), tempc(2))
             Call SwapValue(tempc(3), tempc(4))
         End If
+                
             
-        
         Select Case True
             Case tempc(1) + tempc(2) > 1
                 Call Err.Raise(1, , "forward anneal site (" & FAnneal & ") anneals at multiple sites - main strand: " & tempc(1) & " reverse strand: " & tempc(2) & "! Check sequence.")
             Case tempc(3) + tempc(4) > 1
                 Call Err.Raise(1, , "reverse anneal site (" & RAnneal & ") anneals at multiple sites - main strand: " & tempc(3) & " reverse strand: " & tempc(4) & "! Check sequence.")
         End Select
+            
+            
+        FPrimer = LeftExtension & FAnneal
+        RPrimer = DNAReverseComplement(RightExtension) & RAnneal
         
-        
-    FPrimer = LeftExtension & FAnneal
-    RPrimer = DNAReverseComplement(RightExtension) & RAnneal
-    
-    TmF = OligoTm(FAnneal)
-    TmR = OligoTm(RAnneal)
+        TmF = OligoTm(FAnneal)
+        TmR = OligoTm(RAnneal)
         
     'confirm primers don't anneal better elsewhere
         If LeftExtensionLength > 0 Then
@@ -1211,7 +1222,7 @@ Function PCRGetFragmentFromTemplate( _
                 Call Err.Raise(1, , "forward primer anneals to alternative site on RC strand too well!")
             End If
         End If
-        
+            
         If RightExtensionLength > 0 Then
             If DNAAnnealToTemplate(Left(RPrimer, Len(RPrimer) - 2), RCTemplate) >= TmR - 2 Then
                 Call Err.Raise(1, , "reverse primer anneals to alternative site on RC strand too well!")
@@ -1242,14 +1253,271 @@ Function PCRGetFragmentFromTemplate( _
         End With
                
     'Debug output
-        'Debug.Print (TargetSequence)
-        'Debug.Print (Template)
-        For i = 1 To PCRGetFragmentFromTemplate.Count
-            Debug.Print (PCRGetFragmentFromTemplate.Item(i))
-        Next i
+    'Debug.Print (TargetSequence)
+    'Debug.Print (Template)
+    For i = 1 To PCRGetFragmentFromTemplate.Count
+        Debug.Print (PCRGetFragmentFromTemplate.Item(i))
+    Next i
         
 
 End Function
+
+'************************************************************************************
+Private Function DNAFindProteinInTemplate( _
+    ByVal ProteinSequence As String, _
+    ByVal DNASource As String, _
+    Optional ByVal Circular As Boolean = True, _
+    Optional ByVal CheckReverseComplement As Boolean = True, _
+    Optional ByVal Interactive As Boolean = True _
+    ) As VBA.Collection
+
+'====================================================================================================
+'Takes in a protein sequence, DNA source and finds whether and where the protein is encoded in this DNA
+'
+'Juraj Ahel, 2017-01-03
+'====================================================================================================
+
+    Const MyName As String = "DNAFindProteinInTemplate"
+        
+'TODO: parse protein / DNA sequences / Trunc list
+        
+    Dim Translations As VBA.Collection
+    Dim tempORF As String
+    Dim i As Long
+    
+    Dim ProteinLength As Long
+    Dim DNALength As Long
+    
+    Dim ORFLength As Long
+    Dim ORFFound As Boolean
+    Dim ORFLocus As Long
+    
+    Dim RCDNA As String
+    Dim tempRCORFLocus As Long
+    
+    Dim IsReverse As Boolean
+        
+    ProteinLength = Len(ProteinSequence)
+    DNALength = Len(DNASource)
+    ORFLength = 3 * ProteinLength + 3
+    
+    If ProteinLength = 0 Or DNALength = 0 Then
+        Call ApplyNewError(jaErr + 18, MyName, "Empty input")
+        If Interactive Then
+            ErrReraise
+        Else
+            Set DNAFindProteinInTemplate = Nothing
+            Exit Function
+        End If
+    End If
+        
+    Set Translations = DNAFindORFs(DNASource, Circular, 24, True, CheckReverseComplement)
+    
+    For i = 1 To Translations.Count
+        
+        tempORF = Translations.Item(i)
+        If Len(tempORF) < ORFLength Then
+            Exit For
+        Else
+            If Len(tempORF) = ORFLength Then
+                If DNATranslate(tempORF) = ProteinSequence Then
+                    ORFFound = True
+                    Exit For
+                End If
+            End If
+        End If
+        
+    Next i
+    
+    If Not (ORFFound) Then
+    
+        Call ApplyNewError(jaErr + 1, MyName, "DNA does not encode for protein, check inputs")
+        If Interactive Then
+            ErrReraise
+        Else
+            Set DNAFindProteinInTemplate = Nothing
+            Exit Function
+        End If
+        
+    End If
+    
+    'if RC is to be checked, do it
+    If CheckReverseComplement Then
+        RCDNA = DNAReverseComplement(DNASource)
+        tempRCORFLocus = DNAFindInsertInTemplate(tempORF, RCDNA, Circular, Interactive:=False)
+        
+        'handle errors
+        If Err.Number <> 0 Then
+            If Err.Source = "DNAFindInsertInTemplate" Then
+                If Not Interactive Then
+                    Set DNAFindProteinInTemplate = Nothing
+                    Exit Function
+                Else
+                    ErrReraise
+                End If
+            Else
+                ErrReraise
+            End If
+        End If
+    End If
+                
+    ORFLocus = DNAFindInsertInTemplate(tempORF, DNASource, Circular, Interactive:=False)
+    
+    'handle errors
+    If Err.Number <> 0 Then
+        If Err.Source = "DNAFindInsertInTemplate" Then
+            If Not Interactive Then
+                Set DNAFindProteinInTemplate = Nothing
+                Exit Function
+            Else
+                ErrReraise
+            End If
+        Else
+            ErrReraise
+        End If
+    End If
+    
+    'confirm a locus could indeed be found
+    If (ORFLocus <= 0) And Not (CheckReverseComplement And tempRCORFLocus > 0) Then
+        Call ApplyNewError(jaErr + 2, MyName, "A strange error has occured - cannot confirm ORF was found even though it was found before")
+        If Interactive Then
+            ErrReraise
+        Else
+            Set DNAFindProteinInTemplate = Nothing
+            Exit Function
+        End If
+    End If
+    
+    'check if the locus was unique
+    If tempRCORFLocus > 0 Then
+        If ORFLocus > 0 Then
+            Call ApplyNewError(jaErr + 3, MyName, "Multiple encoding ORFs found for target protein in template DNA - cannot proceed")
+            If Interactive Then
+                ErrReraise
+            Else
+                Set DNAFindProteinInTemplate = Nothing
+                Exit Function
+            End If
+        Else
+            IsReverse = True
+            DNASource = RCDNA
+            ORFLocus = tempRCORFLocus
+        End If
+    Else
+        If ORFLocus > 0 Then
+            IsReverse = False
+        End If
+    End If
+            
+    Dim tempResult As VBA.Collection
+    
+    Set tempResult = New VBA.Collection
+    
+    tempResult.Add ORFLocus, "LOCUS"
+    tempResult.Add IsReverse, "ISREVERSE"
+    
+    Set DNAFindProteinInTemplate = tempResult
+    
+    Set tempResult = Nothing
+    
+End Function
+
+'****************************************************************************************************
+Function DNAFindInsertInTemplate( _
+         ByVal Probe As String, _
+         ByVal Template As String, _
+         Optional ByVal Circular As Boolean = True, _
+         Optional Interactive As Boolean = True _
+         ) As Long
+
+'====================================================================================================
+'finds where a certain DNA is inside another DNA, allowing also circular
+'Juraj Ahel, 2017-01-03, for checking whether a plasmid encodes a protein
+
+'====================================================================================================
+    
+    Dim ProbeLength As Long
+    Dim TemplateLength As Long
+    
+    Dim tempLocus As Long
+    Dim Overlap As String
+        
+    Dim OverlapCount As Long
+        
+    ProbeLength = Len(Probe)
+    TemplateLength = Len(Template)
+   
+    'parse inputs
+    If (ProbeLength > TemplateLength) Or (ProbeLength = 0) Then
+    
+        DNAFindInsertInTemplate = 0
+        Exit Function
+        
+    End If
+    
+    If Circular Then Template = Template & Left(Template, TemplateLength - 1)
+
+    Overlap = StringFindOverlap(Probe, Template, False)
+    
+    'if there is an error with finding an overlap
+    If Err.Number <> 0 Then
+    
+        'if the error doesn't come from my function, but is a general error, raise it
+        If Err.Source <> "StringFindOverlap" Then
+            ErrReraise
+        Else
+            'otherwise, try to handle it
+            Select Case Err.Number
+            
+                Case jaErr + 1
+                    If Len(Overlap) <> ProbeLength Then
+                        'this is not an error - insert simply doesn't exist in template
+                        Err.Clear
+                        DNAFindInsertInTemplate = 0
+                        Exit Function
+                    Else
+                        Call ApplyNewError(jaErr + 1, "DNAFindInsertInTemplate", "Multiple overlaps of same length exist in template")
+                    End If
+                    
+                Case Else
+                    Call ApplyNewError(Err.Number, "DNAFindInsertInTemplate", "Unhandled error:" & Err.Source & ":" & Err.Number & ":" & Err.Description)
+                    
+            End Select
+        End If
+        
+        If Interactive Then
+            'throw the error
+            Call ErrReraise
+        Else
+            'give null result and bubble error upwards if anyone cares (this would be handled as an _EVENT_ in a more modern language, e.g. VB.NET
+            DNAFindInsertInTemplate = 0
+            Exit Function
+        End If
+    
+    End If
+    
+    If Len(Overlap) <> ProbeLength Then
+    
+        DNAFindInsertInTemplate = 0
+        Exit Function
+        
+    Else
+
+        tempLocus = InStr(1, Template, Probe)
+    
+        tempLocus = ((tempLocus - 1) Mod TemplateLength) + 1
+    
+        'this is logically approx:
+        '
+        'If tempLocus > TemplateLength Then
+        '    tempLocus = tempLocus - TemplateLength
+        'End If
+    
+    End If
+
+        DNAFindInsertInTemplate = tempLocus
+
+    End Function
 
 '****************************************************************************************************
 Function DNAAnnealToTemplate( _
@@ -1315,6 +1583,98 @@ End Function
 
 
 
+
+'****************************************************************************************************
+Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal TargetTm As Double = 60, Optional ByVal MinLength As Long = 15) As String
+
+'====================================================================================================
+'Designs a simple primer for regular PCR amplification, trying to optimize the Tm and trying to
+'keep the termini either G or C
+'Always does a forward primer - do DNAReverseTranslate to Target to get the reverse. Might implement
+'it as an option later
+'In the future might be made more robust
+'Juraj Ahel, 2015-03-24, general purposes
+'Last update 2015-03-24
+'====================================================================================================
+'2016-12-22 make byval
+
+    Const NumberOfVariants = 40
+    
+    Dim Result As String
+    Dim Tm As Double
+    Dim Length As Long
+    Dim Score() As Double, MaxScore As Long
+    Dim Variants() As String
+    Dim i As Long, j As Long
+    Dim PrimerStart As String, PrimerEnd As String
+    
+    ReDim Score(1 To NumberOfVariants)
+    ReDim Variants(1 To NumberOfVariants)
+    
+    j = 0
+    MaxScore = -30000
+    
+    For i = 1 To NumberOfVariants
+    
+        Variants(i) = Left(TargetSequence, MinLength + i - 1)
+        Score(i) = -((OligoTm(Variants(i)) - TargetTm)) ^ 2
+        PrimerStart = Left(Variants(i), 1)
+        PrimerEnd = Right(Variants(i), 1)
+        If PrimerStart = "A" Or PrimerStart = "T" Then Score(i) = Score(i) - 4
+        If PrimerEnd = "A" Or PrimerEnd = "T" Then Score(i) = Score(i) - 10
+        If Score(i) > MaxScore Then
+            MaxScore = Score(i)
+            j = i
+        End If
+    
+    Next i
+    
+    PCROptimizePrimer = Variants(j)
+
+End Function
+
+'****************************************************************************************************
+Function DNAGCContent(ByVal Sequence As String) As Double
+'====================================================================================================
+'Calculates GC % as sum(G+C) / total length
+'Juraj Ahel, 2015-09-28, for general purposes
+'Last update 2015-09-28
+'====================================================================================================
+'2016-12-22 make byval
+
+    DNAGCContent = StringCharCount(UCase(Sequence), "G", "C", "S") / Len(Sequence)
+
+End Function
+
+'****************************************************************************************************
+Function DNAReindex(ByVal DNASequence As String, ByVal NewStartBase As Long) As String
+
+'====================================================================================================
+'Reindexes a circular DNA sequence
+'Juraj Ahel, 2015-09-27
+'Last update 2015-09-28
+'====================================================================================================
+'2016-12-22 make byval
+
+    Dim SeqLength As Long, Offset As Long
+    
+    SeqLength = Len(DNASequence)
+    
+    Offset = NewStartBase - 1
+    
+    Select Case Offset
+        Case 0
+            DNAReindex = DNASequence
+        Case Is > 0
+            DNAReindex = Right(DNASequence, SeqLength - Offset) & Left(DNASequence, Offset)
+        Case Else
+            DNAReindex = Right(DNASequence, -Offset) & Right(DNASequence, SeqLength + Offset)
+    End Select
+
+End Function
+
+
+'****************************************************************************************************
 Private Sub test_PCRSimulate()
 
     Const TestNumber As Long = 7
@@ -1421,6 +1781,7 @@ Private Sub test_PCRSimulate()
 End Sub
 
 
+'****************************************************************************************************
 Private Sub test_PCRGetFragmentFromTemplate()
 
     Const TestNumber As Long = 9
@@ -1532,91 +1893,261 @@ Private Sub test_PCRGetFragmentFromTemplate()
 End Sub
 
 
+
 '****************************************************************************************************
-Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal TargetTm As Double = 60, Optional ByVal MinLength As Long = 15) As String
+Private Sub test_DNAFindInsertInTemplate()
 
-'====================================================================================================
-'Designs a simple primer for regular PCR amplification, trying to optimize the Tm and trying to
-'keep the termini either G or C
-'Always does a forward primer - do DNAReverseTranslate to Target to get the reverse. Might implement
-'it as an option later
-'In the future might be made more robust
-'Juraj Ahel, 2015-03-24, general purposes
-'Last update 2015-03-24
-'====================================================================================================
-'2016-12-22 make byval
-
-    Const NumberOfVariants = 40
+    Const TestNumber As Long = 11
+    Const FunctionName As String = "DNAFindInsertInTemplate"
     
-    Dim Result As String
-    Dim Tm As Double
-    Dim Length As Long
-    Dim Score() As Double, MaxScore As Long
-    Dim Variants() As String
-    Dim i As Long, j As Long
-    Dim PrimerStart As String, PrimerEnd As String
+    Dim N As Long
+    Dim TestResults(1 To TestNumber) As Long
+    Dim Test As String
+    Dim Input1 As String, Input2 As String, Input3 As String
     
-    ReDim Score(1 To NumberOfVariants)
-    ReDim Variants(1 To NumberOfVariants)
+    On Error Resume Next
     
-    j = 0
-    MaxScore = -30000
-    
-    For i = 1 To NumberOfVariants
-    
-        Variants(i) = Left(TargetSequence, MinLength + i - 1)
-        Score(i) = -((OligoTm(Variants(i)) - TargetTm)) ^ 2
-        PrimerStart = Left(Variants(i), 1)
-        PrimerEnd = Right(Variants(i), 1)
-        If PrimerStart = "A" Or PrimerStart = "T" Then Score(i) = Score(i) - 4
-        If PrimerEnd = "A" Or PrimerEnd = "T" Then Score(i) = Score(i) - 10
-        If Score(i) > MaxScore Then
-            MaxScore = Score(i)
-            j = i
+    '1 empty inputs
+        N = 1
+        Test = DNAFindInsertInTemplate("", "", True)
+        If Err.Number = 0 Then
+            If Test = 0 Then TestResults(N) = 1
         End If
+        Err.Clear
+        
+    '2 empty inputs
+        N = 2
+        Test = DNAFindInsertInTemplate("", "", False)
+        If Err.Number = 0 Then
+            If Test = 0 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '3 simple input
+        N = 3
+        Test = DNAFindInsertInTemplate("A", "A", True)
+        If Err.Number = 0 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '4 repetitive sequence - interactive
+        N = 4
+        Input1 = "A"
+        Input2 = "AA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, True)
+        If Err.Number = jaErr + 1 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
     
+    'repetitive sequence - batch
+        N = 5
+        Input1 = "A"
+        Input2 = "AA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, False)
+        If Err.Number = jaErr + 1 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - simple
+        N = 5
+        Input1 = "ATGGTA"
+        Input2 = "ATGGTA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, False)
+        If Err.Number = 0 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - added
+        N = 6
+        Input1 = "ATGGTA"
+        Input2 = "ATGGTACCCCC"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, False)
+        If Err.Number = 0 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - added
+        N = 7
+        Input1 = "ATGGTA"
+        Input2 = "CCCCCATGGTA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, False)
+        If Err.Number = 0 Then
+            If Test = 6 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - circular, trivial
+        N = 8
+        Input1 = "ATG"
+        Input2 = "ATG"
+        Test = DNAFindInsertInTemplate(Input1, Input2, True, False)
+        If Err.Number = 0 Then
+            If Test = 1 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - circular, simple
+        N = 9
+        Input1 = "ATG"
+        Input2 = "GAT"
+        Test = DNAFindInsertInTemplate(Input1, Input2, True, False)
+        If Err.Number = 0 Then
+            If Test = 2 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'positive control - circular, full
+        N = 10
+        Input1 = "ATGCGA" & "GGTAT"
+        Input2 = "GGTAT" & "CCCCCCCCCCCCCCCC" & "ATGCGA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, True, False)
+        If Err.Number = 0 Then
+            If Test = 22 Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    'negative control - circular, simple
+        N = 11
+        Input1 = "AG"
+        Input2 = "GA"
+        Test = DNAFindInsertInTemplate(Input1, Input2, False, False)
+        If Err.Number = 0 Then
+            If Test = 0 Then TestResults(N) = 1
+        End If
+        Err.Clear
+    
+    
+    On Error GoTo 0
+    
+    Dim i As Long
+    Dim j As Long
+    
+    For i = 1 To TestNumber
+        If TestResults(i) <> 1 Then
+            Debug.Print ("Test #" & i & " failed!")
+            j = j + 1
+        End If
     Next i
     
-    PCROptimizePrimer = Variants(j)
+    If j = 0 Then
+        Debug.Print (FunctionName & ": All tests successfully passed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": All tests successfully passed!")
+    Else
+        Debug.Print (FunctionName & ": " & j & " tests failed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": " & j & " tests failed!")
+    End If
 
-End Function
+End Sub
 
-'****************************************************************************************************
-Function DNAGCContent(ByVal Sequence As String) As Double
-'====================================================================================================
-'Calculates GC % as sum(G+C) / total length
-'Juraj Ahel, 2015-09-28, for general purposes
-'Last update 2015-09-28
-'====================================================================================================
-'2016-12-22 make byval
 
-    DNAGCContent = StringCharCount(UCase(Sequence), "G", "C", "S") / Len(Sequence)
+Private Sub test_DNAFindProteinInTemplate()
 
-End Function
-
-'****************************************************************************************************
-Function DNAReindex(ByVal DNASequence As String, ByVal NewStartBase As Long) As String
-
-'====================================================================================================
-'Reindexes a circular DNA sequence
-'Juraj Ahel, 2015-09-27
-'Last update 2015-09-28
-'====================================================================================================
-'2016-12-22 make byval
-
-    Dim SeqLength As Long, Offset As Long
+    Const TestNumber As Long = 5
+    Const FunctionName As String = "DNAFindProteinInTemplate"
     
-    SeqLength = Len(DNASequence)
+    Dim N As Long
+    Dim TestResults(1 To TestNumber) As Long
+    Dim Test As VBA.Collection
+    Dim Input1 As String, Input2 As String, Input3 As String
+    Dim t As String
     
-    Offset = NewStartBase - 1
+    On Error Resume Next
     
-    Select Case Offset
-        Case 0
-            DNAReindex = DNASequence
-        Case Is > 0
-            DNAReindex = Right(DNASequence, SeqLength - Offset) & Left(DNASequence, Offset)
-        Case Else
-            DNAReindex = Right(DNASequence, -Offset) & Right(DNASequence, SeqLength + Offset)
-    End Select
+    '1 empty inputs
+        N = 1
+        Input1 = ""
+        Input2 = ""
+        Set Test = DNAFindProteinInTemplate(Input1, Input2, False, False, False)
+        If Err.Number = jaErr + 18 Then
+            If Test Is Nothing Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '2 orf exists on both strands
+        N = 2
+        Input1 = "MKKKKKKKKKKKKKKKKKKKKKKKKK"
+        t = "ATGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATAG"
+        Input2 = "CCC" & t & "CCCCCCCC" & DNAReverseComplement(t)
+       
+        Set Test = DNAFindProteinInTemplate(Input1, Input2, False, True, False)
+        If Err.Number = jaErr + 3 Then
+            If Err.Source = FunctionName Then
+                If Test Is Nothing Then TestResults(N) = 1
+            End If
+        End If
+        Err.Clear
+        
+    '3 orf exists on both strands, but only one is checked
+        N = 3
+        Input1 = "MKKKKKKKKKKKKKKKKKKKKKKKKK"
+        t = "ATGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATAG"
+        Input2 = "CCC" & t & "CCCCCCCC" & DNAReverseComplement(t)
 
-End Function
+        Set Test = DNAFindProteinInTemplate(Input1, Input2, False, False, False)
+        If Err.Number = 0 Then
+            If Not Test Is Nothing Then
+                If Test.Item(1) = 4 And Test.Item(2) = False Then TestResults(N) = 1
+            End If
+        End If
+        Err.Clear
+        
+    '4 negative - orf exists in a circular context, but not linear one
+        N = 4
+        Input1 = "MKKKKKKKKKKKKKKKKKKKKKKKKK"
+        t = "ATGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATAG"
+        Input2 = DNAReindex("CCC" & t & "CCCCCCCC", 15)
+      
+        Set Test = DNAFindProteinInTemplate(Input1, Input2, False, False, False)
+        If Err.Number = jaErr + 1 Then
+            If Err.Source = FunctionName Then
+                If Test Is Nothing Then TestResults(N) = 1
+            End If
+        End If
+        
+        Err.Clear
+    
+    'positive - orf exists in a circular context, but not linear one
+        N = 5
+        Input1 = "MKKKKKKKKKKKKKKKKKKKKKKKKK"
+        t = "ATGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATAG"
+        Input2 = DNAReindex("CCC" & t & "CCCCCCCC", 15)
+        
+        Set Test = DNAFindProteinInTemplate(Input1, Input2, True, False, False)
+        If Err.Number = 0 Then
+            If Not Test Is Nothing Then
+                If Test.Item(1) = 82 And Test.Item(2) = False Then TestResults(N) = 1
+            End If
+        End If
+        Err.Clear
+        
+       
+        
+        
+        
+    
+    On Error GoTo 0
+    
+    Dim i As Long
+    Dim j As Long
+    
+    For i = 1 To TestNumber
+        If TestResults(i) <> 1 Then
+            Debug.Print ("Test #" & i & " failed!")
+            j = j + 1
+        End If
+    Next i
+    
+    If j = 0 Then
+        Debug.Print (FunctionName & ": All tests successfully passed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": All tests successfully passed!")
+    Else
+        Debug.Print (FunctionName & ": " & j & " tests failed!")
+        If JA_InteractiveTesting Then MsgBox (FunctionName & ": " & j & " tests failed!")
+    End If
+
+End Sub

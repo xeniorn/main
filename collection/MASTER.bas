@@ -15,7 +15,7 @@ Private Const GITPath As String = "C:\Users\juraj.ahel\Documents\GitHub\main\"
 
 Public Sub ExportAllComponents()
 
-    'reference to extensibility library
+'reference to extensibility library
 
     Dim objMyProj As VBProject
     Dim objVBComp As VBComponent
@@ -66,7 +66,7 @@ End Sub
 
 Public Sub ImportAllComponents()
 
-    ' reference to extensibility library
+' reference to extensibility library
 
     Dim objMyProj As VBProject
     Dim objVBComp As VBComponent
@@ -80,13 +80,13 @@ Public Sub ImportAllComponents()
     Dim answer As Long
     
     answer = MsgBox( _
-        "The macro will import all the modules, classes, and forms from the source to this project." & _
-        vbCrLf & _
-        "Files that exist in this module that have the same name will be lost! Continue?" & _
-        vbCrLf & _
-        "Source = " & GITPath, _
-        vbYesNo + vbCritical, _
-        "Confirm import")
+             "The macro will import all the modules, classes, and forms from the source to this project." & _
+             vbCrLf & _
+             "Files that exist in this module that have the same name will be lost! Continue?" & _
+             vbCrLf & _
+             "Source = " & GITPath, _
+             vbYesNo + vbCritical, _
+             "Confirm import")
         
     If answer = vbYes Then
         answer = MsgBox("Are you SURE?", vbYesNo + vbExclamation, "REALLY?")
@@ -137,6 +137,7 @@ Public Sub ImportAllComponents()
     End If
      
 End Sub
+
 
 Private Function ObjectExists(ByVal Name As String) As Boolean
 

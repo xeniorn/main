@@ -288,7 +288,7 @@ End Function
 Function StringFindOverlap( _
     ByVal Probe As String, _
     ByVal Target As String, _
-    Optional ByVal Verbose As Boolean = True)
+    Optional ByVal Interactive As Boolean = True)
 
 '====================================================================================================
 'Finds the (largest) continuous perfectoverlap between two strings
@@ -296,7 +296,8 @@ Function StringFindOverlap( _
 'Last update 2015-04-30
 '2016-06-28 explicit variable declaration
 '====================================================================================================
-'2016-12-21 add verbose option, make byval
+'2016-12-21 add Interactive option, make byval
+'2017-01-03 correct the limit of the number of overlaps found to the actual theoretical maximum
 
     Dim ProbeLength As Long, TargetLength As Long
     Dim Results() As Long
@@ -320,10 +321,11 @@ Function StringFindOverlap( _
     End If
     
     '- if I want to map them all
-    'ReDim Results(1 To wStart, 1 To wStart)
+    'ReDim Results(1 To wStart, 1 To TargetLength)
     
     '- if I want to extract the longest ones only
-    ReDim Results(1 To wStart)
+    'this is the maximal theoretical number of (sub)overlaps to be found ("AAA" into "AAAA...AAA")
+    ReDim Results(1 To TargetLength)
     
     Dim i As Long, j As Long, k As Long, W As Long
     Dim TempProbe As String
@@ -373,12 +375,14 @@ Function StringFindOverlap( _
                 TempResultAsStrings(i) = CStr(Results(i))
             Next i
         
-            If Verbose Then
+            If Interactive Then
                 tempResult = "Multiple equivalent results of length " _
                             & OverlapWidth & " at positions: " _
                             & Join(TempResultAsStrings, ";")
             Else
-                tempResult = Mid(Target, Results(1), OverlapWidth)
+                StringFindOverlap = Mid(Target, Results(1), OverlapWidth)
+                Call ApplyNewError(jaErr + 1, "StringFindOverlap", "Multiple overlaps of same length found")
+                Exit Function
             End If
     End Select
     
