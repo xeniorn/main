@@ -28,7 +28,7 @@ Attribute VB_Exposed = False
 '2016-06-13 code for implementing cleanup settings
 '====================================================================================================
 'TODO: add settings for cleanup!
-
+'2016-11-16 v0.86 added support for option for autozeroUV / offset UV
 
 Option Explicit
 
@@ -39,6 +39,7 @@ Const conUni6_title As String = "Unicorn 6+ .zip file"
 Const conUni3_ID As String = "UNICORN3"
 Const conUni6_ID As String = "UNICORN6"
 
+Private Const conAutozeroUV As String = "AUTOZEROUV"
 Private Const conNormUV As String = "NORMUV"
 Private Const conNormVol As String = "NORMVOL"
 Private Const conTrunc As String = "TRUNC"
@@ -219,7 +220,11 @@ Private Sub ctrlCleanUpButton_Click()
                 Call SEC.RevertAllToOriginal
                 'Call SEC.TempCleanUp(SelectedInjection)
                 
-                Call SEC.PostHocAutoZero
+                With CleanUpOptions.Item(conAutozeroUV)
+                    If .Item(1) = True Then
+                        Call SEC.PostHocUVOffset(.Item(2))
+                    End If
+                End With
                 
                 'VOLUME NORMALIZATION
                 '1: [do I normalize] 2: [which injection] 3: [which volume]
@@ -647,7 +652,11 @@ Private Sub ctrlImportButton_Click()
             Call UpdateMinMax
         
         'set the initial selected injection
-            SelectedInjection = SEC.Injections.Count
+            If Not SEC.Injections Is Nothing Then
+                SelectedInjection = SEC.Injections.Count
+            Else
+                SelectedInjection = 0
+            End If
         
         RaiseEvent EImportCmdDone(0)
         
@@ -1055,6 +1064,10 @@ Private Sub imgIMP_Click()
         EEC = 0
         frmHmm.Show
     End If
+End Sub
+
+Private Sub lblAbout1_Click()
+
 End Sub
 
 Private Sub optbutAxisPrimary_Click()

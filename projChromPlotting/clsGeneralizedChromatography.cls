@@ -470,18 +470,18 @@ End Sub
 '****************************************************************************************************
 
 '****************************************************************************************************
-Public Sub PostHocAutoZero()
+Public Sub PostHocUVOffset(ByVal OffsetAmount As Double)
 
     Dim tempcChromatogram As clsChromatogram
     Dim i As Long
-    Dim OffsetAmount As Double
-    
-    Debug.Print ("Autozeroing the lowest value in the first UV chromatogram ")
+        
+    'Debug.Print ("Autozeroing the lowest value in the first UV chromatogram ")
+    Debug.Print ("UV Offset: " & OffsetAmount & " mAU")
     
     'hacky, temp
     Set tempcChromatogram = Chromatograms.Item(1)
     If Not tempcChromatogram Is Nothing Then
-        OffsetAmount = -1 * tempcChromatogram.Ymin
+        'OffsetAmount = -1 * tempcChromatogram.Ymin
         Call tempcChromatogram.OffsetYAxis(OffsetAmount)
     End If
     

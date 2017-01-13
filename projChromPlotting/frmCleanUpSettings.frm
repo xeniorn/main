@@ -18,6 +18,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -25,9 +26,12 @@ Attribute VB_Exposed = False
 'Last update 2016-06-13
 '2016-06-14 add a more robust setting import capability
 '====================================================================================================
+'2016-11-16 add option for UV autozero
+'2017-01-13 "Trunc_end_opt2_Volume.Value" in Import Settings was "Normvol_opt2_Volume.Value", making wrong stuff get imported! -> corrected"
 
 Option Explicit
 
+Private Const conAutozeroUV As String = "AUTOZEROUV"
 Private Const conNormUV As String = "NORMUV"
 Private Const conNormVol As String = "NORMVOL"
 Private Const conTrunc As String = "TRUNC"
@@ -39,6 +43,7 @@ Public SEC As clsGeneralizedChromatography
 Public defaultCleanUpOptions As VBA.Collection
 Public tempCleanUpOptions As VBA.Collection
 
+Private CollUVOff As VBA.Collection
 Private CollNormUV As VBA.Collection
 Private CollNormVol As VBA.Collection
 Private CollTrunc As VBA.Collection
@@ -49,10 +54,28 @@ Private IAmInitialized As Boolean
 Private InjectionsExist As Boolean
 Private ColumnVolumeExists As Boolean
 
+Private HackNumericInputCollection As VBA.Collection
+
 
 Public Sub ManualInitialize()
 
     Call UserForm_Initialize
+    
+    Set HackNumericInputCollection = New VBA.Collection
+    
+    With HackNumericInputCollection
+        .Add UV_Offset_Val
+        .Add NormVol_opt1_Volume
+        .Add NormVol_opt2_Volume
+        .Add Trunc_end_opt1_Volume
+        .Add Trunc_end_opt2_Volume
+        .Add Thin_opt1_Detail
+        .Add Thin_opt2_Detail
+        .Add NormUV_version_opt1_Detail
+        .Add NormUV_version_opt2_Detail
+        .Add NormUV_region_opt2_StartValue
+        .Add NormUV_region_opt2_EndValue
+    End With
     
     IAmInitialized = False
     
@@ -113,6 +136,7 @@ Private Sub SettingsCopy( _
     Set tempIDs = New VBA.Collection
     
     With tempIDs
+        .Add conAutozeroUV
         .Add conNormVol
         .Add conAlign
         .Add conTrunc
@@ -163,8 +187,23 @@ Private Sub DisableInjections()
 End Sub
 
 Public Sub DefineDefaults()
+'defines defaults for all settings
 
     Dim tempSetting As VBA.Collection
+    
+    '===AUTOZEROUV
+    '1: [do I offset] 2: [how much]
+        Set tempSetting = New VBA.Collection
+        defaultCleanUpOptions.Add tempSetting, conAutozeroUV
+        With tempSetting
+            .Add True
+            If Not SEC.Chromatograms.Item(1) Is Nothing Then
+                .Add CDbl(-1 * SEC.Chromatograms.Item(1).Ymin)
+            Else
+                .Add 0
+            End If
+        End With
+    
     
     '===NORMALIZE VOLUME
     '1: [do I normalize] 2: [which injection] 3: [which volume]
@@ -235,11 +274,21 @@ Public Sub DefineDefaults()
 End Sub
 
 Private Sub ImportSettings(ChosenSettings As VBA.Collection)
-    
+'sets the form controls to their real settings
+
     Dim tempSetting As VBA.Collection
     
     With ChosenSettings
-    
+        
+        '===AUTOZERO UV
+        '1: [do I AZ] 2: [manual offset]
+            Set tempSetting = .Item(conAutozeroUV)
+            With tempSetting
+                Autozero_tick = .Item(1)
+                UV_Offset_Val = .Item(2)
+            End With
+            
+        
         '===NORMALIZE VOLUME
         '1: [do I normalize] 2: [which injection] 3: [which volume]
             Set tempSetting = .Item(conNormVol)
@@ -266,7 +315,7 @@ Private Sub ImportSettings(ChosenSettings As VBA.Collection)
                 Else
                     Trunc_start_opt2.Value = True
                 End If
-                NormVol_opt2_Volume.Value = .Item(3)
+                Trunc_end_opt2_Volume.Value = .Item(3)
             End With
                  
         '===THIN DATA
@@ -317,6 +366,26 @@ Private Sub RevertToDefaultSettings()
 End Sub
 
 
+Private Sub Autozero_tick_Click()
+    If Autozero_tick.Value = True Then
+        UV_Offset_Val.Enabled = True
+    Else
+        UV_Offset_Val.Enabled = False
+        UV_Offset_Val.Value = -1 * SEC.Chromatograms.Item(1).Ymin
+    End If
+        
+End Sub
+
+
+Private Sub UV_Offset_Val_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    If Not ((IsNumeric(UV_Offset_Val.Value)) Or Len(UV_Offset_Val.Value) = 0) Then
+        Cancel = 1
+        Call MsgBox("The input value must be numeric!", vbExclamation + vbOKOnly)
+        UV_Offset_Val.SetFocus
+    End If
+
+End Sub
 
 Private Sub ctrlReset_Click()
 
@@ -332,6 +401,10 @@ End Sub
 
 Private Sub NormVol_opt1_Injection_Change()
     NormVol_opt1_Volume = SEC.Injections.XData(CLng(NormVol_opt1_Injection.Value))
+End Sub
+
+Private Sub NormVol_tick_AfterUpdate()
+
 End Sub
 
 '===============================NORM VOLUME===============================
@@ -589,7 +662,40 @@ Private Sub UserForm_Initialize()
 End Sub
 
 
+Private Sub HackyHackOfHacks()
 
+    '#20161125
+    'THIS IS A HACK AND UGLY, YUCK
+        'go through all inputboxes supposed to be numeric and replace faulty formatted ones
+        'with a standard one (decimal comma, no thousand separators). This is only needed because
+        'apparently sometimes, but in a non-100 % reproducible fashion, on some machines, Forms
+        'convert inputs to a wrong format. This can _change_ without changing any code!
+        
+    Dim HackInputBox As Control
+    Dim i As Long
+    Dim temptext As String
+    Dim dotcount As Long
+    
+        For i = 1 To HackNumericInputCollection.Count
+            Set HackInputBox = HackNumericInputCollection.Item(i)
+            With HackInputBox
+                dotcount = StringCharCount(.Text, ".")
+                If dotcount > 0 Then
+                    If StringCharCount(.Text, ",") > 0 Then
+                        Call Err.Raise(1, "Some crappy error with decimal stuff, excel bug")
+                    Else
+                        Debug.Print ("Bad formatting: " & .Text & ", replace with standard format.")
+                        'remove all dots but the last one
+                        .Text = Replace(.Text, ".", "", 1, dotcount - 1)
+                        'convert last dot to comma
+                        .Text = Replace(.Text, ".", ",", 1, 1)
+                    End If
+                End If
+            End With
+        Next i
+    '\THIS IS A HACK AND UGLY, YUCK
+
+End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     
@@ -597,6 +703,16 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Dim tempMsg As String
     Dim tempValue As Double
     Dim ControlToFocus As Control
+       
+    Call HackyHackOfHacks
+    
+    'AUTOZERO UV (UV OFFSET)
+    '1: [do I?] 2: [offset value]
+    Set CollUVOff = New VBA.Collection
+        With CollUVOff
+            .Add Autozero_tick.Value
+            .Add UV_Offset_Val.Value
+        End With
     
     'VOLUME NORMALIZATION
     '1: [do I normalize] 2: [which injection] 3: [which volume]
@@ -702,14 +818,15 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     InputValuesMakeSense = True
     tempMsg = ""
     
+    'TODO: TEMPORARILY REMOVED CHECKS - CONFLICT WHEN
     'normalization volume check
     If tempCleanUpOptions.Item(conNormVol).Item(1) = True Then
         If tempCleanUpOptions.Item(conNormVol).Item(3) < SEC.Chromatograms.Item(1).Xmin Then
             tempMsg = "Normalization volume cannot be below the lowest data point (" & _
                 SEC.Chromatograms.Item(1).Xmin & " " & SEC.Chromatograms.Item(1).XAxisInfo.Unit & ")"
             Call MsgBox(tempMsg, vbCritical + vbOKOnly, "Error in input")
-            InputValuesMakeSense = False
-            Cancel = 1
+            'InputValuesMakeSense = False
+            'Cancel = 1
             Set ControlToFocus = NormVol_opt2_Volume
         End If
         
@@ -717,8 +834,8 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
             tempMsg = "Normalization volume cannot be above the largest data point (" & _
                 SEC.Chromatograms.Item(1).Xmax & " " & SEC.Chromatograms.Item(1).XAxisInfo.Unit & ")"
             Call MsgBox(tempMsg, vbCritical + vbOKOnly, "Error in input")
-            InputValuesMakeSense = False
-            Cancel = 1
+            'InputValuesMakeSense = False
+            'Cancel = 1
             Set ControlToFocus = NormVol_opt2_Volume
         End If
     End If
@@ -729,8 +846,8 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
             tempMsg = "UV normalization volume cannot be below the lowest data point (" & _
                 SEC.Chromatograms.Item(1).Xmin & " " & SEC.Chromatograms.Item(1).XAxisInfo.Unit & ")"
             Call MsgBox(tempMsg, vbCritical + vbOKOnly, "Error in input")
-            InputValuesMakeSense = False
-            Cancel = 1
+            'InputValuesMakeSense = False
+            'Cancel = 1
             Set ControlToFocus = NormUV_region_opt2_StartValue
         End If
         
@@ -738,16 +855,16 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
             tempMsg = "UV normalization volume cannot be above the largest data point (" & _
                 SEC.Chromatograms.Item(1).Xmax & " " & SEC.Chromatograms.Item(1).XAxisInfo.Unit & ")"
             Call MsgBox(tempMsg, vbCritical + vbOKOnly, "Error in input")
-            InputValuesMakeSense = False
-            Cancel = 1
+            'InputValuesMakeSense = False
+            'Cancel = 1
             Set ControlToFocus = NormUV_region_opt2_EndValue
         End If
         
         If tempCleanUpOptions.Item(conNormUV).Item(4) <= tempCleanUpOptions.Item(conNormUV).Item(4) Then
             tempMsg = "Start volume for UV normalization must be lower than end volume!"
             Call MsgBox(tempMsg, vbCritical + vbOKOnly, "Error in input")
-            InputValuesMakeSense = False
-            Cancel = 1
+            'InputValuesMakeSense = False
+            'Cancel = 1
             Set ControlToFocus = NormUV_region_opt2_StartValue
         End If
     End If
@@ -782,6 +899,10 @@ Private Sub DefineCleanUpOptions(ChosenSettings As VBA.Collection)
         Call EraseSettings(ChosenSettings)
         
         With ChosenSettings
+        
+            If Not CollUVOff Is Nothing Then
+                .Add CollUVOff, conAutozeroUV
+            End If
             
             If Not CollNormUV Is Nothing Then
                 .Add CollNormUV, conNormUV
@@ -828,3 +949,6 @@ End Sub
 
 
 
+Private Sub UV_Offset_Val_Change()
+
+End Sub

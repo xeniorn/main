@@ -13,6 +13,9 @@ Attribute VB_Exposed = False
 'Juraj Ahel, 2016-06-09
 'Last update 2016-06-12
 '====================================================================================================
+'2017-01-12 make a check whether "Fractions" or "Injections exist in UNICORN6 xml before selecting the object - was crashing if there aren't any!
+
+
 Option Explicit
 
 Private Const conClassName As String = "clsUnicorn6Importer"
@@ -53,7 +56,9 @@ Private Sub Class_Terminate()
     Set pXMLObject = Nothing
     Set pDataSets = Nothing
     
-    Call FileSystem_DeleteFolder(pTempPath)
+    If pTempPath <> "" Then
+        Call FileSystem_DeleteFolder(pTempPath)
+    End If
 
 End Sub
 
@@ -91,15 +96,21 @@ Public Function GetInjections() As clsGraphAnnotation
     Dim tAnnotationArray() As String
     Dim tVolumesArray() As Double
     
-    Dim tempText As String
+    Dim temptext As String
         
     Dim i As Long
     
     'get path to injection events
         tXPath = "/Chromatogram/EventCurves/EventCurve[@EventCurveType=""" & conCurveType & """]/Events"
     
+    
+    
     'select all subnodes there
-        Set NodeSelection = XML.SelectSingleNode(tXPath).ChildNodes
+        If XML.SelectSingleNode(tXPath) Is Nothing Then
+            Set NodeSelection = Nothing
+        Else
+            Set NodeSelection = XML.SelectSingleNode(tXPath).ChildNodes
+        End If
     
     'if there are any, import injections
         If Not NodeSelection Is Nothing Then
@@ -119,8 +130,8 @@ Public Function GetInjections() As clsGraphAnnotation
                 Set tNode = NodeSelection.Item(i - 1)
                 
                 'grab volume
-                    tempText = tNode.SelectSingleNode("EventVolume").Text
-                    tVolumesArray(i) = Val(tempText)
+                    temptext = tNode.SelectSingleNode("EventVolume").Text
+                    tVolumesArray(i) = Val(temptext)
                 'set annotation
                     tAnnotationArray(i) = CStr(i)
                 
@@ -168,7 +179,7 @@ Public Function GetFractions() As clsGraphRegions
     Dim FinalAnnotationArray() As String
     Dim FinalVolumesArray() As Double
     
-    Dim tempText As String
+    Dim temptext As String
         
     Dim i As Long
     Dim j As Long
@@ -177,7 +188,11 @@ Public Function GetFractions() As clsGraphRegions
         tXPath = "/Chromatogram/EventCurves/EventCurve[@EventCurveType=""" & conCurveType & """]/Events"
     
     'select all subnodes there
-        Set NodeSelection = XML.SelectSingleNode(tXPath).ChildNodes
+        If XML.SelectSingleNode(tXPath) Is Nothing Then
+            Set NodeSelection = Nothing
+        Else
+            Set NodeSelection = XML.SelectSingleNode(tXPath).ChildNodes
+        End If
     
     'if there are any, import fractions
         If Not NodeSelection Is Nothing Then
@@ -198,16 +213,16 @@ Public Function GetFractions() As clsGraphRegions
                 Set tNode = NodeSelection.Item(i - 1)
                 
                 'grab volume
-                    tempText = tNode.SelectSingleNode("EventVolume").Text
-                    tVolumesArray(i) = Val(tempText)
+                    temptext = tNode.SelectSingleNode("EventVolume").Text
+                    tVolumesArray(i) = Val(temptext)
                 'grab fraction name + parse (remove dots)
-                    tempText = tNode.SelectSingleNode("EventText").Text
-                    tempText = Replace(tempText, ".", "")
-                    If UCase(tempText) Like "*WASTE*" Then
-                        tempText = conWaste
+                    temptext = tNode.SelectSingleNode("EventText").Text
+                    temptext = Replace(temptext, ".", "")
+                    If UCase(temptext) Like "*WASTE*" Then
+                        temptext = conWaste
                         RealFractionsNumber = RealFractionsNumber - 1
                     End If
-                    tAnnotationArray(i) = tempText
+                    tAnnotationArray(i) = temptext
                 
             Next i
             

@@ -16,6 +16,7 @@ Attribute VB_Exposed = False
 '           0,012655    0,112655    0,312655    0,412655 ... (turn it into 0,0 0,1 0,2 0,3 ...)
 '====================================================================================================
 '2016-07-08 add some "ByVal"s
+'2017-01-12 XToIndex change default value to 1, not 0
 
 Option Explicit
 
@@ -291,7 +292,7 @@ Private Function XToIndex(XValue As Double)
 
     Dim i As Long
     
-    XToIndex = 0
+    XToIndex = 1
     
     For i = 1 To NumberOfPoints
         If ChromatogramData.XData(i) >= XValue Then
