@@ -135,6 +135,63 @@ Private Function DNAGibsonConstructOverlaps( _
 
 End Function
     
+    
+Sub GibsonOptimizeFrag1()
+
+    Dim InputR As Excel.Range
+    Dim OutputR As Excel.Range
+    Dim Inputs() As Variant
+    Dim Outputs() As Variant
+    
+    Set InputR = Selection
+    Set OutputR = InputR.Offset(InputR.Rows.Count + 2).Resize(5, InputR.Columns.Count)
+    
+    Dim Results As VBA.Collection
+    
+    Inputs = InputR.Value
+    Outputs = OutputR.Value
+    
+    Dim pre As Long
+    Dim nex As Long
+    
+    Dim i As Long
+    Dim j As Long
+    
+    Dim obj As clsGibsonSingleLigation
+    
+    
+    OutputR.ClearContents
+    
+    For j = 1 To OutputR.Columns.Count
+        pre = j
+        nex = j + 1
+        If nex > OutputR.Columns.Count Then nex = 1
+    
+        
+        Set obj = New clsGibsonSingleLigation
+        
+        With obj
+            .FirstSequence = Inputs(3, pre)
+            .InsertedSequence = Inputs(4, pre) & Inputs(2, nex)
+            .SecondSequence = Inputs(3, nex)
+            .ForbiddenRegions = Inputs(5, pre)
+        End With
+                
+        
+            Outputs(1, j) = obj.Overlap
+            Outputs(2, j) = Len(obj.Overlap)
+            Outputs(3, j) = obj.dG
+            Outputs(4, j) = obj.Tm
+        
+    Next j
+    
+    OutputR.Value = Outputs
+    
+    
+
+
+End Sub
+    
 Sub GibsonOptimizeFrag()
 
     Dim InputR As Excel.Range
@@ -165,7 +222,7 @@ Sub GibsonOptimizeFrag()
         If nex > OutputR.Columns.Count Then nex = 1
     
     
-        Set Results = DNAGibsonOptimizeFragments(Inputs(2, pre), Inputs(4, pre) & Inputs(2, nex), Inputs(3, nex), Inputs(5, pre))
+        Set Results = DNAGibsonOptimizeOverlaps(Inputs(3, pre), Inputs(4, pre) & Inputs(2, nex), Inputs(3, nex), Inputs(5, pre))
         
         
         
@@ -177,12 +234,14 @@ Sub GibsonOptimizeFrag()
     Next j
     
     OutputR.Value = Outputs
+    
+    
 
 
 End Sub
 
 '****************************************************************************************************
-Private Function DNAGibsonOptimizeFragments( _
+Public Function DNAGibsonOptimizeOverlaps( _
     ByVal Sequence1 As String, _
     ByVal Sequence2 As String, _
     ByVal Sequence3 As String, _
@@ -196,6 +255,14 @@ Private Function DNAGibsonOptimizeFragments( _
 '====================================================================================================
 'Calculates the optimal Gibson overlap for annealing sequences 1 and 3, with inserting sequence 2 in between
 'Juraj Ahel, 2016-12-20, for Gibson assembly
+
+'output:
+'Collection of
+    'OVERLAP as String      'overlap sequence
+    'DG as Double           'Gibbs energy for SS formation of overlap
+    'TM as Double           'melting temperature of overlap
+    '1 as String            'first fragment to be annealed
+    '2 as String            'second fragment to be annealed
 
 '====================================================================================================
     
@@ -249,13 +316,13 @@ Private Function DNAGibsonOptimizeFragments( _
     Dim OutputLines() As String
     Dim tempdGString As String
     Dim tempdG As Double
-    Dim regEX As New RegExp
+    Dim RegEx As New RegExp
     Dim SortedCollection As VBA.Collection
     Dim tColl As VBA.Collection
     Dim k As Long
     
     'extract results
-        With regEX
+        With RegEx
             .Global = True
             .MultiLine = False
             .IgnoreCase = True
@@ -267,7 +334,7 @@ Private Function DNAGibsonOptimizeFragments( _
         
     'sort results into a collection
         For i = 1 To PutativeOverlaps.Count
-            tempdG = val(regEX.Replace(OutputLines(2 * i - 1), "$1"))
+            tempdG = val(RegEx.Replace(OutputLines(2 * i - 1), "$1"))
             Set tColl = PutativeOverlaps.Item(i)
             tColl.Add tempdG
                            
@@ -286,17 +353,17 @@ Private Function DNAGibsonOptimizeFragments( _
                 If j > SortedCollection.Count Then
                     SortedCollection.Add tColl
                 Else
-                    SortedCollection.Add tColl, before:=j
+                    SortedCollection.Add tColl, Before:=j
                 End If
                 
             End If
             
         Next i
         
-    Set DNAGibsonOptimizeFragments = DNAGibsonExtractBestFragments(SortedCollection, Sequence1 & Sequence2 & Sequence3, TargetLength, TargetTm)
+    Set DNAGibsonOptimizeOverlaps = DNAGibsonExtractBestOverlaps(SortedCollection, Sequence1 & Sequence2 & Sequence3, TargetLength, TargetTm)
     
-    For i = 1 To DNAGibsonOptimizeFragments.Count
-        Debug.Print (DNAGibsonOptimizeFragments.Item(i))
+    For i = 1 To DNAGibsonOptimizeOverlaps.Count
+        Debug.Print (DNAGibsonOptimizeOverlaps.Item(i))
     Next i
     
     Set SortedCollection = Nothing
@@ -306,7 +373,7 @@ Private Function DNAGibsonOptimizeFragments( _
 
 End Function
 
-Private Function DNAGibsonExtractBestFragments( _
+Private Function DNAGibsonExtractBestOverlaps( _
     ByRef SortedCollection As VBA.Collection, _
     ByVal FinalSequence As String, _
     ByVal TargetLength As Long, _
@@ -356,14 +423,15 @@ Private Function DNAGibsonExtractBestFragments( _
         .Add SortColl2.Item(1), "OVERLAP"
         .Add SortColl2.Item(3), "DG"
         .Add OligoTm(SortColl2.Item(1)), "TM"
-        .Add Fragment1, "1"
-        .Add Fragment2, "2"
+        '.Add Fragment1, "1"
+        '.Add Fragment2, "2"
     End With
     
-    Set DNAGibsonExtractBestFragments = tColl
+    Set DNAGibsonExtractBestOverlaps = tColl
     
     Set tColl = Nothing
             
+                
 End Function
 
 
@@ -381,7 +449,7 @@ c = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
 Dim i As Long
 Dim x As VBA.Collection
 
-Set x = DNAGibsonOptimizeFragments(a, b, c, "")
+Set x = DNAGibsonOptimizeOverlaps(a, b, c, "")
 
 For i = 1 To DNAGIBs
 Debug.Print (x.Item(i))

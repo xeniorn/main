@@ -90,6 +90,7 @@ Sub CreateClassFromPropertyList()
 'Juraj Ahel, 2016-02-xx
 'Last update 2016-05-09
 '====================================================================================================
+'2017-01-21 add byval in definitions
 
 'Prints out to cell A1 all the basic declarations of the class
 'Input format is a selection of cells, 6 cols wide, any number of rows:
@@ -284,7 +285,7 @@ For i = 1 To NumberOfRows
                     tempTextArray(3) = "Let "
                 End If
                 tempTextArray(4) = PropertyName
-                tempTextArray(5) = "("
+                tempTextArray(5) = "(ByVal "
                 tempTextArray(6) = conInputVarPrefix & PropertyName
                 tempTextArray(7) = " as "
                 tempTextArray(8) = VariableType

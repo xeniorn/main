@@ -769,7 +769,7 @@ Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
     Dim i As Long, j As Long
     Dim NextFragment As Long
     Dim Tm As Double
-    Dim ParsedDNAList() As Variant
+    Dim ParsedDNAList As Variant
             
     If VarType(DNAList(LBound(DNAList))) >= vbArray Then
         ParsedDNAList = DNAList(LBound(DNAList))
@@ -819,8 +819,7 @@ End Function
 
 Function PCRSimulate(ByVal Template As String, _
                     ByVal ForwardPrimer As String, ByVal ReversePrimer As String, _
-                    Optional ByVal Circular = False, _
-                    Optional ByVal Perfect = True _
+                    Optional ByVal Circular = False _
                     ) As String
 
 '====================================================================================================
@@ -833,13 +832,25 @@ Function PCRSimulate(ByVal Template As String, _
 '2016-12-22 make byval
 '           make sure the correct result is given even when the sequence is so short the primers actually overlap!
 '           add DNAReIndex instead of manual reindexing
+'2017-02-06 add check for anneal of reverse primer in both orientations
+'           make it work with circular templates
+'           remove Perfect option
+'           make it work with reverse strand as well
 
-    Dim ErrorPrefix As String
-    ErrorPrefix = "#! "
+    Const ErrorPrefix As String = "#! "
     
     Dim PrimerFCount As Long, PrimerRCount As Long
     Dim Result As String
     
+    Dim RCTemplate As String
+    
+    Dim FSite As Long, RSite As Long, FLen As Long, RLen As Long
+    Dim Reverse As Boolean
+    Dim tempAnneals(1 To 4) As Long
+    Dim tempCount(1 To 4) As Boolean
+    
+    Dim i As Long
+        
     If Len(Template) = 0 Then
         PCRSimulate = "#! empty template"
         Exit Function
@@ -850,33 +861,115 @@ Function PCRSimulate(ByVal Template As String, _
         Exit Function
     End If
     
-    PrimerFCount = StringCharCount_IncludeOverlap(Template, ForwardPrimer, DNAReverseComplement(ForwardPrimer))
-    PrimerRCount = StringCharCount_IncludeOverlap(Template, DNAReverseComplement(ReversePrimer))
+    RCTemplate = DNAReverseComplement(Template)
     
-    If PrimerFCount <> 1 Or PrimerRCount <> 1 Then
-    
-        If PrimerFCount > 1 Or PrimerRCount > 1 Then
-            Result = "Primer target sites not unique: Forward: " & PrimerFCount & " Reverse: " & PrimerRCount
-        ElseIf PrimerFCount = 0 And PrimerRCount = 0 Then
-            Result = "No binding site found for either primer!"
-        ElseIf PrimerFCount = 0 Then
-            Result = "No binding site found for Forward primer."
-        ElseIf PrimerRCount = 0 Then
-            Result = "No binding site found for Reverse primer."
+    'check forward primer on primary strand
+        tempAnneals(1) = DNAFindInsertInTemplate(ForwardPrimer, Template, Circular, False)
+        If Err.Number <> 0 Then
+            If Err.Source <> "DNAFindInsertInTemplate" Then
+                ErrReraise
+            Else
+                If Err.Number = jaErr + 1 Then
+                    Call ApplyNewError(jaErr + 1, "PCRSimulate", "Forward Primer anneals to multiple sites on template")
+                    ErrReraise
+                Else
+                    ErrReraise
+                End If
+            End If
+        End If
+                
+    'check forward primer on reverse strand
+        tempAnneals(2) = DNAFindInsertInTemplate(ForwardPrimer, RCTemplate, Circular, False)
+        If Err.Number <> 0 Then
+            If Err.Source <> "DNAFindInsertInTemplate" Then
+                ErrReraise
+            Else
+                If Err.Number = jaErr + 1 Then
+                    Call ApplyNewError(jaErr + 1, "PCRSimulate", "Forward Primer anneals to multiple sites on template")
+                    ErrReraise
+                Else
+                    ErrReraise
+                End If
+            End If
         End If
         
-        Result = ErrorPrefix & Result
         
-        GoTo 999
+    'check reverse primer on primary strand
+        tempAnneals(3) = DNAFindInsertInTemplate(DNAReverseComplement(ReversePrimer), Template, Circular, False)
+        If Err.Number <> 0 Then
+            If Err.Source <> "DNAFindInsertInTemplate" Then
+                ErrReraise
+            Else
+                If Err.Number = jaErr + 1 Then
+                    Call ApplyNewError(jaErr + 1, "PCRSimulate", "Reverse Primer anneals to multiple sites on template")
+                    ErrReraise
+                Else
+                    ErrReraise
+                End If
+            End If
+        End If
+        
+    'check reverse primer on reverse strand
+        tempAnneals(4) = DNAFindInsertInTemplate(DNAReverseComplement(ReversePrimer), RCTemplate, Circular, False)
+        If Err.Number <> 0 Then
+            If Err.Source <> "DNAFindInsertInTemplate" Then
+                ErrReraise
+            Else
+                If Err.Number = jaErr + 1 Then
+                    Call ApplyNewError(jaErr + 1, "PCRSimulate", "Reverse Primer anneals to multiple sites on template")
+                    ErrReraise
+                Else
+                    ErrReraise
+                End If
+            End If
+        End If
+    
+    For i = 1 To 4
+        If tempAnneals(i) > 0 Then tempCount(i) = True
+    Next i
+    
+    Select Case True
+    
+        Case tempCount(1) And tempCount(2)
+            Call Err.Raise(jaErr + 2, "PCRSimulate", "Forward primer anneals to both strands")
+            
+        Case tempCount(3) And tempCount(4)
+            Call Err.Raise(jaErr + 2, "PCRSimulate", "Forward primer anneals to both strands")
+            
+        Case tempCount(1) And tempCount(3)
+            Reverse = False
+            
+        Case tempCount(2) And tempCount(4)
+            Reverse = True
+            
+        Case Else
+            Select Case True
+                Case FSite = 0 And RSite = 0
+                    Result = "No binding site found for either primer!"
+                Case FSite = 0
+                    Result = "No binding site found for Forward primer."
+                Case RSite = 0
+                    Result = "No binding site found for Reverse primer."
+                Case Else
+                    GoTo Continue
+            End Select
+            
+            Result = ErrorPrefix & Result
+            GoTo 999
+        
+    End Select
+     
+Continue:
+
+    If Reverse Then
+        FSite = tempAnneals(2)
+        RSite = tempAnneals(4)
+        Template = RCTemplate
+    Else
+        FSite = tempAnneals(1)
+        RSite = tempAnneals(3)
     End If
-    
-    Dim FSite As Long, RSite As Long, FLen As Long, RLen As Long
-    Dim Reverse As Boolean
-    
-    Reverse = False
-    FSite = InStr(1, Template, ForwardPrimer)
-    RSite = InStr(1, Template, DNAReverseComplement(ReversePrimer))
-    
+        
     'If circular, pretend it's linear that starts exactly where F primer starts
     'and remap the indexing
     If Circular Then
@@ -908,6 +1001,10 @@ Function PCRSimulate(ByVal Template As String, _
         Result = ErrorPrefix & "Primers extend over each other, check sequences."
     Else
         Result = SubSequenceSelect(Template, FSite, RSite + RLen - 1)
+        If Reverse Then
+            'Result = DNAReverseComplement(Result)
+            'Result = DNAReindex(Result, -Len(ForwardPrimer))
+        End If
     End If
         
 999 PCRSimulate = Result
@@ -1103,14 +1200,11 @@ Function PCRGetFragmentFromTemplate( _
         
     RCTemplate = DNAReverseComplement(Template)
         
-    'find best overlap between template and target sequence - anything outside it is overlap
+    'find best overlap between template and target sequence - anything outside it is extension
         If TemplateCircular Then
-            For i = 1 To TemplateLength
-                TempSeq = StringFindOverlap(TargetSequence, DNAReindex(Template, i), False)
-                If Len(TempSeq) = Len(OverlappingSequence) Then
-                    OverlappingSequence = TempSeq
-                End If
-            Next i
+            OverlappingSequence = StringFindOverlap(TargetSequence, _
+                Template & Left(Template, Len(Template) - 1), _
+                Interactive:=False)
         Else
             OverlappingSequence = StringFindOverlap(TargetSequence, Template, False)
         End If
@@ -1121,7 +1215,7 @@ Function PCRGetFragmentFromTemplate( _
         If TryReverseComplement Then
             If TemplateCircular Then
                 For i = 1 To TemplateLength
-                    TempSeq = StringFindOverlap(TargetSequence, DNAReindex(RCTemplate, i), False)
+                    TempSeq = StringFindOverlap(TargetSequence, RCTemplate & Left(RCTemplate, Len(RCTemplate) - 1), False)
                     If Len(TempSeq) > Len(OverlappingSequence) Then
                         OverlappingSequence = TempSeq
                         RCIsBetter = True
@@ -1215,7 +1309,7 @@ Function PCRGetFragmentFromTemplate( _
         
     'confirm primers don't anneal better elsewhere
         If LeftExtensionLength > 0 Then
-            If DNAAnnealToTemplate(Left(FPrimer, Len(FPrimer) - 2), Template) >= TmF - 2 Then
+            If DNAAnnealToTemplate(LeftExtension, Template) >= TmF - 5 Then
                 Call Err.Raise(1, , "forward primer anneals to alternative site too well!")
             End If
             If DNAAnnealToTemplate(FPrimer, DNAReverseComplement(Template)) >= TmF - 5 Then
@@ -1224,7 +1318,7 @@ Function PCRGetFragmentFromTemplate( _
         End If
             
         If RightExtensionLength > 0 Then
-            If DNAAnnealToTemplate(Left(RPrimer, Len(RPrimer) - 2), RCTemplate) >= TmR - 2 Then
+            If DNAAnnealToTemplate(LeftExtension, RCTemplate) >= TmR - 5 Then
                 Call Err.Raise(1, , "reverse primer anneals to alternative site on RC strand too well!")
             End If
             If DNAAnnealToTemplate(RPrimer, Template) >= TmR - 5 Then
@@ -1236,7 +1330,7 @@ Function PCRGetFragmentFromTemplate( _
     
     'confirm in silico PCR
         If PCRWithOverhangs(Template, FPrimer, RPrimer, TemplateCircular, True, True, False, MinPrimerLength, True) = TargetSequence Then
-            Debug.Print ("Simulated PCR successful!")
+            'Debug.Print ("Simulated PCR successful!")
         Else
             Call Err.Raise(1, , "Simulated PCR result doesn't match target sequence!")
         End If
@@ -1255,15 +1349,15 @@ Function PCRGetFragmentFromTemplate( _
     'Debug output
     'Debug.Print (TargetSequence)
     'Debug.Print (Template)
-    For i = 1 To PCRGetFragmentFromTemplate.Count
-        Debug.Print (PCRGetFragmentFromTemplate.Item(i))
-    Next i
+    'For i = 1 To PCRGetFragmentFromTemplate.Count
+    '    Debug.Print (PCRGetFragmentFromTemplate.Item(i))
+    'Next i
         
 
 End Function
 
 '************************************************************************************
-Private Function DNAFindProteinInTemplate( _
+Function DNAFindProteinInTemplate( _
     ByVal ProteinSequence As String, _
     ByVal DNASource As String, _
     Optional ByVal Circular As Boolean = True, _
@@ -1435,12 +1529,14 @@ Function DNAFindInsertInTemplate( _
 'Juraj Ahel, 2017-01-03, for checking whether a plasmid encodes a protein
 
 '====================================================================================================
+'2017-01-23 complete rewrite for greater efficiency and to handle circular inputs properly
     
     Dim ProbeLength As Long
     Dim TemplateLength As Long
     
     Dim tempLocus As Long
     Dim Overlap As String
+    Dim Locations As VBA.Collection
         
     Dim OverlapCount As Long
         
@@ -1450,74 +1546,55 @@ Function DNAFindInsertInTemplate( _
     'parse inputs
     If (ProbeLength > TemplateLength) Or (ProbeLength = 0) Then
     
-        DNAFindInsertInTemplate = 0
-        Exit Function
+        tempLocus = 0
+        GoTo ErrHandle
         
     End If
     
     If Circular Then Template = Template & Left(Template, TemplateLength - 1)
-
-    Overlap = StringFindOverlap(Probe, Template, False)
     
-    'if there is an error with finding an overlap
-    If Err.Number <> 0 Then
+    Set Locations = StringFindSubstringLocations(Probe, Template)
     
-        'if the error doesn't come from my function, but is a general error, raise it
-        If Err.Source <> "StringFindOverlap" Then
-            ErrReraise
-        Else
-            'otherwise, try to handle it
-            Select Case Err.Number
+    Select Case Locations.Count
+    
+        Case 0
+            tempLocus = 0
+            GoTo ErrHandle
             
-                Case jaErr + 1
-                    If Len(Overlap) <> ProbeLength Then
-                        'this is not an error - insert simply doesn't exist in template
-                        Err.Clear
-                        DNAFindInsertInTemplate = 0
-                        Exit Function
-                    Else
-                        Call ApplyNewError(jaErr + 1, "DNAFindInsertInTemplate", "Multiple overlaps of same length exist in template")
-                    End If
-                    
-                Case Else
-                    Call ApplyNewError(Err.Number, "DNAFindInsertInTemplate", "Unhandled error:" & Err.Source & ":" & Err.Number & ":" & Err.Description)
-                    
-            End Select
-        End If
-        
-        If Interactive Then
-            'throw the error
-            Call ErrReraise
-        Else
-            'give null result and bubble error upwards if anyone cares (this would be handled as an _EVENT_ in a more modern language, e.g. VB.NET
-            DNAFindInsertInTemplate = 0
-            Exit Function
-        End If
+        Case 1
+            tempLocus = Locations.Item(1)
+            tempLocus = ((tempLocus - 1) Mod TemplateLength) + 1
+            DNAFindInsertInTemplate = tempLocus
+            GoTo ErrHandle
+            
+        Case 2
+            'can happen if it's circular that you find "two copies" exactly 1 Template length apart
+            If Locations.Item(2) - Locations.Item(1) = TemplateLength Then
+                tempLocus = Locations.Item(1)
+                GoTo ErrHandle
+            Else
+                Call ApplyNewError(jaErr + 1, "DNAFindInsertInTemplate", "Multiple overlaps of same length exist in template")
+                GoTo ErrHandle
+            End If
+            
+        Case Else
+            Call ApplyNewError(jaErr + 1, "DNAFindInsertInTemplate", "Multiple overlaps of same length exist in template")
+            GoTo ErrHandle
+            
+    End Select
     
+ErrHandle:
+    
+    DNAFindInsertInTemplate = tempLocus
+    
+    If Interactive Then
+        If Err.Number <> 0 Then
+            ErrReraise
+        End If
     End If
     
-    If Len(Overlap) <> ProbeLength Then
-    
-        DNAFindInsertInTemplate = 0
-        Exit Function
-        
-    Else
 
-        tempLocus = InStr(1, Template, Probe)
-    
-        tempLocus = ((tempLocus - 1) Mod TemplateLength) + 1
-    
-        'this is logically approx:
-        '
-        'If tempLocus > TemplateLength Then
-        '    tempLocus = tempLocus - TemplateLength
-        'End If
-    
-    End If
-
-        DNAFindInsertInTemplate = tempLocus
-
-    End Function
+End Function
 
 '****************************************************************************************************
 Function DNAAnnealToTemplate( _
@@ -1677,7 +1754,7 @@ End Function
 '****************************************************************************************************
 Private Sub test_PCRSimulate()
 
-    Const TestNumber As Long = 7
+    Const TestNumber As Long = 9
     Const FunctionName As String = "PCRSimulate"
     
     Dim N As Long
@@ -1695,19 +1772,19 @@ Private Sub test_PCRSimulate()
         End If
         Err.Clear
         
-    '2 empty inputs
+    '2 non unique forward primer
         N = 2
         Test = PCRSimulate("AAAAAAAAAAAAAAAAAAAAA", "AAAAA", vbNullString)
-        If Err.Number = 0 Then
-            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        If Err.Number = jaErr + 1 Then
+             TestResults(N) = 1
         End If
         Err.Clear
         
-    '3 empty inputs
+    '3 non unique reverse primer
         N = 3
         Test = PCRSimulate("AAAAAAAAAAAAAAAAAAAAA", vbNullString, "AAAAA")
-        If Err.Number = 0 Then
-            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        If Err.Number = jaErr + 1 Then
+             TestResults(N) = 1
         End If
         Err.Clear
         
@@ -1717,24 +1794,24 @@ Private Sub test_PCRSimulate()
         Input1 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" & DNAReverseComplement(Input3)
         Input2 = "AAAAAAAAAAAAAAAAAAAAAA"
         Test = PCRSimulate(Input1, Input2, Input3)
-        If Err.Number = 0 Then
-            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        If Err.Number = jaErr + 1 Then
+             TestResults(N) = 1
         End If
         Err.Clear
         
-    '5 positive control no overhangs
+    '5 positive control full sequence amplified
         N = 5
         Input2 = "AAAAAAAAAAAAAAAA"
         Input3 = "GGGGGGGGGGGGGGGG"
-        Input1 = Input2 & "TTTTTTTTTTTTTTTTTTTTT" & DNAReverseComplement(Input3)
+        Input1 = Input2 & "TTCCTTCCTTCCTTCCCCTTTTTTTTCCCCCCTT" & DNAReverseComplement(Input3)
         
         Test = PCRSimulate(Input1, Input2, Input3)
         If Err.Number = 0 Then
-            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+            If Test = Input1 Then TestResults(N) = 1
         End If
         Err.Clear
         
-    '6 positive control with overhangs
+    '6 positive control partial sequence amplified
         N = 6
         Input1 = "TTTTT" & "AAAAAGGGGGTTTTTCCCCC" & "TTTTTTTTTTTTTTTTT" & "AGTCAGTCAGTCAGTCAGTC" & "TTTTT"
         Input2 = "AAAAAGGGGGTTTTTCCCCC"
@@ -1745,7 +1822,7 @@ Private Sub test_PCRSimulate()
         End If
         Err.Clear
         
-    '7 primers overlap on sequence
+    '7 primers overlap on sequence (long primers hanging over each other - should still work)
         N = 7
         Input1 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC"
         Input2 = "AAAAAGGGGGTTTTTCCCCCAGT"
@@ -1755,7 +1832,40 @@ Private Sub test_PCRSimulate()
             If Test = Input1 Then TestResults(N) = 1
         End If
         Err.Clear
-    
+        
+    '8 circular input - forward primer anneals partly to the "end" of the input template sequence as given
+        N = 8
+        Input1 = "AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "ATG"
+        Input2 = "ATG" & "AAAAAGGGGGTTTTTC"
+        Input3 = DNAReverseComplement("GTCAGTCAGTCAGTCAGTC")
+        Test = PCRSimulate(Input1, Input2, Input3, Circular:=True)
+        If Err.Number = 0 Then
+            If DNAEqual(Test, Input1, Circular:=True) Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '9 reverse complement test 8
+        N = 9
+        Input1 = DNAReverseComplement("AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "ATG")
+        Input2 = "ATG" & "AAAAAGGGGGTTTTTC"
+        Input3 = DNAReverseComplement("GTCAGTCAGTCAGTCAGTC")
+        Test = PCRSimulate(Input1, Input2, Input3, Circular:=True)
+        If Err.Number = 0 Then
+            If DNAEqual(Test, DNAReverseComplement(Input1), Circular:=True, CheckReverseComplement:=False) Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
+    '10 negative control test 9 (not circular)
+        N = 10
+        Input1 = DNAReverseComplement("AAAAAGGGGGTTTTTCCCCC" & "AGTCAGTCAGTCAGTCAGTC" & "ATG")
+        Input2 = "ATG" & "AAAAAGGGGGTTTTTC"
+        Input3 = DNAReverseComplement("GTCAGTCAGTCAGTCAGTC")
+        Test = PCRSimulate(Input1, Input2, Input3, Circular:=False)
+        If Err.Number = 0 Then
+            If Left(Test, 3) = "#! " Then TestResults(N) = 1
+        End If
+        Err.Clear
+        
     
     
     On Error GoTo 0

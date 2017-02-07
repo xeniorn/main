@@ -52,6 +52,3 @@ Private Sub CommandButton1_Enter()
 FASTAInputForm.Hide
 End Sub
 
-Private Sub UserForm_Click()
-
-End Sub

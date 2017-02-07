@@ -94,22 +94,22 @@ Function ArrayMaxElement(TestArray As Variant, _
     Dim LastIndex As Long
     Dim MaxValue
     Dim i As Long
-    Dim MaxIndex As Long
+    Dim maxIndex As Long
     
     FirstIndex = LBound(TestArray, DimensionIndex)
     LastIndex = UBound(TestArray, DimensionIndex)
     
-    MaxIndex = FirstIndex
+    maxIndex = FirstIndex
     MaxValue = TestArray(FirstIndex)
     
     For i = FirstIndex + 1 To LastIndex
         If TestArray(i) > MaxValue Then
             MaxValue = TestArray(i)
-            MaxIndex = i
+            maxIndex = i
         End If
     Next i
     
-    ArrayMaxElement = MaxIndex
+    ArrayMaxElement = maxIndex
 
 End Function
 

@@ -284,8 +284,218 @@ Function StringJoin(RangeToJoin As Range, Optional Separator As String = "", Opt
 
 End Function
 
+
+Sub testaaaaa()
+
+Dim a
+
+a = StringFindTest("abc", "aaaaaaabaaaaa")
+
+
+End Sub
+
 '****************************************************************************************************
-Function StringFindOverlap( _
+Function StringFindSubstringLocations(ByVal Probe As String, ByVal Target As String) As VBA.Collection
+
+'====================================================================================================
+'Finds all the instances of Probe in Target and gives indices as a collection
+'Juraj Ahel, 2017-01-23
+'====================================================================================================
+
+    Dim i As Long
+    Dim tColl As VBA.Collection
+    
+    i = 0
+    
+    Set tColl = New VBA.Collection
+    
+    Do
+        i = InStr(i + 1, Target, Probe)
+        
+        If i > 0 Then
+            tColl.Add i
+        Else
+            Exit Do
+        End If
+    
+    Loop
+    
+    Set StringFindSubstringLocations = tColl
+    
+    Set tColl = Nothing
+
+End Function
+
+'****************************************************************************************************
+Function StringFindOverlap(ByVal Probe As String, ByVal Target As String, Optional Interactive As Boolean = True)
+'====================================================================================================
+'Finds the (largest) continuous perfectoverlap between two strings
+'Juraj Ahel, 2015-04-30, for general purposes
+'Last update 2015-04-30
+'2016-06-28 explicit variable declaration
+'====================================================================================================
+'2016-12-21 add Interactive option, make byval
+'2017-01-03 correct the limit of the number of overlaps found to the actual theoretical maximum
+'2017-01-20 Rewrite for efficiency, it was damn slow on long strings
+'2017-01-22 Rewrite was full of bugs and simply wrong in most cases, corrected
+
+    Dim ProbeLength As Long, TargetLength As Long
+    
+    Dim MaxPossibleOverlap As Long
+    Dim MinPossibleOverlap As Long
+    Dim CurrentOverlap As Long
+    
+    Dim tempProbe As String
+    
+    Dim tempIndex As Long
+    Dim LastIndexFound As Long
+    Dim LastOverlap As Long
+    
+    Dim OverlapCount As Long
+    Dim Indices As VBA.Collection
+    Dim tColl As VBA.Collection
+    
+    Dim TempResultAsStrings() As String
+    Dim tempResult As String
+    
+    Dim OverlapFound As Boolean
+    
+    Dim j As Long
+    
+    'Dim ExpansionLength As Long
+    'Dim FirstIndexToSearch As Long
+    'Dim LastIndexToSearch As Long
+    
+    ProbeLength = Len(Probe)
+    TargetLength = Len(Target)
+    
+    If ProbeLength > TargetLength Then
+        Call SwapValue(Probe, Target)
+        Call SwapValue(ProbeLength, TargetLength)
+    End If
+    
+    MinPossibleOverlap = 0
+    MaxPossibleOverlap = ProbeLength
+    
+    CurrentOverlap = MaxPossibleOverlap
+    LastOverlap = -1
+    LastIndexFound = 1
+    
+    OverlapFound = False
+    
+    'first, find the longest overlap length, later we'll check how many there are
+    Do
+    
+            OverlapFound = False
+            
+            'check if we searched the entire space
+NextSize:   If MinPossibleOverlap = MaxPossibleOverlap Then
+                
+                If LastOverlap = MinPossibleOverlap Then
+                    GoTo YesOverlap
+                Else
+                    GoTo NoOverlap
+                End If
+                
+            Else
+                
+                'ExpansionLength = CurrentOverlap - LastOverlap
+                'FirstIndexToSearch = LastIndexFound - ExpansionLength
+                'If FirstIndexToSearch < 1 Then FirstIndexToSearch = 1
+                'LastIndexToSearch = LastIndexFound + ExpansionLength
+                'If LastIndexToSearch + CurrentOverlap - 1 > ProbeLength Then LastIndexToSearch = ProbeLength - CurrentOverlap + 1
+                            
+                For j = 1 To ProbeLength - CurrentOverlap + 1
+                    tempProbe = Mid(Probe, j, CurrentOverlap)
+                
+                    tempIndex = InStr(1, Target, tempProbe)
+                
+                    If tempIndex > 0 Then
+                        'overlap of this length was found - search higher
+                        LastOverlap = CurrentOverlap
+                        LastIndexFound = tempIndex
+                        MinPossibleOverlap = CurrentOverlap
+                        CurrentOverlap = (CurrentOverlap + MaxPossibleOverlap + 1) \ 2
+                        OverlapFound = True
+                        Exit For
+                    End If
+                Next j
+                
+                If Not OverlapFound Then
+                    'no overlap of this length was found, search lower
+                    If CurrentOverlap > MinPossibleOverlap Then
+                        MaxPossibleOverlap = CurrentOverlap - 1
+                        CurrentOverlap = (MinPossibleOverlap + CurrentOverlap) \ 2
+                    End If
+                End If
+                
+            End If
+    
+    Loop
+
+
+YesOverlap:
+    
+    tempIndex = 1
+    
+    Set Indices = New VBA.Collection
+    
+    For j = 1 To ProbeLength - CurrentOverlap + 1
+    
+        tempProbe = Mid(Probe, j, LastOverlap)
+        tempIndex = 0
+    
+        Do
+        
+            tempIndex = InStr(tempIndex + 1, Target, tempProbe)
+            
+            If tempIndex <> 0 Then
+                Set tColl = New VBA.Collection
+                tColl.Add tempIndex
+                tColl.Add tempProbe
+                Indices.Add tColl
+            End If
+            
+        Loop While tempIndex <> 0
+            
+    Next j
+        
+NoOverlap:
+    
+    If Indices Is Nothing Then Set Indices = New VBA.Collection
+    
+    Select Case Indices.Count
+    
+        Case 0
+            tempResult = "#! No overlap found."
+        Case 1
+            tempResult = Indices.Item(1).Item(2)
+        Case Is > 1
+            'ReDim TempResultAsStrings(1 To Indices.Count)
+            'For j = 1 To Indices.Count
+            '    TempResultAsStrings(j) = CStr(Indices.Item(j).Item(1))
+            'Next j
+        
+            If Interactive Then
+                tempResult = "Multiple equivalent results of length " _
+                            & LastOverlap '& " at positions: " _
+                            '& Join(TempResultAsStrings, ";")
+            Else
+                StringFindOverlap = Indices.Item(1).Item(2)
+                Call ApplyNewError(jaErr + 1, "StringFindOverlap", "(" & Indices.Count & ") overlaps of same length found")
+                Exit Function
+            End If
+    End Select
+    
+    StringFindOverlap = tempResult
+    
+    Set Indices = Nothing
+    Set tColl = Nothing
+
+End Function
+
+'****************************************************************************************************
+Function old_StringFindOverlap( _
     ByVal Probe As String, _
     ByVal Target As String, _
     Optional ByVal Interactive As Boolean = True)
@@ -328,7 +538,7 @@ Function StringFindOverlap( _
     ReDim Results(1 To TargetLength)
     
     Dim i As Long, j As Long, k As Long, W As Long
-    Dim TempProbe As String
+    Dim tempProbe As String
     Dim FoundOverlap As Boolean
     
     W = wStart
@@ -338,11 +548,11 @@ Function StringFindOverlap( _
         
         For i = 1 To 1 + (wStart - W)
         
-            TempProbe = Mid(Probe, i, W)
+            tempProbe = Mid(Probe, i, W)
             
             j = 0
             Do
-                j = InStr(j + 1, Target, TempProbe)
+                j = InStr(j + 1, Target, tempProbe)
                 FoundOverlap = (j > 0)
                 
                 'k = k + FoundOverlap
@@ -354,11 +564,13 @@ Function StringFindOverlap( _
                 End If
             Loop Until Not FoundOverlap
             
+        If FoundOverlap Then Exit For
+            
         Next i
         
         W = W - 1
         
-    Loop Until k <> 0 Or W = 0
+    Loop Until k <> 0 Or W = 0 Or FoundOverlap
     
     OverlapWidth = W + 1
     
