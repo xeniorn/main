@@ -19,6 +19,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -38,6 +39,7 @@ Private Const conTrunc As String = "TRUNC"
 Private Const conThin As String = "THIN"
 Private Const conAlign As String = "ALIGN"
 
+Private Const conDefaultNumberOfPoints As Long = 300
 
 Public SEC As clsGeneralizedChromatography
 Public defaultCleanUpOptions As VBA.Collection
@@ -252,7 +254,7 @@ Public Sub DefineDefaults()
         defaultCleanUpOptions.Add tempSetting, conThin
         With tempSetting
             .Add True
-            .Add CDbl(0.5)
+            .Add RoundToSignificantDigits(SEC.Chromatograms.Item(1).Xrange / conDefaultNumberOfPoints, 3)
             .Add SEC.Chromatograms.Item(1).NumberOfPoints
         End With
         
@@ -376,6 +378,10 @@ Private Sub Autozero_tick_Click()
         
 End Sub
 
+
+Private Sub frameTrunc_Click()
+
+End Sub
 
 Private Sub UV_Offset_Val_Exit(ByVal Cancel As MSForms.ReturnBoolean)
 

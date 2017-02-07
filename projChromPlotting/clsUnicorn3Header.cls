@@ -7,6 +7,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'2017-01-27 fix curve type recognition and magic number constants to work with re-saved chromatograms!
+
 Option Explicit
 
 '[Var Declaration]
@@ -147,18 +149,32 @@ End Sub
 
 Private Sub DefineType()
 
-    Select Case MagicID
-        Case conHeaderNotConst_DataCurve_RES, conHeaderNotConst_ImportedCurve_RES
-            DataType = uniData
-        Case conHeaderNotConst_ChromatogramLogBook_RES
-            DataType = uniLogBook
-        Case conHeaderInject_RES
-            DataType = uniInjection
-        Case conHeaderFractions_RES
-            DataType = uniFraction
-        Case Else
-            DataType = uniMeta
-    End Select
+    Dim RegEx As RegExp
+    
+    Set RegEx = New RegExp
+    
+    'initialize
+    DataType = uniMeta
+    
+    'test if it's some other data type
+    
+    RegEx.Pattern = conHeaderNotConst_DataCurve_RES
+    If RegEx.test(MagicID) Then DataType = uniData
+    
+    RegEx.Pattern = conHeaderNotConst_ImportedCurve_RES
+    If RegEx.test(MagicID) Then DataType = uniData
+    
+    RegEx.Pattern = conHeaderNotConst_ChromatogramLogBook_RES
+    If RegEx.test(MagicID) Then DataType = uniLogBook
+    
+    RegEx.Pattern = conHeaderInject_RES
+    If RegEx.test(MagicID) Then DataType = uniInjection
+    
+    RegEx.Pattern = conHeaderFractions_RES
+    If RegEx.test(MagicID) Then DataType = uniFraction
+    
+    Set RegEx = Nothing
+    
     
 End Sub
 

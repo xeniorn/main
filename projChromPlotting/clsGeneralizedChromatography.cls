@@ -16,6 +16,8 @@ Attribute VB_Exposed = False
 'Last update 2016-06-12
 '2016-06-12 add data alignment function
 '====================================================================================================
+'Data thinning was using constant 0.5 instead of the inputed variable
+
 Option Explicit
 
 Implements IExperiment
@@ -589,7 +591,7 @@ Public Sub ThinData(ByVal DistanceBetweenPoints As Double)
     Dim i As Long
     
     For i = 1 To Chromatograms.Count
-        Chromatograms.Item(i).ThinData (0.5)
+        Chromatograms.Item(i).ThinData (DistanceBetweenPoints)
     Next i
 
 End Sub

@@ -112,6 +112,8 @@ Public Const conUni3FractionWaste As String = "Waste"
 '+  Inj. mark   ... 46 04 --> ... 47 04
 '+  Fractions   ... 44 04 --> ... 45 04
 '+
+'+- FURTHER RESAVING DOESN'T FURTHER INCREASE INDICES BY ONE!
+'+
 '+---Magic-ids---
 '+The following magic_ids have been found and assigned so far:
 '+AKTA PRIME
@@ -183,7 +185,7 @@ Public Const conUni3FractionWaste As String = "Waste"
 '_L is the length of the data (not always fixed)
 '_RES is the expected value of the data (not always fixed)
 
-'ones that are not fixed, aren't defined as constants
+'ones that are not fixed, aren't defined as constants but as Regex
 
 
 '========START REGION========
@@ -310,8 +312,8 @@ Public Const conHeaderTemplate_RES As String = "00 00 01 00 02 00 08 22"
 Public Const conHeaderColumnsChoosen_RES As String = "00 00 01 00 02 00 09 22"
 
 'Named as "=" + imported curve name, header defines time and volume units and curve type, followed by the data
-'
-Public Const conHeaderNotConst_ImportedCurve_RES As String = "00 00 01 00 04 00 03 14"
+'can be 03 or 04, depending on whether it's original or re-saved data
+Public Const conHeaderNotConst_ImportedCurve_RES As String = "00 00 01 00 04 00 0[34] 14"
 
 'Named as "+" + Evaluation report name - contains the raw readable text data of the named evaluation method
 '
@@ -355,19 +357,20 @@ Public Const conHeaderResultStrategyNotes_RES As String = "00 00 01 00 02 00 10 
 
 'Actual data from instrument's detectors
 '240-byte header
-Public Const conHeaderNotConst_DataCurve_RES As String = "00 00 01 00 04 00 01 14"
+'can be 01 or 02, depending on whether it's original or re-saved chromatogram
+Public Const conHeaderNotConst_DataCurve_RES As String = "00 00 01 00 04 00 0[12] 14"
 
 'Meta gives some info about units, etc, followed by actual data
-'
-Public Const conHeaderFractions_RES As String = "00 00 01 00 04 00 44 04"
+'can be 44 or 45, depending on whether it's original or re-saved result file
+Public Const conHeaderFractions_RES As String = "00 00 01 00 04 00 4[45] 04"
 
 'Meta gives some info about units, etc, followed by actual data
-'
-Public Const conHeaderInject_RES As String = "00 00 01 00 04 00 46 04"
+'can be 46 or 47, depending on whether it's original or re-saved result file
+Public Const conHeaderInject_RES As String = "00 00 01 00 04 00 4[67] 04"
 
 'The logbook of a particular chromatogram, less extensive than the full one
-'
-Public Const conHeaderNotConst_ChromatogramLogBook_RES As String = "00 00 01 00 04 00 48 04"
+'can be 48 or 49, depending on whether the data is original or not
+Public Const conHeaderNotConst_ChromatogramLogBook_RES As String = "00 00 01 00 04 00 4[89] 04"
 
 'Defines the curves in a particular Chromatogram + some extra info, including result filename. HeaderName = Chromatogram name
 'Says "Zappa" in beggining and a few other places

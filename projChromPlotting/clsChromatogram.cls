@@ -17,6 +17,7 @@ Attribute VB_Exposed = False
 '====================================================================================================
 '2016-07-08 add some "ByVal"s
 '2017-01-12 XToIndex change default value to 1, not 0
+'2017-02-07 add Xrange and Yrange properties
 
 Option Explicit
 
@@ -102,6 +103,14 @@ End Property
 
 Private Property Set ChromatogramData_UndoBuffer(inp_ChromatogramData_UndoBuffer As clsGraphData)
     Set pChromatogramData_UndoBuffer = inp_ChromatogramData_UndoBuffer
+End Property
+
+Public Property Get Xrange() As Double
+    Xrange = Xmax - Xmin
+End Property
+
+Public Property Get YRange() As Double
+    YRange = Ymax - Ymin
 End Property
 
 Public Property Get Xmax() As Double

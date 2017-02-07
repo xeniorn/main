@@ -1,6 +1,27 @@
 Attribute VB_Name = "modMath"
 Option Explicit
 
+
+'****************************************************************************************************
+Function RoundToSignificantDigits( _
+    ByVal NumberToRound As Double, _
+    ByVal SignificantDigits As Long _
+    ) As Double
+
+'====================================================================================================
+'Rounds input X to Y significant digits
+'
+'Juraj Ahel, 2017-02-07, for general purposes
+'====================================================================================================
+    
+    If NumberToRound = 0 Then
+        RoundToSignificantDigits = 0
+    Else
+        RoundToSignificantDigits = Round(NumberToRound, SignificantDigits - Int(Lg(NumberToRound) + 1))
+    End If
+
+End Function
+
 '****************************************************************************************************
 Function RoundToNearestX( _
     ByVal NumberToRound As Double, _

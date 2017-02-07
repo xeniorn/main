@@ -283,7 +283,7 @@ Public Sub tempDraw()
     Dim tempChart As Excel.ChartObject
     Dim TempSeries As Excel.Series
     Dim tempChromatogramData As clsGraphData
-    Dim XRange As Excel.Range
+    Dim Xrange As Excel.Range
     Dim YRange As Excel.Range
     Dim LabelRange As Excel.Range
     
@@ -297,15 +297,15 @@ Public Sub tempDraw()
         Set tempChromatogramData = Chromatograms.Item(i).ChromatogramData
         With tempChromatogramData
         
-            Set XRange = Range("A3").Offset(0, 2 * (i - 1)).Resize(.Count, 1)
+            Set Xrange = Range("A3").Offset(0, 2 * (i - 1)).Resize(.Count, 1)
             Set YRange = Range("A3").Offset(0, 2 * (i - 1) + 1).Resize(.Count, 1)
             Set LabelRange = Range("A2").Offset(0, 2 * (i - 1)).Resize(1, 1)
             
-            XRange.Value = GenerateRangeArray(.XDataArray)
+            Xrange.Value = GenerateRangeArray(.XDataArray)
             YRange.Value = GenerateRangeArray(.YDataArray)
             LabelRange.Value = .YAxisLabel
             
-            Set TempSeries = ChartAddSeriesToChart(XRange, YRange, tempChart, LabelRange)
+            Set TempSeries = ChartAddSeriesToChart(Xrange, YRange, tempChart, LabelRange)
             
             TempSeries.Format.Line.Weight = xlHairline
             

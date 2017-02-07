@@ -286,7 +286,8 @@ Public Sub ImportUNI3(InputFilename As String, DataToProcess As VBA.Collection)
             'create a new header
             Set ctempHeader = New clsUnicorn3Header
             
-            Call WriteBinaryFile(ResFile)
+            'Debugging
+            'Call WriteBinaryFile(ResFile)
             
             'define it
             ctempHeader.ImportHeader (tempHeaderString)
@@ -416,3 +417,7 @@ Function DefineFullType(t As eUnicornDataType, C As eUnicornCurveType) As clsUni
     Set tempFullType = Nothing
 
 End Function
+
+Private Sub Class_Initialize()
+
+End Sub

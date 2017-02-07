@@ -19,6 +19,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '****************************************************************************************************
 '====================================================================================================
 '
@@ -29,6 +30,7 @@ Attribute VB_Exposed = False
 '====================================================================================================
 'TODO: add settings for cleanup!
 '2016-11-16 v0.86 added support for option for autozeroUV / offset UV
+'2017-02-07 v0.90 make it work properly with low volume (Ettan)
 
 Option Explicit
 
@@ -343,7 +345,7 @@ Private Sub ctrlDrawButton_Click()
             
     Dim IncludeSecondaryAxis As Boolean
     
-    Dim XRange As Excel.Range
+    Dim Xrange As Excel.Range
     Dim YRange As Excel.Range
     
     Dim tempOutArray() As Double
@@ -455,7 +457,12 @@ Private Sub ctrlDrawButton_Click()
                     Case Is > 500: .MajorUnit = 100
                     Case Is > 200: .MajorUnit = 50
                     Case Is > 100: .MajorUnit = 25
-                    Case Else: .MajorUnit = 10
+                    Case Is > 50: .MajorUnit = 10
+                    Case Is > 20: .MajorUnit = 5
+                    Case Is > 10: .MajorUnit = 2.5
+                    Case Is > 5: .MajorUnit = 1
+                    Case Is > 2: .MajorUnit = 0.5
+                    Case Else
                 End Select
                 .MinorUnit = .MajorUnit / 5
             End With
