@@ -597,14 +597,14 @@ Sub GibsonMother()
 '
 '====================================================================================================
 
-    Dim InputRange As Range
+    Dim inputRange As Range
     Dim SubRange As Range
 
-    Set InputRange = Selection
+    Set inputRange = Selection
 
-    If InputRange.Areas.Count >= 1 Then
+    If inputRange.Areas.Count >= 1 Then
     
-        For Each SubRange In InputRange.Areas
+        For Each SubRange In inputRange.Areas
         
             SubRange.Select
             
@@ -615,7 +615,7 @@ Sub GibsonMother()
     End If
 
     Set SubRange = Nothing
-    Set InputRange = Nothing
+    Set inputRange = Nothing
 
 End Sub
 
@@ -1352,7 +1352,7 @@ Dim DataSource As Range
     If Right(FilePath, 1) <> "\" Then FilePath = FilePath & "\"
 
     OutputFile = FilePath & FilenameBase & Extension
-    Call ExportDataToTextFile(SourceData(1, 1).Value, OutputFile)
+    Call WriteTextFile(SourceData(1, 1).Value, OutputFile)
 
 
 End Sub

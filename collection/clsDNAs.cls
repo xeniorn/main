@@ -7,6 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'2017-02-08 add ContainsDNASeq function
 
 Option Explicit
 
@@ -105,6 +106,32 @@ Public Sub AddDNA(AddedDNA As clsDNA, Optional ByVal Key As String = "", Optiona
         
             
 End Sub
+
+Public Function ContainsDNASeq(ByVal inpDNA As clsDNA) As Boolean
+
+    Dim i As Long
+    
+    For i = 1 To Count
+        If inpDNA.Sequence = DNA(i).Sequence Then
+            ContainsDNASeq = True
+            Exit Function
+        End If
+    Next i
+
+End Function
+
+Public Function GetDNABySeq(ByVal inpSeq As String) As clsDNA
+
+    Dim i As Long
+        
+    For i = 1 To Count
+        If DNA(i).Sequence = inpSeq Then
+            Set GetDNABySeq = DNA(i)
+            Exit Function
+        End If
+    Next i
+
+End Function
 
 Public Property Get Count() As Integer
     Count = pDNAs.Count

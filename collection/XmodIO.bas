@@ -20,7 +20,7 @@ Public Function FileSystem_GetDirContents( _
     
     'InputPath = Left(InputPath, Len(InputPath) - 1)
     
-    If Right(InputPath) <> Application.PathSeparator Then
+    If Right(InputPath, 1) <> Application.PathSeparator Then
         InputPath = InputPath & Application.PathSeparator
     End If
     
@@ -655,6 +655,8 @@ Dim DataSource As Range
 Dim HeaderLine As String
 Dim Sequence As String
 
+Dim i As Long
+
 FilePath = "C:\Excel_outputs\Sequences\"
 
 Set DataSource = Selection
@@ -663,7 +665,7 @@ For i = 1 To DataSource.Rows.Count
     HeaderLine = ">" & CStr(DataSource(i, 1).Value)
     Sequence = DataSource(i, 2).Value
     OutputFile = FilePath & CStr(DataSource(i, 1).Value) & "_seq.txt"
-    Call ExportDataToTextFile(HeaderLine & vbCrLf & Sequence, OutputFile)
+    Call WriteTextFile(HeaderLine & vbCrLf & Sequence, OutputFile)
 Next i
 
 End Sub
@@ -690,7 +692,7 @@ Dim DataSource As Range
 
 
     OutputFile = FilePath & FilenameBase & Extension
-    Call ExportDataToTextFile(SourceData(1, 1).Value, OutputFile)
+    Call WriteTextFile(SourceData(1, 1).Value, OutputFile)
 
 
 End Sub
@@ -717,7 +719,7 @@ Set DataSource = SourceData
 
 For i = 1 To DataSource.Rows.Count
     OutputFile = FilePath & FilenameBase & i & Extension
-    Call ExportDataToTextFile(DataSource(i, 1).Value, OutputFile)
+    Call WriteTextFile(DataSource(i, 1).Value, OutputFile)
 Next i
 
 End Sub

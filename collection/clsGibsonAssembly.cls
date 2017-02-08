@@ -89,7 +89,7 @@ Public Property Get PCR(i As Long) As clsPCR
 End Property
 
 
-Public Property Get SourceDNA(i As Long) As clsDNAs
+Public Property Get SourceDNA(i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set SourceDNA = tPCR.SourceDNA
@@ -110,7 +110,7 @@ Public Property Set Ligations(ByVal inp_Ligations As VBA.Collection)
     Set pLigations = inp_Ligations
 End Property
 
-Public Property Get FinalDNA(i As Long) As clsDNAs
+Public Property Get FinalDNA(i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set FinalDNA = tPCR.FinalDNA
@@ -123,7 +123,7 @@ Public Property Set FinalDNA(i As Long, ByVal inp_FinalDNA As clsDNA)
     Set tPCR.FinalDNA = inp_FinalDNA
 End Property
 
-Public Property Get ForwardPrimer(i As Long) As clsDNAs
+Public Property Get ForwardPrimer(i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set ForwardPrimer = tPCR.ForwardPrimer
@@ -136,7 +136,7 @@ Public Property Set ForwardPrimer(i As Long, ByVal inp_ForwardPrimer As clsDNA)
     Set tPCR.ForwardPrimer = inp_ForwardPrimer
 End Property
 
-Public Property Get ReversePrimer(i As Long) As clsDNAs
+Public Property Get ReversePrimer(i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set ReversePrimer = tPCR.ReversePrimer
@@ -162,11 +162,15 @@ Public Property Get FinalSequence() As String
 End Property
 
 Public Property Get Name() As String
-    Name = pAssemblyName
+    Name = FinalAssembly.Name
 End Property
 
 Public Property Let Name(S As String)
-    pAssemblyName = S
+    FinalAssembly.Name = S
+End Property
+
+Public Property Get FinalAssembly() As clsDNA
+    Set FinalAssembly = pFinalAssembly
 End Property
 
 Private Sub ResetCalculation()
@@ -215,8 +219,10 @@ Private Sub DoCalculation()
             'define final Gibson fragments
                 Set tGibson1 = Ligations.Item(PreviousFragment)
                 Set tGibson2 = Ligations.Item(CurrentFragment)
-                Set tDNA = New clsDNA
-                tDNA.Name = "GibsonFragment_" & Format(CurrentFragment, "00")
+                Set tDNA = PCR(CurrentFragment).FinalDNA
+                If tDNA.Name = "" Then
+                    tDNA.Name = "GibsonFragment_" & Format(CurrentFragment, "00")
+                End If
                 tDNA.Sequence = PCRSimulate(FinalSequence, tGibson1.Overlap, DNAReverseComplement(tGibson2.Overlap), Circular:=True)
                 Set PCR(CurrentFragment).FinalDNA = tDNA
                 
@@ -340,7 +346,10 @@ Public Sub ImportCollection(ByVal InputCollection As VBA.Collection)
             
             Set tPCR = New clsPCR
             PCRs.Add tPCR
-            Set PCR(CurrentFragment).SourceDNA = tInputCurr.Source
+            With tPCR
+                Set .SourceDNA = tInputCurr.Source
+                .FinalDNA.Name = tInputCurr.Name
+            End With
             
         '2 Gibson Ligation
             Set tGibson = New clsGibsonSingleLigation
@@ -364,7 +373,9 @@ Public Sub ImportCollection(ByVal InputCollection As VBA.Collection)
     
     
     Set tDNA = New clsDNA
-        tDNA.Name = "GibsonAssembly"
+        If tDNA.Name = "" Then
+            tDNA.Name = "GibsonAssembly"
+        End If
         tDNA.Sequence = tempSequence
     
     Set pFinalAssembly = tDNA
@@ -475,10 +486,10 @@ Public Sub ImportArray(ByVal InputArray As Variant)
     
 End Sub
 
-Public Sub ImportRange(ByVal InputRange As Excel.Range)
+Public Sub ImportRange(ByVal inputRange As Excel.Range)
     
-    If InputRange.Rows.Count = conRequiredRows Then
-        Call ImportArray(InputRange.Value2)
+    If inputRange.Rows.Count = conRequiredRows Then
+        Call ImportArray(inputRange.Value2)
     End If
         
 End Sub

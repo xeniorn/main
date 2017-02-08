@@ -22,6 +22,19 @@ Public Type ErrorStructure
     Source As String
 End Type
 
+Sub ErrorReport(Optional ErrNo As Long)
+
+Err.Raise ErrNo
+
+End Sub
+
+Sub ErrorReportGlobal(Optional ErrNo As Long, Optional Message As String, Optional Source As String)
+
+Err.Raise ErrNo, Source, Message
+
+End Sub
+
+
 '************************************************************************************************
 Sub ErrReraise()
 '===============================================================================

@@ -285,14 +285,7 @@ Function StringJoin(RangeToJoin As Range, Optional Separator As String = "", Opt
 End Function
 
 
-Sub testaaaaa()
 
-Dim a
-
-a = StringFindTest("abc", "aaaaaaabaaaaa")
-
-
-End Sub
 
 '****************************************************************************************************
 Function StringFindSubstringLocations(ByVal Probe As String, ByVal Target As String) As VBA.Collection
@@ -494,115 +487,7 @@ NoOverlap:
 
 End Function
 
-'****************************************************************************************************
-Function old_StringFindOverlap( _
-    ByVal Probe As String, _
-    ByVal Target As String, _
-    Optional ByVal Interactive As Boolean = True)
 
-'====================================================================================================
-'Finds the (largest) continuous perfectoverlap between two strings
-'Juraj Ahel, 2015-04-30, for general purposes
-'Last update 2015-04-30
-'2016-06-28 explicit variable declaration
-'====================================================================================================
-'2016-12-21 add Interactive option, make byval
-'2017-01-03 correct the limit of the number of overlaps found to the actual theoretical maximum
-
-    Dim ProbeLength As Long, TargetLength As Long
-    Dim Results() As Long
-    Dim wStart As Long
-    Dim tempResult As String
-    Dim OverlapWidth As Long
-    
-    ProbeLength = Len(Probe)
-    TargetLength = Len(Target)
-    
-    If ProbeLength > TargetLength Then
-        Call SwapValue(Probe, Target)
-        Call SwapValue(ProbeLength, TargetLength)
-    End If
-        
-    wStart = ProbeLength
-    
-    If wStart = 0 Then
-        tempResult = vbNullString
-        GoTo 999
-    End If
-    
-    '- if I want to map them all
-    'ReDim Results(1 To wStart, 1 To TargetLength)
-    
-    '- if I want to extract the longest ones only
-    'this is the maximal theoretical number of (sub)overlaps to be found ("AAA" into "AAAA...AAA")
-    ReDim Results(1 To TargetLength)
-    
-    Dim i As Long, j As Long, k As Long, W As Long
-    Dim tempProbe As String
-    Dim FoundOverlap As Boolean
-    
-    W = wStart
-    
-    Do
-        k = 0
-        
-        For i = 1 To 1 + (wStart - W)
-        
-            tempProbe = Mid(Probe, i, W)
-            
-            j = 0
-            Do
-                j = InStr(j + 1, Target, tempProbe)
-                FoundOverlap = (j > 0)
-                
-                'k = k + FoundOverlap
-                'Results(w, k) = FoundOverlap * j
-                
-                If FoundOverlap Then
-                    k = k + 1
-                    Results(k) = j
-                End If
-            Loop Until Not FoundOverlap
-            
-        If FoundOverlap Then Exit For
-            
-        Next i
-        
-        W = W - 1
-        
-    Loop Until k <> 0 Or W = 0 Or FoundOverlap
-    
-    OverlapWidth = W + 1
-    
-    Dim TempResultAsStrings() As String
-    
-    Select Case k
-        Case 0
-            tempResult = "#! No overlap found."
-        Case 1
-            tempResult = Mid(Target, Results(1), OverlapWidth)
-        Case Is > 1
-            ReDim TempResultAsStrings(1 To k)
-            For i = 1 To k
-                TempResultAsStrings(i) = CStr(Results(i))
-            Next i
-        
-            If Interactive Then
-                tempResult = "Multiple equivalent results of length " _
-                            & OverlapWidth & " at positions: " _
-                            & Join(TempResultAsStrings, ";")
-            Else
-                StringFindOverlap = Mid(Target, Results(1), OverlapWidth)
-                Call ApplyNewError(jaErr + 1, "StringFindOverlap", "Multiple overlaps of same length found")
-                Exit Function
-            End If
-    End Select
-    
-    'Debug.Print (k & " matches were found")
-    
-999     StringFindOverlap = tempResult
-
-End Function
 
 '****************************************************************************************************
 Function LongestCommonSubstring(S1 As String, S2 As String) As String

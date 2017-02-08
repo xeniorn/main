@@ -13,6 +13,7 @@ Attribute VB_Name = "XModExcelSheetObjects"
 '====================================================================================================
 Option Explicit
 
+Const conClassName As String = "XModExcelSheetObjects"
 
 '****************************************************************************************************
 Sub DeleteAllChartsOnSheet()
@@ -507,6 +508,17 @@ Function ChartFormatSeries(TargetSeries As Excel.Series) As Excel.Chart
 
     Dim cht As Object
     Dim srs As Series
+    
+    Dim AxisWeight
+    Dim AxisColor
+    Dim UV1Color
+    Dim ConcBColor
+    Dim TitleSize
+    Dim TickLabelSize
+    Dim RunType
+    Dim x1 As Excel.Range, x2  As Excel.Range, y1  As Excel.Range, y2  As Excel.Range
+    Dim ScaleMax, ScaleMin
+    Dim MajUN, MinUN
     
     AxisWeight = xlMedium '(Hairline, Thin, Medium, Thick)
     AxisColor = RGB(147, 149, 152) 'determined from Illustrator

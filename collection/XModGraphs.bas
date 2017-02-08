@@ -20,6 +20,8 @@ Sub ModifyTableData()
     Dim StartColumn As Long, EndColumn As Long
     Dim RowThinFactor As Long, ColumnThinFactor As Long
     
+    Dim Parameters
+    
     Set InputTable = Application.InputBox("Select the table (or a part of it) to modify:", "Input selection", Type:=8)
     
     ParameterString = InputBox("Start row; End row; Start column; End column; Keep every N-th row; Keep every N-th column." _
@@ -63,6 +65,7 @@ Sub ModifyTableData()
     ReDim OutputArray(1 To OutputTableHeight, 1 To OutputTableWidth)
     
     Dim TempFormula As String, TempColor As Long, TempPattern As Long
+    Dim ProceedCheck
     
     TempFormula = OutputTable.Value
     TempColor = OutputTable.Interior.Color

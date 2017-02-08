@@ -34,6 +34,9 @@ Function Theoretical_pI(ProteinSequence As String, Optional pKaValues As String 
 
 'aminoacid representations: 1=D; 2=E; 3=R; 4=K; 5=H; 6=C; 7=Y; 8=Cterm; 9=Nterm
 
+Dim AminoAcids
+Dim AASpecies
+
 AminoAcids = Array("D", "E", "R", "K", "H", "C", "Y")
 AASpecies = Array(0, 0, 1, 1, 1, 0, 0, 0, 1) '0 is acid, 1 is base
 
@@ -41,6 +44,7 @@ Dim AACounts(1 To 9) As Long
 Dim PartialCharges(1 To 9) As Double
 Dim pH As Double, TotalCharge As Double
 Dim i As Long
+Dim pHl As Double, pHh As Double
 
 Dim pKa(1 To 9) As Double
 

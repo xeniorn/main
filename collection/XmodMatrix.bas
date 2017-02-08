@@ -1,39 +1,5 @@
 Attribute VB_Name = "XmodMatrix"
 
-Sub test160113MatrixOperations()
-
-    Dim a(1 To 3, 1 To 2)
-    
-    a(1, 1) = 1
-    a(1, 2) = 1
-    a(2, 1) = 2
-    a(2, 2) = 2
-    a(3, 1) = 3
-    a(3, 2) = 1
-    
-    Dim col1 As Collection
-    Dim col2 As Collection
-    Dim col3 As Collection
-    
-    Set col1 = New Collection: col1.Add 1
-    Set col2 = New Collection: col2.Add 1: col2.Add 2: col2.Add 3
-    Set col3 = New Collection: col3.Add 3
-    
-    b = MatrixMaxCount(a)
-    c = MatrixMaxElement(a)
-    D = MatrixElementCount(1, a, 0, 0, col1, col2)
-    
-    d1 = MatrixMaxElement(a, 0, 0)
-    d2 = MatrixMaxElement(a, 0, 0, col2, col1)
-    d3 = MatrixMaxElement(a, 0, 0, col1, col3)
-    d4 = MatrixMaxElement(a, 0, 0, col1)
-    
-    d1c = MatrixMaxCount(a, 0, 0)
-    d2c = MatrixMaxCount(a, 0, 0, col2, col1)
-    d3c = MatrixMaxCount(a, 0, 0, col1, col3)
-    d4c = MatrixMaxCount(a, 0, 0, col1)
-
-End Sub
 
 '****************************************************************************************************
 Function MatrixDimesionNumber(XArray As Variant)
@@ -207,7 +173,7 @@ Function MatrixMaxElement(Matrix As Variant, _
     
     For i = S1 To e1
         For j = S2 To e2
-            tempcounter = MatrixElementCount(Matrix(i, j), Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
+            tempcounter = MatrixElementCount(Matrix(i, j), Matrix, OnlyRowN, OnlyColumnN, IgnoreList)
             If tempcounter > maxcounter Then
                 MaxEl = Matrix(i, j)
                 maxcounter = tempcounter
@@ -249,7 +215,7 @@ Function MatrixMaxCount(Matrix As Variant, _
     End If
     
     MaxEl = MatrixMaxElement(Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
-    MatrixMaxCount = MatrixElementCount(MaxEl, Matrix, OnlyRowN, OnlyColumnN, IgnoreList, IncludeOnlyList)
+    MatrixMaxCount = MatrixElementCount(MaxEl, Matrix, OnlyRowN, OnlyColumnN, IgnoreList)
     
 End Function
 
@@ -360,7 +326,7 @@ Function MatrixElementCount(ByVal Element As Variant, _
     For i = S1 To e1
         For j = S2 To e2
     
-            ShouldICount = ((Element = Matrix(i, j)) Or CountAllExceptIgnored) And Not (IsElementOf(Element, IgnoreList))
+            ShouldICount = ((Element = Matrix(i, j)) Or CountAllExceptIgnored) And Not (IsElementOf(CStr(Element), IgnoreList))
             counter = counter + ShouldICount
 
         Next j

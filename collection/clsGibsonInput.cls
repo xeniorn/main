@@ -31,7 +31,7 @@ Private Sub Class_Initialize()
     Set pInsertBefore = New clsDNA
     Set pFragment = New clsDNA
     Set pInsertAfter = New clsDNA
-
+    
 End Sub
 
 '[Object Dereferencing]
@@ -99,6 +99,14 @@ End Property
 
 Public Property Let ForbiddenRegions(ByVal inp_ForbiddenRegions As String)
     pForbiddenRegions = inp_ForbiddenRegions
+End Property
+
+Public Property Get Name() As String
+    Name = Fragment.Name
+End Property
+
+Public Property Let Name(ByVal inp_Name As String)
+    Fragment.Name = inp_Name
 End Property
 
 

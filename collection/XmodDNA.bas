@@ -1135,7 +1135,7 @@ Function PCRWithOverhangs(ByVal Template As String, _
     End If
     
     If Not Details Then
-        tempResult = PCRSimulate(Template, OverlapF, DNAReverseComplement(OverlapR), Circular, Perfect)
+        tempResult = PCRSimulate(Template, OverlapF, DNAReverseComplement(OverlapR), Circular)
         If Left(tempResult, 2) <> "#!" Then
             tempResult = OverhangF & tempResult & OverhangR
         End If
@@ -1209,6 +1209,16 @@ Function PCRGetFragmentFromTemplate( _
             OverlappingSequence = StringFindOverlap(TargetSequence, Template, False)
         End If
         
+        If Err.Number <> 0 Then
+            If Err.Number = jaErr + 1 And Err.Source = "StringFindOverlap" Then
+                Err.Clear
+            End If
+        End If
+            
+        
+        
+        
+        
     RCIsBetter = False
         
     'check if a better overlap can be achieved with reverse complement
@@ -1227,6 +1237,12 @@ Function PCRGetFragmentFromTemplate( _
                     OverlappingSequence = TempSeq
                     RCIsBetter = True
                 End If
+            End If
+        End If
+        
+        If Err.Number <> 0 Then
+            If Err.Number = jaErr + 1 And Err.Source = "StringFindOverlap" Then
+                Err.Clear
             End If
         End If
         
