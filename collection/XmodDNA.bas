@@ -316,7 +316,7 @@ Function DNALongestORF( _
     Dim ScannedNucleotides As Long
     
     Dim BestLength As Long, CurrentLength As Long
-    Dim BestSeq As String
+    Dim bestSeq As String
     
     SequenceLength = Len(Sequence)
     
@@ -407,7 +407,7 @@ Function DNALongestORF( _
                 
                 BestLength = CurrentLength
                 BestStart = TempStart
-                BestSeq = Mid(Sequence, BestStart, BestLength + 3)
+                bestSeq = Mid(Sequence, BestStart, BestLength + 3)
             
             End If
         
@@ -470,7 +470,7 @@ NextLoop:
     End If
     
     
-    DNALongestORF = BestSeq
+    DNALongestORF = bestSeq
     
     'cleanup
     If MakeCollection Then
@@ -1325,19 +1325,19 @@ Function PCRGetFragmentFromTemplate( _
         
     'confirm primers don't anneal better elsewhere
         If LeftExtensionLength > 0 Then
-            If DNAAnnealToTemplate(LeftExtension, Template) >= TmF - 5 Then
+            If DNAAnnealToTemplate(LeftExtension, Template).Item("TM") >= TmF - 5 Then
                 Call Err.Raise(1, , "forward primer anneals to alternative site too well!")
             End If
-            If DNAAnnealToTemplate(FPrimer, DNAReverseComplement(Template)) >= TmF - 5 Then
+            If DNAAnnealToTemplate(FPrimer, DNAReverseComplement(Template)).Item("TM") >= TmF - 5 Then
                 Call Err.Raise(1, , "forward primer anneals to alternative site on RC strand too well!")
             End If
         End If
             
         If RightExtensionLength > 0 Then
-            If DNAAnnealToTemplate(LeftExtension, RCTemplate) >= TmR - 5 Then
+            If DNAAnnealToTemplate(LeftExtension, RCTemplate).Item("TM") >= TmR - 5 Then
                 Call Err.Raise(1, , "reverse primer anneals to alternative site on RC strand too well!")
             End If
-            If DNAAnnealToTemplate(RPrimer, Template) >= TmR - 5 Then
+            If DNAAnnealToTemplate(RPrimer, Template).Item("TM") >= TmR - 5 Then
                 Call Err.Raise(1, , "forward primer anneals to alternative site on primary too well!")
             End If
         End If
@@ -1618,19 +1618,23 @@ Function DNAAnnealToTemplate( _
     ByVal Template As String, _
     Optional ByVal MaxLengthToTest As Long = 100, _
     Optional ByVal MinLengthToTest = 10 _
-    ) As Double
+    ) As VBA.Collection
 
 '====================================================================================================
 'Calculates the highest anneal temperature for a given oligo sequence binding to a given template
 'Juraj Ahel, 2016-12-22, general purposes
 
 '====================================================================================================
+'2017-02-09 make it output both the sequence and the Tm
 
     Dim i As Long, j As Long
     Dim TestColl As VBA.Collection
     Dim tempString As String
     Dim tempTm As Double
     Dim bestTm As Double
+    Dim bestSeq As String
+    
+    Dim tColl As VBA.Collection
     
     'Input parsing
         If MinLengthToTest < 1 Then MinLengthToTest = 1
@@ -1659,7 +1663,10 @@ Function DNAAnnealToTemplate( _
                             
                                 tempTm = OligoTm(tempString)
                                 'and if their Tm is good, take it as the result
-                                If tempTm > bestTm Then bestTm = tempTm
+                                If tempTm > bestTm Then
+                                    bestTm = tempTm
+                                    bestSeq = tempString
+                                End If
                                 
                             End If
                     End If
@@ -1667,10 +1674,19 @@ Function DNAAnnealToTemplate( _
             Next j
         Next i
     
-    DNAAnnealToTemplate = bestTm
+    
+    Set tColl = New VBA.Collection
+    With tColl
+        .Add bestSeq, "SEQ"
+        .Add bestTm, "TM"
+    End With
+    
+    
+    Set DNAAnnealToTemplate = tColl
     
     'cleanup
         Set TestColl = Nothing
+        Set tColl = Nothing
 
 End Function
 

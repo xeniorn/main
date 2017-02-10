@@ -16,6 +16,9 @@ Attribute VB_Exposed = False
 Option Explicit
 
     Private Const conClassName As String = "clsGibsonSingleLigation"
+    
+    Private Const condefRNAFoldPath As String = "C:\ViennaRNA\"
+    Private Const condefRNAFoldCommand = "RNAfold.exe"
 
 '[Const Declaration]
     Private Const conTargetOverlapLength As Long = 15
@@ -24,6 +27,10 @@ Option Explicit
     Private Const conMaxOverlapLength As Long = 25
 
 '[Var Declaration]
+    Private RNAFoldPath As String
+    Private RNAFoldCommand As String
+    Private TempFilenamesRoot As String
+
     Private pFirstSequence As String
     Private pInsertedSequence As String
     Private pSecondSequence As String
@@ -49,6 +56,11 @@ Private Sub Class_Initialize()
     MaxDistanceFromCenter = conMaxDistanceFromCenter
     MaxOverlapLength = conMaxOverlapLength
     
+    RNAFoldPath = condefRNAFoldPath
+    RNAFoldCommand = condefRNAFoldCommand
+        
+    TempFilenamesRoot = FileSystem_GetTempFolder(True) & "JA_Gibson_"
+        
     ResetCalculation
 
 End Sub
@@ -371,8 +383,6 @@ Private Function OptimizeOverlaps() As VBA.Collection
     
     Dim PutativeOverlaps As VBA.Collection
     
-    Dim RNAFoldPath As String
-    Dim RNAFoldCommand As String
     Dim TempInput As String
     Dim TempOutput As String
     Dim TempFilenameBase As String
@@ -390,7 +400,7 @@ Private Function OptimizeOverlaps() As VBA.Collection
     ' Construct collection of overlaps
     Set PutativeOverlaps = ConstructOverlaps()
         
-    TempFilenameBase = FileSystem_GetTempFolder(True) & "JA_Gibson_" & TempTimeStampName
+    TempFilenameBase = TempFilenamesRoot & TempTimeStampName
     'TempFilenameBase = FileSystem_GetTempFolder(True) & "JA_Gibson_test"
     
     
@@ -433,13 +443,16 @@ Private Function OptimizeOverlaps() As VBA.Collection
         Next i
         Call WriteTextFile(Buffer, TempInput, True)
         
-        RNAFoldPath = "C:\ViennaRNA\"
-        RNAFoldCommand = "RNAfold.exe"
-        
         'make sure the output file is empty (otherwise stuff gets appended to it, making all kinds of weird hidden bugs and crap)
         Debug.Assert (Len(ReadTextFile(TempOutput & ".fold")) = 0)
         
-        Call CallProgram(RNAFoldCommand, RNAFoldPath, "--noGU --noPS -T 10 --infile=" & TempInput & " --outfile=" & TempOutput)
+        Call CallProgram( _
+            ProgramCommand:=RNAFoldCommand, _
+            ProgramPath:=RNAFoldPath, _
+            ArgList:="--noGU --noPS -T 10 --infile=" & TempInput & " --outfile=" & TempOutput, _
+            WaitUntilFinished:=True, _
+            WindowMode:=0 _
+            )
          
         TempOutput = TempOutput & ".fold" 'ViennaRNA 2.3 appends the extension automatically'
     

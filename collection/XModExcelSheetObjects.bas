@@ -699,7 +699,7 @@ Function CreateSheetFromName(Optional ByVal SheetName As String = "Sheet", _
 'Juraj Ahel, 2016-05-15
 'Last update 2016-05-18
 '===============================================================================
-    
+'2017-02-10 make sheets get added to end
     
     Const conDesiredSheetIndexFormat As String = "000"
     Const conMaximumSheetsAllowed As Long = 100
@@ -720,7 +720,9 @@ Function CreateSheetFromName(Optional ByVal SheetName As String = "Sheet", _
         Call Err.Raise("1001", "You sure have a lot of sheets named " & SheetName & Spacer & "xxx...")
     Else
         If TargetWorkbook Is Nothing Then Set TargetWorkbook = Excel.ActiveWorkbook
-        Set AddedSheet = TargetWorkbook.Sheets.Add
+        With TargetWorkbook.Sheets
+            Set AddedSheet = .Add(After:=TargetWorkbook.Sheets(.Count))
+        End With
         AddedSheet.Name = TempName
         CreateSheetFromName = TempName
     End If

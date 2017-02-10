@@ -46,7 +46,7 @@ End Sub
 
 Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
     
-    Const conOutputs As Long = 17
+    Const conOutputs As Long = 19
     Const conSummaryOutputs = 6
     
     Dim OutputSheet As Excel.Worksheet
@@ -102,6 +102,8 @@ Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
         AnnotArray(15, 1) = "overlap dG"
         AnnotArray(16, 1) = "source name"
         AnnotArray(17, 1) = "source"
+        AnnotArray(18, 1) = "primerF anneal"
+        AnnotArray(19, 1) = "primerR anneal"
         
         With Gibson
             
@@ -114,13 +116,15 @@ Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
                 OutputArray(4, i) = .Name
                 OutputArray(5, i) = .Sequence
                 OutputArray(6, i) = Len(.Sequence)
-                OutputArray(7, i) = DNAAnnealToTemplate(.Sequence, Gibson.PCR(i).SourceDNA.Sequence)
+                OutputArray(7, i) = DNAAnnealToTemplate(.Sequence, Gibson.PCR(i).SourceDNA.Sequence).Item("TM")
+                OutputArray(18, i) = DNAAnnealToTemplate(.Sequence, Gibson.PCR(i).SourceDNA.Sequence).Item("SEQ")
             End With
             With .PCR(i).ReversePrimer
                 OutputArray(8, i) = .Name
                 OutputArray(9, i) = .Sequence
                 OutputArray(10, i) = Len(.Sequence)
-                OutputArray(11, i) = DNAAnnealToTemplate(DNAReverseComplement(.Sequence), Gibson.PCR(i).SourceDNA.Sequence)
+                OutputArray(11, i) = DNAAnnealToTemplate(DNAReverseComplement(.Sequence), Gibson.PCR(i).SourceDNA.Sequence).Item("TM")
+                OutputArray(19, i) = DNAAnnealToTemplate(DNAReverseComplement(.Sequence), Gibson.PCR(i).SourceDNA.Sequence).Item("SEQ")
             End With
             Set G = .Ligations.Item(i)
             With G
@@ -180,6 +184,12 @@ Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
         .VerticalAlignment = xlTop
     End With
     
+    
+    Dim FormatSelect As String
+    Dim FormatArray() As String
+    FormatSelect = "3 5 9 12 17 18 19 22 24 25"
+    FormatArray = Split(FormatSelect, " ")
+    
     With OutputRange
         With .Borders
             .LineStyle = xlContinuous
@@ -190,6 +200,9 @@ Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
         .RowHeight = 15
         .HorizontalAlignment = xlLeft
         .VerticalAlignment = xlTop
+        For i = LBound(FormatArray) To UBound(FormatArray)
+            .Rows(FormatArray(i)).Font.Name = "Consolas"
+        Next i
     End With
     
     
@@ -253,6 +266,7 @@ Private Sub CMC_OutputPrimers(ByRef Primers As clsDNAs)
     OutputRange.WrapText = True
     
     OutputRange.Columns(3).ColumnWidth = 50
+    OutputRange.Columns(3).Font.Name = "Consolas"
     OutputRange.RowHeight = 15
     
     OutputRange.HorizontalAlignment = xlLeft
@@ -262,6 +276,151 @@ Private Sub CMC_OutputPrimers(ByRef Primers As clsDNAs)
     Set OutputSheet = Nothing
 
 End Sub
+
+Private Sub CMC_OutputProteins(ByRef Proteins As VBA.Collection)
+    
+    Const conOutputs As Long = 3
+    
+    Dim OutputSheet As Excel.Worksheet
+    
+    
+    Dim OutputRange As Excel.Range
+    Dim AnnotRange As Excel.Range
+    Dim OutputArray() As Variant
+    Dim AnnotArray() As Variant
+    Dim SheetName As String
+    
+    Dim i As Long
+    
+    SheetName = CreateSheetFromName("NewProteins")
+    
+    Set OutputSheet = ActiveWorkbook.Worksheets(SheetName)
+    
+    Set OutputRange = OutputSheet.Cells(3, 3).Resize(Proteins.Count, conOutputs)
+    OutputArray = OutputRange.Value2
+    
+    Set AnnotRange = OutputRange.Offset(-1, 0).Resize(1, conOutputs)
+    AnnotArray = AnnotRange.Value2
+    
+    AnnotArray(1, 1) = "ID"
+    AnnotArray(1, 2) = "sequence"
+    AnnotArray(1, 3) = "length"
+    
+    With Proteins
+        For i = 1 To .Count
+            With .Item(i)
+                OutputArray(i, 1) = .Item(1)
+                OutputArray(i, 2) = .Item(2)
+                OutputArray(i, 3) = Len(.Item(2))
+            End With
+        Next i
+    End With
+        
+    OutputRange.Value2 = OutputArray
+    AnnotRange.Value2 = AnnotArray
+    
+    OutputRange.Offset(-1).Resize(AnnotRange.Rows.Count + 1).Columns.AutoFit
+    AnnotRange.HorizontalAlignment = xlCenter
+    
+    OutputRange.Borders.LineStyle = xlContinuous
+    OutputRange.Borders.Weight = xlMedium
+    
+    OutputRange.WrapText = True
+    
+    OutputRange.Columns(2).Font.Name = "Consolas"
+    OutputRange.Columns(2).ColumnWidth = 50
+    OutputRange.RowHeight = 15
+    
+    OutputRange.HorizontalAlignment = xlLeft
+    OutputRange.VerticalAlignment = xlTop
+            
+    Set OutputRange = Nothing
+    Set OutputSheet = Nothing
+
+End Sub
+
+
+Private Sub CMC_OutputAssemblies(ByRef Assemblies As VBA.Collection)
+    
+    'TODO: give automatic pJAxxxx names to assemblies!
+    
+    Const conOutputs As Long = 6
+        
+    Dim OutputSheet As Excel.Worksheet
+    
+    
+    Dim OutputRange As Excel.Range
+    Dim AnnotRange As Excel.Range
+    Dim OutputArray() As Variant
+    Dim AnnotArray() As Variant
+    Dim SheetName As String
+    Dim DataCount As Long
+    
+    Dim Gibson As clsGibsonAssembly
+    
+    Dim i As Long
+    
+    DataCount = Assemblies.Count
+    SheetName = CreateSheetFromName("NewAssemblies")
+    
+    Set OutputSheet = ActiveWorkbook.Worksheets(SheetName)
+    
+    Set OutputRange = OutputSheet.Cells(3, 3).Resize(DataCount, conOutputs)
+    OutputArray = OutputRange.Value2
+    
+    Set AnnotRange = OutputRange.Offset(-1, 0).Resize(1, conOutputs)
+    AnnotArray = AnnotRange.Value2
+    
+    AnnotArray(1, 1) = "ID"
+    AnnotArray(1, 2) = "sequence"
+    AnnotArray(1, 3) = "length"
+    AnnotArray(1, 4) = "insert fragment"
+    AnnotArray(1, 5) = "backbone fragment"
+    AnnotArray(1, 6) = "protein sequence"
+        
+    With Assemblies
+        For i = 1 To .Count
+            
+            Set Gibson = .Item(i)
+            
+            With Gibson
+                OutputArray(i, 1) = .Name
+                OutputArray(i, 2) = .FinalAssembly.Sequence
+                OutputArray(i, 3) = .FinalAssembly.Length
+                OutputArray(i, 4) = .FinalDNA(1).Name
+                OutputArray(i, 5) = .FinalDNA(2).Name
+                OutputArray(i, 6) = DNATranslate(DNALongestORF(.FinalAssembly.Sequence))
+            End With
+            
+        Next i
+    End With
+        
+    OutputRange.Value2 = OutputArray
+    AnnotRange.Value2 = AnnotArray
+    
+    OutputRange.Offset(-1).Resize(AnnotRange.Rows.Count + 1).Columns.AutoFit
+    AnnotRange.HorizontalAlignment = xlCenter
+    
+    OutputRange.Borders.LineStyle = xlContinuous
+    OutputRange.Borders.Weight = xlMedium
+    
+    OutputRange.WrapText = True
+        
+    OutputRange.Columns(2).ColumnWidth = 50
+    OutputRange.Columns(2).Font.Name = "Consolas"
+    OutputRange.Columns(6).ColumnWidth = 50
+    OutputRange.Columns(6).Font.Name = "Consolas"
+    OutputRange.RowHeight = 15
+    
+    OutputRange.HorizontalAlignment = xlLeft
+    OutputRange.VerticalAlignment = xlTop
+            
+    Set OutputRange = Nothing
+    Set OutputSheet = Nothing
+    Set Gibson = Nothing
+
+End Sub
+
 
 Private Sub CMC_OutputFragments(ByRef Fragments As clsDNAs, PCRPrimers As VBA.Collection)
     
@@ -326,6 +485,7 @@ Private Sub CMC_OutputFragments(ByRef Fragments As clsDNAs, PCRPrimers As VBA.Co
     OutputRange.WrapText = True
         
     OutputRange.Columns(2).ColumnWidth = 50
+    OutputRange.Columns(2).Font.Name = "Consolas"
     OutputRange.RowHeight = 15
     
     OutputRange.HorizontalAlignment = xlLeft
@@ -338,22 +498,30 @@ End Sub
 
 
 Sub CMC_testFromRange()
-
+    
+    Const conHeaderBlocks As Long = 3
+    
     Dim inputRange As Excel.Range
     Dim DNARange As Excel.Range
     Dim ProtRange As Excel.Range
     Dim ConstructsRange As Excel.Range
     Dim DataBlock As Excel.Range
     
+    Dim insSource As clsDNA
+    Dim vecSource As clsDNA
+    
     Dim i As Long
     
     Dim pSeq As String
     Dim DNASeq As String
+    Dim VectorDNASeq As String
+    
     Dim TruncList As String
     Dim NameList As String
     Dim ForbidList As String
     
     Dim SourceName As String
+    Dim VectorSourceName As String
     
     Dim N As Long
     
@@ -361,7 +529,14 @@ Sub CMC_testFromRange()
     
     Dim tColl As VBA.Collection
     
-    'DNA
+    Dim Stopwatch As clsTimer
+    
+    Set Stopwatch = New clsTimer
+    
+    Stopwatch.Trigger
+    
+    'DNA source insert | NAME
+    'DNA source vector | NAME
     'protein
     'name | trunc | forbid
     'name | trunc | forbid
@@ -374,29 +549,50 @@ Sub CMC_testFromRange()
         Exit Sub
     End If
     
-    N = inputRange.Rows.Count - 2
+    N = inputRange.Rows.Count - conHeaderBlocks
     
-    Set DNARange = inputRange.Offset(0, 0).Resize(1, 1)
-    Set ProtRange = inputRange.Offset(1, 0).Resize(1, 1)
-    
-    pSeq = ProtRange.Value2
-    DNASeq = DNARange.Value2
-    SourceName = DNARange.Offset(0, 1).Value2
-    
-    Set ConstructsRange = inputRange.Offset(2, 0).Resize(N, 3)
-                
-    dataArray = ConstructsRange.Value2
-               
-    Set DataBlock = ConstructsRange.Offset(0, 0).Resize(N, 1)
-    NameList = RangeJoin(DataBlock, ";")
-    Set DataBlock = ConstructsRange.Offset(0, 1).Resize(N, 1)
-    TruncList = RangeJoin(DataBlock, ";")
-    Set DataBlock = ConstructsRange.Offset(0, 2).Resize(N, 1)
-    ForbidList = RangeJoin(DataBlock, ";")
+    'HEADER
+        Set DNARange = inputRange.Offset(0, 0).Resize(1, 1)
+        DNASeq = DNARange.Value2
+        SourceName = DNARange.Offset(0, 1).Value2
         
-    Set tColl = CloningMakeConstructs(pSeq, DNASeq, SourceName, TruncList, NameList, ForbidList)
+        Set DNARange = inputRange.Offset(1, 0).Resize(1, 1)
+        VectorDNASeq = DNARange.Value2
+        VectorSourceName = DNARange.Offset(0, 1).Value2
+        
+        Set ProtRange = inputRange.Offset(2, 0).Resize(1, 1)
+        pSeq = ProtRange.Value2
+        
+        Set ConstructsRange = inputRange.Offset(conHeaderBlocks, 0).Resize(N, 3)
+                    
+    'DATA
+        dataArray = ConstructsRange.Value2
+                   
+        Set DataBlock = ConstructsRange.Offset(0, 0).Resize(N, 1)
+        NameList = RangeJoin(DataBlock, ";")
+        Set DataBlock = ConstructsRange.Offset(0, 1).Resize(N, 1)
+        TruncList = RangeJoin(DataBlock, ";")
+        Set DataBlock = ConstructsRange.Offset(0, 2).Resize(N, 1)
+        ForbidList = RangeJoin(DataBlock, ";")
+        
+        Set insSource = New clsDNA
+        Call insSource.Define(SourceName, DNASeq, Circular:=True)
+        Set vecSource = New clsDNA
+        Call vecSource.Define(VectorSourceName, VectorDNASeq, Circular:=True)
     
+    'CALCULATION & EXPORT
+        Set tColl = CloningMakeConstructs(pSeq, insSource, vecSource, TruncList, NameList, ForbidList)
     
+        Stopwatch.Trigger
+        
+        Debug.Print ("Sequences:" & N & " Runtime: " & Round(Stopwatch.Duration, 1) & " s")
+    
+    'CLEANUP
+        Set insSource = Nothing
+        Set vecSource = Nothing
+        Set tColl = Nothing
+        Set Stopwatch = Nothing
+        
 End Sub
 
 Function RangeJoin(ByRef IR As Excel.Range, Optional Delimiter As String = "")
@@ -436,7 +632,7 @@ Sub CMC_test()
     ForbidList = "1 "
     'ForbidList = ""
     
-    Set tColl = CloningMakeConstructs(pSeq, DNASeq, "PLSX", TruncList, NameList, ForbidList)
+    'Set tColl = CloningMakeConstructs(pSeq, DNASeq, "PLSX", TruncList, NameList, ForbidList)
     
 
 
@@ -607,8 +803,8 @@ End Function
 '************************************************************************************
 Function CloningMakeConstructs( _
          ByVal ProteinSequence As String, _
-         ByVal DNASource As String, _
-         ByVal SourceName As String, _
+         ByRef InsertSourceDNA As clsDNA, _
+         ByRef VectorSourceDNA As clsDNA, _
          ByVal TruncationList As String, _
          ByVal NameList As String, _
          ByVal ForbidList As String, _
@@ -621,21 +817,21 @@ Function CloningMakeConstructs( _
 'Takes in a protein sequence, DNA source, and list of truncations to introduce
 'Formulates a cloning strategy - fragments to clone out + primers to get these fragments from the soruce
 'Juraj Ahel, 2017-01-03
+'result is a collection: 1: DNA seq 2: protein seq 3: Assembly Name 4: Gibson Assembly Object
 '====================================================================================================
 'works only for deltaN and deltaC constructs so far!
 '2017-01-24 fix multiple bugs
+'
+'
+'TODO: give automatic pJAxxxx names to assemblies!
     
-'result is a collection: 1: DNA seq 2: protein seq 3: Gibson Assembly Object
     
     Const MyName As String = "CloningMakeConstructs"
-        
-'TODO: parse protein / DNA sequences / Trunc list
     
     Dim i As Long
     Dim j As Long
     
     Dim ProteinLength As Long
-    Dim DNALength As Long
     Dim ORFLength As Long
     
     Dim ORFLocus As Long
@@ -658,7 +854,6 @@ Function CloningMakeConstructs( _
     Dim Gibson As clsGibsonAssembly
     Dim Ligation As clsGibsonSingleLigation
     Dim GI As clsGibsonInput
-    Dim SourcePlasmid As clsDNA
     
     Dim tDNA As clsDNA
     
@@ -667,10 +862,9 @@ Function CloningMakeConstructs( _
     '
     
     ProteinLength = Len(ProteinSequence)
-    DNALength = Len(DNASource)
     ORFLength = 3 * ProteinLength + 3
     
-    If ProteinLength = 0 Or DNALength = 0 Then
+    If ProteinLength = 0 Or InsertSourceDNA.Length = 0 Then
         Call ApplyNewError(jaErr + 18, MyName, "Empty input")
         If Interactive Then
             ErrReraise
@@ -682,7 +876,7 @@ Function CloningMakeConstructs( _
         
     '1 confirm DNA encodes for full protein
     
-    Set tColl = DNAFindProteinInTemplate(ProteinSequence, DNASource, Circular, CheckReverseComplement, False)
+    Set tColl = DNAFindProteinInTemplate(ProteinSequence, InsertSourceDNA.Sequence, Circular, CheckReverseComplement, False)
     
     If Err.Number <> 0 Then
         If Err.Source = "DNAFindProteinInTemplate" Then
@@ -701,9 +895,9 @@ Function CloningMakeConstructs( _
                 IsReverse = tColl.Item(2)
             End If
         End If
-        If IsReverse Then DNASource = DNAReverseComplement(DNASource)
-        ORF = Left(DNAReindex(DNASource, ORFLocus), 3 * ProteinLength)
-        Base = Right(DNAReindex(DNASource, ORFLocus), DNALength - 3 * ProteinLength)
+        If IsReverse Then InsertSourceDNA.Sequence = DNAReverseComplement(InsertSourceDNA.Sequence)
+        ORF = Left(DNAReindex(InsertSourceDNA.Sequence, ORFLocus), 3 * ProteinLength)
+        Base = Right(DNAReindex(InsertSourceDNA.Sequence, ORFLocus), InsertSourceDNA.Length - 3 * ProteinLength)
     End If
         
     Debug.Print ("DNA encodes for protein at locus: " & ORFLocus & " Reverse Strand: " & IsReverse)
@@ -760,18 +954,16 @@ Function CloningMakeConstructs( _
     Next i
     
     
-    Set SourcePlasmid = New clsDNA
-    If SourceName = vbNullString Then SourceName = "SourceDNA"
-    Call SourcePlasmid.Define(Name:=SourceName, Sequence:=DNASource, Circular:=True)
+    If InsertSourceDNA.Name = vbNullString Then InsertSourceDNA.Name = "SourceDNA"
         
     For i = 1 To ConstructNumber
             
         '4 design Gibson assembly
                         
-        'Gibson inputs:
-        
-            Set tColl = New VBA.Collection
-                
+        '===================== PREPARE Gibson inputs:
+            
+        Set tColl = New VBA.Collection
+            
             'insert
             Set tDNA = New clsDNA
             With tDNA
@@ -782,7 +974,7 @@ Function CloningMakeConstructs( _
             Set GI = New clsGibsonInput
             With GI
                 '.Name = "insert"
-                Set .Source = SourcePlasmid
+                Set .Source = InsertSourceDNA
                 Set .InsertBefore = tDNA.DefineNew()
                 Set .InsertAfter = tDNA.DefineNew()
                 Set .Fragment = tDNA
@@ -801,7 +993,7 @@ Function CloningMakeConstructs( _
             
             Set GI = New clsGibsonInput
             With GI
-                Set .Source = SourcePlasmid
+                Set .Source = VectorSourceDNA
                 Set .InsertBefore = tDNA.DefineNew()
                 Set .InsertAfter = tDNA.DefineNew()
                 Set .Fragment = tDNA
@@ -810,6 +1002,8 @@ Function CloningMakeConstructs( _
             
             tColl.Add GI
             
+        
+        '==============================PERFORM GIBSON CALCULATION
         
         Set Gibson = New clsGibsonAssembly
         
@@ -835,9 +1029,13 @@ Function CloningMakeConstructs( _
     Dim NewPrim As clsDNAs
     Dim Frags As clsDNAs
     Dim PCRPrimers As VBA.Collection
+    Dim Proteins As VBA.Collection
+    Dim Assemblies As VBA.Collection
     
     Dim tIndex As Long
     Dim tName As String
+    
+    Dim IsNewPrimer As Boolean
     
     Dim tFragName As String
     
@@ -846,140 +1044,163 @@ Function CloningMakeConstructs( _
     Set NewPrim = New clsDNAs
     Set Frags = New clsDNAs
     Set PCRPrimers = New VBA.Collection
+    Set Proteins = New VBA.Collection
+    Set Assemblies = New VBA.Collection
     
     
-    'figure out the primers I will need
+    '===========CALC OUTPUTS===========
+    'figure out the new primers I will need and which are duplicated
     'figure out which fragments are duplicated
+    'export primers table, fragments table, proteins table
     
     For j = 1 To ConstructNumber
         
-        'Forward
-        Set tColl = New VBA.Collection
+        'Set tColl = New VBA.Collection
         'construct #
-        tColl.Add j
+        'tColl.Add j
         'protein sequence
-        tColl.Add tResults.Item(j).Item(2)
+        'tColl.Add tResults.Item(j).Item(2)
         'Gibson object
+        
         Set Gibson = tResults.Item(j).Item(4)
+                
+        With Gibson
+                    
+            'figure out the new primers I will need and which are duplicated
+                    
+            For i = 1 To .FragmentNumber
+                With .PCR(i)
+                    
+                    'forward
+                        IsNewPrimer = False
+                        tIndex = CMC_tempCheckPrimer1(.ForwardPrimer, PrimColl)
+                        
+                        If tIndex > 0 Then
+                        
+                            Set .ForwardPrimer = PrimColl.DNA(tIndex)
+                            
+                        Else
+                        
+                            tName = CMC_tempCheckPrimer(.ForwardPrimer)
+                            
+                            If Len(tName) = 0 Then
+                                tName = "JA" & GetLastID + NewPrim.Count + 1 & "#" & Gibson.Name & "_" & .FinalDNA.Name & "_f"
+                                IsNewPrimer = True
+                            End If
+                            
+                            .ForwardPrimer.Name = tName
+                            
+                            If IsNewPrimer Then Call NewPrim.AddDNA(.ForwardPrimer)
+                            Call PrimColl.AddDNA(.ForwardPrimer)
+                            
+                        End If
+                    
+                    
+                    'reverse
+                        IsNewPrimer = False
+                        tIndex = CMC_tempCheckPrimer1(.ReversePrimer, PrimColl)
+                        
+                        If tIndex > 0 Then
+                        
+                            Set .ReversePrimer = PrimColl.DNA(tIndex)
+                            
+                        Else
+                        
+                            tName = CMC_tempCheckPrimer(.ReversePrimer)
+                            
+                            If Len(tName) = 0 Then
+                                tName = "JA" & GetLastID + NewPrim.Count + 1 & "#" & Gibson.Name & "_" & .FinalDNA.Name & "_r"
+                                IsNewPrimer = True
+                            End If
+                            
+                            .ReversePrimer.Name = tName
+                            
+                            If IsNewPrimer Then Call NewPrim.AddDNA(.ReversePrimer)
+                            Call PrimColl.AddDNA(.ReversePrimer)
+                            
+                        End If
+                        
+                        
+                    'figure out which fragments are duplicated
+                        tFragName = Gibson.Name & "_" & .FinalDNA.Name
+                        
+                        If Frags.ContainsDNASeq(.FinalDNA) Then
+                        
+                            .FinalDNA.Name = Frags.GetDNABySeq(.FinalDNA.Sequence).Name
+                            
+                        Else
+                            
+                            'fill collection of new fragments
+                            .FinalDNA.Name = tFragName
+                            Call Frags.AddDNA(.FinalDNA)
+                            
+                            'also add associated primers
+                            Set tColl = New VBA.Collection
+                                tColl.Add .SourceDNA.Name
+                                tColl.Add Split(.ForwardPrimer.Name, "#")(0)
+                                tColl.Add Split(.ReversePrimer.Name, "#")(0)
+                            PCRPrimers.Add tColl
+                            
+                        End If
+                    
+                End With
+            Next i
+          
         
-        For i = 1 To Gibson.FragmentNumber
-            tIndex = tempCheckPrimer1(Gibson.PCR(i).ForwardPrimer, PrimColl)
-            If tIndex > 0 Then
-                Set Gibson.PCR(i).ForwardPrimer = PrimColl.DNA(tIndex)
-            Else
-                tName = tempCheckPrimer(Gibson.PCR(i).ForwardPrimer)
-                If Len(tName) > 0 Then
-                    Set tDNA = New clsDNA
-                    With tDNA
-                        .Sequence = Gibson.PCR(i).ForwardPrimer.Sequence
-                        .Name = tName
-                    End With
-                    Call PrimColl.AddDNA(tDNA)
-                Else
-                    Set tDNA = New clsDNA
-                    With tDNA
-                        .Sequence = Gibson.PCR(i).ForwardPrimer.Sequence
-                        .Name = "JA" & GetLastID + NewPrim.Count + 1 & "#" & Gibson.Name & "_" & Gibson.FinalDNA(i).Name & "_f"
-                    End With
-                    Call PrimColl.AddDNA(tDNA)
-                    Call NewPrim.AddDNA(tDNA)
-                    Set Gibson.PCR(i).ForwardPrimer = tDNA
-                End If
-            End If
-        Next i
-        
-        'reverse
-        For i = 1 To Gibson.FragmentNumber
-            tIndex = tempCheckPrimer1(Gibson.PCR(i).ReversePrimer, PrimColl)
-            If tIndex > 0 Then
-                Set Gibson.PCR(i).ReversePrimer = PrimColl.DNA(tIndex)
-            Else
-                tName = tempCheckPrimer(Gibson.PCR(i).ReversePrimer)
-                If Len(tName) > 0 Then
-                    Set tDNA = New clsDNA
-                    With tDNA
-                        .Sequence = Gibson.PCR(i).ReversePrimer.Sequence
-                        .Name = tName
-                    End With
-                    Call PrimColl.AddDNA(tDNA)
-                Else
-                    Set tDNA = New clsDNA
-                    With tDNA
-                        .Sequence = Gibson.PCR(i).ReversePrimer.Sequence
-                        .Name = "JA" & GetLastID + NewPrim.Count + 1 & "#" & Gibson.Name & "_" & Gibson.FinalDNA(i).Name & "_r"
-                    End With
-                    Call PrimColl.AddDNA(tDNA)
-                    Call NewPrim.AddDNA(tDNA)
-                    Set Gibson.PCR(i).ReversePrimer = tDNA
-                End If
-            End If
-        Next i
-        
-        'fragment
-        
-        For i = 1 To Gibson.FragmentNumber
-            With Gibson.PCR(i)
+        'export proteins
+            Set tColl = New VBA.Collection
+            tColl.Add .FinalAssembly.Name
+            tColl.Add tResults.Item(j).Item(2)
+            Proteins.Add tColl
             
-                tFragName = Gibson.Name & "_" & .FinalDNA.Name
-                
-                If Frags.ContainsDNASeq(.FinalDNA) Then
-                
-                    .FinalDNA.Name = Frags.GetDNABySeq(.FinalDNA.Sequence).Name
-                    
-                Else
-                
-                    .FinalDNA.Name = tFragName
-                    Call Frags.AddDNA(.FinalDNA)
-                    
-                    Set tColl = New VBA.Collection
-                    tColl.Add .SourceDNA.Name
-                    tColl.Add Split(.ForwardPrimer.Name, "#")(0)
-                    tColl.Add Split(.ReversePrimer.Name, "#")(0)
-                    PCRPrimers.Add tColl
-                    
-                End If
-                                
-            End With
-        Next i
+        'export assemblies
+            Assemblies.Add tResults.Item(j).Item(4)
         
-        Call CMC_OutputGibson(Gibson)
+        End With
                
     Next j
-                    
-    'With NewPrim
-    '    For i = 1 To .Count
-    '        With .DNA(i)
-    '            Debug.Print (.Name & vbTab & .Sequence)
-    '        End With
-    '    Next i
-    'End With
     
-    Call CMC_OutputPrimers(NewPrim)
-    Call CMC_OutputFragments(Frags, PCRPrimers)
+    '=====================export stuff to excel sheets
+        Application.ScreenUpdating = False
+            
+            'output each Gibson reaction as a unit
+            For i = 1 To ConstructNumber
+                Set Gibson = tResults.Item(i).Item(4)
+                Call CMC_OutputGibson(Gibson)
+            Next i
+            
+            'output each object type as a group
+            Call CMC_OutputPrimers(NewPrim)
+            Call CMC_OutputFragments(Frags, PCRPrimers)
+            Call CMC_OutputProteins(Proteins)
+            Call CMC_OutputAssemblies(Assemblies)
+        
+        Application.ScreenUpdating = True
     
     
     Set CloningMakeConstructs = tResults
+        
+    'cleanup
+        Set Gibson = Nothing
+        Set tResults = Nothing
+        Set tTruncations = Nothing
+        Set tColl = Nothing
+        Set Ligation = Nothing
+        Set GI = Nothing
+        Set InsertSourceDNA = Nothing
+        
+        
+        Set tOutput = Nothing
+        Set PrimColl = Nothing
+        Set NewPrim = Nothing
+        Set Frags = Nothing
+        Set PCRPrimers = Nothing
+        Set Proteins = Nothing
     
-    
-    Set Gibson = Nothing
-    Set tResults = Nothing
-    Set tTruncations = Nothing
-    Set tColl = Nothing
-    Set Ligation = Nothing
-    Set GI = Nothing
-    Set SourcePlasmid = Nothing
-    
-    
-    Set tOutput = Nothing
-    Set PrimColl = Nothing
-    Set NewPrim = Nothing
-    Set Frags = Nothing
-    Set PCRPrimers = Nothing
-
     End Function
 
 
-Private Function tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Long
+Private Function CMC_tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Long
     
     Dim i As Long
     
@@ -987,7 +1208,7 @@ Private Function tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Long
     
         For i = 1 To PrimColl.Count
             If DNA.Sequence = PrimColl.DNA(i).Sequence Then
-                tempCheckPrimer1 = i
+                CMC_tempCheckPrimer1 = i
                 Exit For
             End If
         Next i
@@ -996,7 +1217,7 @@ Private Function tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Long
 
 End Function
 
-Private Function tempCheckPrimer(DNA As clsDNA) As String
+Private Function CMC_tempCheckPrimer(DNA As clsDNA) As String
     
     Const conPrimersName As String = "tempPrimers"
     Const conMax As Long = 1000
@@ -1014,7 +1235,7 @@ Private Function tempCheckPrimer(DNA As clsDNA) As String
     
     For i = 1 To conMax
         If DNA.Sequence = PrimersArray(i, 3) Then
-            tempCheckPrimer = PrimersArray(i, 1)
+            CMC_tempCheckPrimer = PrimersArray(i, 1) & "#" & PrimersArray(i, 2)
             Exit For
         End If
     Next i
