@@ -37,11 +37,11 @@ Public Property Get Primers() As Collection
     Set Primers = pPrimers
 End Property
 
-Public Property Get Primer(PrimerKey) As clsPrimer
+Public Property Get Primer(ByVal PrimerKey) As clsPrimer
     Set Primer = pPrimers.Item(PrimerKey)
 End Property
 
-Public Sub AddPrimer(AddedPrimer As clsPrimer, Optional AllowRedundancy As Boolean = False)
+Public Sub AddPrimer(ByVal AddedPrimer As clsPrimer, Optional ByVal AllowRedundancy As Boolean = False)
     
     Dim AddName As String
     Dim PrimerExists As Boolean

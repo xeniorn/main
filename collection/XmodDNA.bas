@@ -5,7 +5,7 @@ Private Const DNAAllowedSet As String = "[ATGC]"
 Private Const DNAExtendedAllowedSet As String = "[ACGTRYWSMKBDHVUN]"
 
 '****************************************************************************************************
-Function DNAEqual( _
+Public Function DNAEqual( _
     ByVal Input1 As String, _
     ByVal Input2 As String, _
     Optional ByVal Circular As Boolean = True, _
@@ -58,7 +58,7 @@ Function DNAEqual( _
 End Function
 
 '****************************************************************************************************
-Function DNAParseTextInput( _
+Public Function DNAParseTextInput( _
     ByVal InputString As String, _
     Optional ByVal Uppercase As Boolean = True, _
     Optional ByVal ExtendedSymbolSet As Boolean = False _
@@ -187,7 +187,7 @@ Private Function DNAFindORFsRecursion( _
 End Function
 
 '****************************************************************************************************
-Function DNAFindORFs( _
+Public Function DNAFindORFs( _
     ByVal Sequence As String, _
     Optional ByVal Circular As Boolean = True, _
     Optional ByVal MinimumORFLength As Long = 50, _
@@ -283,7 +283,7 @@ Function DNAFindORFs( _
 End Function
 
 '****************************************************************************************************
-Function DNALongestORF( _
+Public Function DNALongestORF( _
     ByVal Sequence As String, _
     Optional ByVal Circular As Boolean = True, _
     Optional ByVal GetNthORF As Long = 1, _
@@ -485,7 +485,7 @@ NextLoop:
 End Function
 
 '****************************************************************************************************
-Function IsDNA(ByVal Sequence As String, Optional ByVal Extended As Boolean = False) As Boolean
+Public Function IsDNA(ByVal Sequence As String, Optional ByVal Extended As Boolean = False) As Boolean
 '====================================================================================================
 'checks if target is a valid DNA sequence
 'Juraj Ahel, 2016-12-22
@@ -501,7 +501,7 @@ End Function
 
 
 '****************************************************************************************************
-Function OligoTm( _
+Public Function OligoTm( _
                  ByVal Sequence As String, _
                  Optional ByVal EffectiveMonovalentCation_mM As Double = 50, _
                  Optional ByVal OligoConcentration_nM As Double = 500, _
@@ -596,7 +596,7 @@ Function OligoTm( _
 End Function
 
 '****************************************************************************************************
-Function DNAReverseComplement(ByVal InputSequence As String) As String
+Public Function DNAReverseComplement(ByVal InputSequence As String) As String
 
 '====================================================================================================
 'Outputs a DNA reverse complement of a given input sequence
@@ -642,9 +642,9 @@ End Function
 
 
 '****************************************************************************************************
-Function DNATranslate( _
+Public Function DNATranslate( _
     ByVal InputSequence As String, _
-    Optional IncludeStopCodon As Boolean = False _
+    Optional ByVal IncludeStopCodon As Boolean = False _
     ) As String
 
 '====================================================================================================
@@ -748,7 +748,7 @@ End Function
 
 
 '****************************************************************************************************
-Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
+Public Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
 
 '====================================================================================================
 'Ligates a number of DNA sequences, requiring the final product to be circular
@@ -817,7 +817,7 @@ Function DNAGibsonLigation(ParamArray DNAList() As Variant) As String
 
 End Function
 
-Function PCRSimulate(ByVal Template As String, _
+Public Function PCRSimulate(ByVal Template As String, _
                     ByVal ForwardPrimer As String, ByVal ReversePrimer As String, _
                     Optional ByVal Circular = False _
                     ) As String
@@ -1012,7 +1012,7 @@ Continue:
 End Function
 
 '****************************************************************************************************
-Function PCRWithOverhangs(ByVal Template As String, _
+Public Function PCRWithOverhangs(ByVal Template As String, _
                     ByVal ForwardPrimer As String, ByVal ReversePrimer As String, _
                     Optional ByVal Circular = False, _
                     Optional ByVal Perfect = True, _
@@ -1161,7 +1161,7 @@ End Function
 
 
 '****************************************************************************************************
-Function PCRGetFragmentFromTemplate( _
+Public Function PCRGetFragmentFromTemplate( _
          ByVal TargetSequence As String, _
          ByVal Template As String, _
          Optional ByVal TargetPrimerTm As Double = 62, _
@@ -1373,7 +1373,7 @@ Function PCRGetFragmentFromTemplate( _
 End Function
 
 '************************************************************************************
-Function DNAFindProteinInTemplate( _
+Public Function DNAFindProteinInTemplate( _
     ByVal ProteinSequence As String, _
     ByVal DNASource As String, _
     Optional ByVal Circular As Boolean = True, _
@@ -1533,11 +1533,11 @@ Function DNAFindProteinInTemplate( _
 End Function
 
 '****************************************************************************************************
-Function DNAFindInsertInTemplate( _
+Public Function DNAFindInsertInTemplate( _
          ByVal Probe As String, _
          ByVal Template As String, _
          Optional ByVal Circular As Boolean = True, _
-         Optional Interactive As Boolean = True _
+         Optional ByVal Interactive As Boolean = True _
          ) As Long
 
 '====================================================================================================
@@ -1613,7 +1613,7 @@ ErrHandle:
 End Function
 
 '****************************************************************************************************
-Function DNAAnnealToTemplate( _
+Public Function DNAAnnealToTemplate( _
     ByVal Probe As String, _
     ByVal Template As String, _
     Optional ByVal MaxLengthToTest As Long = 100, _
@@ -1694,7 +1694,7 @@ End Function
 
 
 '****************************************************************************************************
-Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal TargetTm As Double = 60, Optional ByVal MinLength As Long = 15) As String
+Public Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal TargetTm As Double = 60, Optional ByVal MinLength As Long = 15) As String
 
 '====================================================================================================
 'Designs a simple primer for regular PCR amplification, trying to optimize the Tm and trying to
@@ -1743,7 +1743,7 @@ Function PCROptimizePrimer(ByVal TargetSequence As String, Optional ByVal Target
 End Function
 
 '****************************************************************************************************
-Function DNAGCContent(ByVal Sequence As String) As Double
+Public Function DNAGCContent(ByVal Sequence As String) As Double
 '====================================================================================================
 'Calculates GC % as sum(G+C) / total length
 'Juraj Ahel, 2015-09-28, for general purposes
@@ -1756,7 +1756,7 @@ Function DNAGCContent(ByVal Sequence As String) As Double
 End Function
 
 '****************************************************************************************************
-Function DNAReindex(ByVal DNASequence As String, ByVal NewStartBase As Long) As String
+Public Function DNAReindex(ByVal DNASequence As String, ByVal NewStartBase As Long) As String
 
 '====================================================================================================
 'Reindexes a circular DNA sequence

@@ -1,7 +1,7 @@
 Attribute VB_Name = "XmodMetaCode"
 Option Explicit
 '****************************************************************************************************
-Sub ConvertCodeToVBAString()
+Public Sub ConvertCodeToVBAString()
 '====================================================================================================
 'shows an inputbox - pasted code will be converted to a string declaration to be used in VBA
 'Juraj Ahel, 2016-05-09
@@ -84,7 +84,7 @@ Sub ConvertCodeToVBAString()
 End Sub
 
 '****************************************************************************************************
-Sub CreateClassFromPropertyList()
+Public Sub CreateClassFromPropertyList()
 '====================================================================================================
 '
 'Juraj Ahel, 2016-02-xx

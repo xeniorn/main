@@ -36,7 +36,7 @@ Public Property Get Primers() As clsPrimers
     Set Primers = pPrimers
 End Property
 
-Public Property Set Primers(c As clsPrimers)
+Public Property Set Primers(ByVal c As clsPrimers)
     Set pPrimers = c
 End Property
 
@@ -44,7 +44,7 @@ Public Property Get Template() As clsDNA
     Set Template = pTemplate
 End Property
 
-Public Property Set Template(c As clsDNA)
+Public Property Set Template(ByVal c As clsDNA)
     Set pTemplate = c
     If pName = "" Then pName = pTemplate.Name
 End Property
@@ -53,11 +53,11 @@ Public Property Get Name() As String
     Name = pName
 End Property
 
-Public Property Let Name(S As String)
+Public Property Let Name(ByVal S As String)
     pName = S
 End Property
 
-Public Sub AddPrimer(AddedPrimer As clsPrimer)
+Public Sub AddPrimer(ByVal AddedPrimer As clsPrimer)
     pPrimers.AddPrimer AddedPrimer
 End Sub
 

@@ -2,7 +2,7 @@ Attribute VB_Name = "XmodProteins"
 Option Explicit
 
 '****************************************************************************************************
-Private Function AACharge(pKa As Double, pH As Double, Species As Variant) As Double
+Private Function AACharge(ByVal pKa As Double, ByVal pH As Double, ByVal Species As Variant) As Double
 
 '====================================================================================================
 'Calculates the charge of a particular acidic or basic residue, needed for theoretical pI calculation
@@ -22,7 +22,7 @@ AACharge = Charge
 
 End Function
 '****************************************************************************************************
-Function Theoretical_pI(ProteinSequence As String, Optional pKaValues As String = "ProtParam") As Double
+Public Function Theoretical_pI(ByVal ProteinSequence As String, Optional ByVal pKaValues As String = "ProtParam") As Double
 
 '====================================================================================================
 'Calculates theoretical pI from a given protein sequence

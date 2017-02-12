@@ -7,7 +7,7 @@ Option Explicit
 'Juraj Ahel, 2016-03-09
 'Last update 2016-03-09
 '====================================================================================================
-Public Function IsElementOf(sKey As String, oCollection As Collection) As Boolean
+Public Function IsElementOf(ByVal sKey As String, ByVal oCollection As Collection) As Boolean
     'Const scSOURCE As String = "IsElementOf"
 
     Dim lErrNumber As Long
@@ -43,7 +43,7 @@ Public Function IsElementOf(sKey As String, oCollection As Collection) As Boolea
 End Function
 
 '****************************************************************************************************
-Sub CollectionAppend( _
+Public Sub CollectionAppend( _
     ByRef Collection1 As VBA.Collection, _
     ByVal Collection2 As VBA.Collection _
     )
@@ -71,7 +71,7 @@ Sub CollectionAppend( _
 End Sub
 
 '****************************************************************************************************
-Sub SortStringCollectionByLength(ByRef StringCollection As VBA.Collection)
+Public Sub SortStringCollectionByLength(ByRef StringCollection As VBA.Collection)
 '====================================================================================================
 'sorts. string. collection. by. length. figures....
 'Juraj Ahel, 2016-06-28

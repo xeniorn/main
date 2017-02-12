@@ -80,7 +80,7 @@ Public Property Get PCRs() As VBA.Collection
     Set PCRs = pPCRs
 End Property
 
-Public Property Get PCR(i As Long) As clsPCR
+Public Property Get PCR(ByVal i As Long) As clsPCR
     If Not PCRs Is Nothing Then
         If PCRs.Count >= i Then
             Set PCR = PCRs.Item(i)
@@ -89,14 +89,14 @@ Public Property Get PCR(i As Long) As clsPCR
 End Property
 
 
-Public Property Get SourceDNA(i As Long) As clsDNA
+Public Property Get SourceDNA(ByVal i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set SourceDNA = tPCR.SourceDNA
     Set tPCR = Nothing
 End Property
 
-Public Property Set SourceDNA(i As Long, ByVal inp_SourceDNA As clsDNA)
+Public Property Set SourceDNA(ByVal i As Long, ByVal inp_SourceDNA As clsDNA)
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set tPCR.SourceDNA = inp_SourceDNA
@@ -110,40 +110,40 @@ Public Property Set Ligations(ByVal inp_Ligations As VBA.Collection)
     Set pLigations = inp_Ligations
 End Property
 
-Public Property Get FinalDNA(i As Long) As clsDNA
+Public Property Get FinalDNA(ByVal i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set FinalDNA = tPCR.FinalDNA
     Set tPCR = Nothing
 End Property
 
-Public Property Set FinalDNA(i As Long, ByVal inp_FinalDNA As clsDNA)
+Public Property Set FinalDNA(ByVal i As Long, ByVal inp_FinalDNA As clsDNA)
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set tPCR.FinalDNA = inp_FinalDNA
 End Property
 
-Public Property Get ForwardPrimer(i As Long) As clsDNA
+Public Property Get ForwardPrimer(ByVal i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set ForwardPrimer = tPCR.ForwardPrimer
     Set tPCR = Nothing
 End Property
 
-Public Property Set ForwardPrimer(i As Long, ByVal inp_ForwardPrimer As clsDNA)
+Public Property Set ForwardPrimer(ByVal i As Long, ByVal inp_ForwardPrimer As clsDNA)
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set tPCR.ForwardPrimer = inp_ForwardPrimer
 End Property
 
-Public Property Get ReversePrimer(i As Long) As clsDNA
+Public Property Get ReversePrimer(ByVal i As Long) As clsDNA
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set ReversePrimer = tPCR.ReversePrimer
     Set tPCR = Nothing
 End Property
 
-Public Property Set ReversePrimer(i As Long, ByVal inp_ReversePrimer As clsDNA)
+Public Property Set ReversePrimer(ByVal i As Long, ByVal inp_ReversePrimer As clsDNA)
     Dim tPCR As clsPCR
     Set tPCR = PCRs.Item(i)
     Set tPCR.ReversePrimer = inp_ReversePrimer
@@ -165,7 +165,7 @@ Public Property Get Name() As String
     Name = FinalAssembly.Name
 End Property
 
-Public Property Let Name(S As String)
+Public Property Let Name(ByVal S As String)
     FinalAssembly.Name = S
 End Property
 
@@ -188,9 +188,6 @@ Private Sub DoCalculation()
     Dim tDNA As clsDNA
     Dim tGibson1 As clsGibsonSingleLigation
     Dim tGibson2 As clsGibsonSingleLigation
-    Dim tOverlap As String
-    
-    Dim tColl As VBA.Collection
     
     Dim CurrentFragment As Long
     Dim NextFragment As Long

@@ -2,7 +2,7 @@ Attribute VB_Name = "XmodMatrix"
 
 
 '****************************************************************************************************
-Function MatrixDimesionNumber(XArray As Variant)
+Public Function MatrixDimesionNumber(ByVal XArray As Variant)
 '====================================================================================================
 'Finds the number of dimensions of an array
 'https://support.microsoft.com/en-us/kb/152288
@@ -38,7 +38,7 @@ FinalDimension:
    End Function
    
 '****************************************************************************************************
-Function PrintMatrixXY(InputMatrix As Variant, Optional MaxDimension = 0) As String
+Public Function PrintMatrixXY(InputMatrix As Variant, Optional MaxDimension = 0) As String
 '====================================================================================================
 'Prints out a 2D matrix (as strings) so that the first dimension is printed in rows, and second in columns!
 'Juraj Ahel, 2016-03-15
@@ -75,7 +75,7 @@ Function PrintMatrixXY(InputMatrix As Variant, Optional MaxDimension = 0) As Str
 
 End Function
 '****************************************************************************************************
-Function PrintMatrixYX(InputMatrix As Variant, Optional MaxDimension = 0) As String
+Public Function PrintMatrixYX(InputMatrix As Variant, Optional MaxDimension = 0) As String
 '====================================================================================================
 'Prints out a 2D matrix (as strings) so that the first dimension is printed in columns, and second in rows!
 'Juraj Ahel, 2016-03-15
@@ -113,7 +113,7 @@ Function PrintMatrixYX(InputMatrix As Variant, Optional MaxDimension = 0) As Str
 End Function
 
 
-Function MaxMatrixInRow(InpRange As Range)
+Public Function MaxMatrixInRow(ByVal InpRange As Range)
 
 Dim Arrayos(1 To 12) As Long
 Dim InpMatrix()
@@ -140,11 +140,11 @@ If MaxMatrixInRow = "" Then MaxMatrixInRow = "EMPTY ROW"
 End Function
 
 
-Function MatrixMaxElement(Matrix As Variant, _
-                            Optional OnlyRowN As Long = 0, _
-                            Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+Public Function MatrixMaxElement(ByVal Matrix As Variant, _
+                            Optional ByVal OnlyRowN As Long = 0, _
+                            Optional ByVal OnlyColumnN As Long = 0, _
+                            Optional ByVal IgnoreList As Collection = Nothing, _
+                            Optional ByVal IncludeOnlyList As Collection = Nothing _
                             ) As Variant
                             
                             
@@ -189,11 +189,11 @@ Function MatrixMaxElement(Matrix As Variant, _
 
 End Function
 
-Function MatrixMaxCount(Matrix As Variant, _
-                            Optional OnlyRowN As Long = 0, _
-                            Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+Public Function MatrixMaxCount(ByVal Matrix As Variant, _
+                            Optional ByVal OnlyRowN As Long = 0, _
+                            Optional ByVal OnlyColumnN As Long = 0, _
+                            Optional ByVal IgnoreList As Collection = Nothing, _
+                            Optional ByVal IncludeOnlyList As Collection = Nothing _
                             ) As Variant
 
     Dim S1 As Long, S2 As Long, e1 As Long, e2 As Long
@@ -220,7 +220,7 @@ Function MatrixMaxCount(Matrix As Variant, _
 End Function
 
 '****************************************************************************************************
-Function MatrixElementCount(ByVal Element As Variant, _
+Public Function MatrixElementCount(ByVal Element As Variant, _
                             ByVal Matrix As Variant, _
                             Optional ByVal OnlyRowN As Long = 0, _
                             Optional ByVal OnlyColumnN As Long = 0, _
@@ -336,13 +336,13 @@ Function MatrixElementCount(ByVal Element As Variant, _
 
 End Function
 
-Sub MatrixElementReplace(Element As Variant, _
+Public Sub MatrixElementReplace(ByVal Element As Variant, _
                             Matrix As Variant, _
-                            Optional Replacement As Variant = Empty, _
-                            Optional OnlyRowN As Long = 0, _
-                            Optional OnlyColumnN As Long = 0, _
-                            Optional IgnoreList As Collection = Nothing, _
-                            Optional IncludeOnlyList As Collection = Nothing _
+                            Optional ByVal Replacement As Variant = Empty, _
+                            Optional ByVal OnlyRowN As Long = 0, _
+                            Optional ByVal OnlyColumnN As Long = 0, _
+                            Optional ByVal IgnoreList As Collection = Nothing, _
+                            Optional ByVal IncludeOnlyList As Collection = Nothing _
                             )
 
     Dim S1 As Long, S2 As Long, e1 As Long, e2 As Long
@@ -372,7 +372,7 @@ Sub MatrixElementReplace(Element As Variant, _
 
 End Sub
 
-Function MatrixSum(Matrix As Variant, Optional OnlyRowN As Long = 0, Optional OnlyColumnN As Long = 0) As Variant
+Public Function MatrixSum(ByVal Matrix As Variant, Optional ByVal OnlyRowN As Long = 0, Optional ByVal OnlyColumnN As Long = 0) As Variant
 
     Dim S1 As Long, S2 As Long, e1 As Long, e2 As Long
     Dim tempsum

@@ -2,7 +2,7 @@ Attribute VB_Name = "XmodStrings"
 Option Explicit
 
 '****************************************************************************************************
-Function StringOffsetCircular(ByVal InputString As String, ByVal Offset As Long) As String
+Public Function StringOffsetCircular(ByVal InputString As String, ByVal Offset As Long) As String
 
 '====================================================================================================
 'a string is assumed to be circular - and the origin is shifted by "Offset"
@@ -35,7 +35,7 @@ Function StringOffsetCircular(ByVal InputString As String, ByVal Offset As Long)
 End Function
 
 '****************************************************************************************************
-Function SequenceRangeSelect(InputString As String, IndexRange As String, Optional DNA As Boolean = False, Optional Separator As String = "-") As String
+Public Function SequenceRangeSelect(ByVal InputString As String, ByVal IndexRange As String, Optional ByVal DNA As Boolean = False, Optional ByVal Separator As String = "-") As String
 
 '====================================================================================================
 'Like SubSequenceSelect, but taking a string formatted as a "range" (e.g. 15-150)
@@ -57,7 +57,7 @@ Function SequenceRangeSelect(InputString As String, IndexRange As String, Option
 End Function
 
 '****************************************************************************************************
-Function SubSequenceSelect( _
+Public Function SubSequenceSelect( _
     ByVal InputString As String, _
     ByVal StartIndex As Long, _
     ByVal EndIndex As Long, _
@@ -103,7 +103,7 @@ Function SubSequenceSelect( _
 
 End Function
 '****************************************************************************************************
-Function StringCharCount(InputString As String, ParamArray Substrings() As Variant) As Long
+Public Function StringCharCount(ByVal InputString As String, ParamArray Substrings() As Variant) As Long
 
 '====================================================================================================
 'Counts the total number of occurrences of any of the listed characters in the given string
@@ -134,7 +134,7 @@ Function StringCharCount(InputString As String, ParamArray Substrings() As Varia
 End Function
 
 '****************************************************************************************************
-Function StringCharCount_IncludeOverlap(InputString As String, ParamArray Substrings() As Variant) As Long
+Public Function StringCharCount_IncludeOverlap(ByVal InputString As String, ParamArray Substrings() As Variant) As Long
 
 '====================================================================================================
 'Counts independetly and sums the number of ocurrences of the given sequences in the main sequence
@@ -179,7 +179,7 @@ Function StringCharCount_IncludeOverlap(InputString As String, ParamArray Substr
 End Function
 
 '****************************************************************************************************
-Function StringCompare(a As String, b As String, Optional Limit As Long = 10, Optional mode As String = "Verbose") As String
+Public Function StringCompare(ByVal a As String, ByVal b As String, Optional ByVal Limit As Long = 10, Optional ByVal mode As String = "Verbose") As String
 
 '====================================================================================================
 'Compares two strings and lists their differences, very raw so far
@@ -247,7 +247,7 @@ Function StringCompare(a As String, b As String, Optional Limit As Long = 10, Op
 End Function
 
 '****************************************************************************************************
-Function StringRemoveNonPrintable(InputString As String) As String
+Public Function StringRemoveNonPrintable(ByVal InputString As String) As String
 '====================================================================================================
 'Removes all the nonprintable characters from a string
 'Juraj Ahel, 2016-03-09, for automatic handling of UNICORN 3.1 res files
@@ -264,7 +264,7 @@ Function StringRemoveNonPrintable(InputString As String) As String
 End Function
 
 '****************************************************************************************************
-Function StringJoin(RangeToJoin As Range, Optional Separator As String = "", Optional Direction As Long) As String
+Public Function StringJoin(ByVal RangeToJoin As Range, Optional ByVal Separator As String = "", Optional ByVal Direction As Long) As String
 
 '====================================================================================================
 'Joins all the cell values in an array as strings
@@ -288,7 +288,7 @@ End Function
 
 
 '****************************************************************************************************
-Function StringFindSubstringLocations(ByVal Probe As String, ByVal Target As String) As VBA.Collection
+Public Function StringFindSubstringLocations(ByVal Probe As String, ByVal Target As String) As VBA.Collection
 
 '====================================================================================================
 'Finds all the instances of Probe in Target and gives indices as a collection
@@ -320,7 +320,7 @@ Function StringFindSubstringLocations(ByVal Probe As String, ByVal Target As Str
 End Function
 
 '****************************************************************************************************
-Function StringFindOverlap(ByVal Probe As String, ByVal Target As String, Optional Interactive As Boolean = True)
+Public Function StringFindOverlap(ByVal Probe As String, ByVal Target As String, Optional Interactive As Boolean = True)
 '====================================================================================================
 'Finds the (largest) continuous perfectoverlap between two strings
 'Juraj Ahel, 2015-04-30, for general purposes
@@ -490,7 +490,7 @@ End Function
 
 
 '****************************************************************************************************
-Function LongestCommonSubstring(S1 As String, S2 As String) As String
+Public Function LongestCommonSubstring(ByVal S1 As String, ByVal S2 As String) As String
 
     Dim MaxSubstrStart
     Dim MaxLenFound
@@ -519,7 +519,7 @@ Function LongestCommonSubstring(S1 As String, S2 As String) As String
 End Function
 
 '****************************************************************************************************
-Function StringSubstract(Template As String, _
+Public Function StringSubstract(ByVal Template As String, _
                         ParamArray Substractions() As Variant _
                         ) As String
 

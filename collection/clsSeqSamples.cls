@@ -37,11 +37,11 @@ Public Property Get SeqSamples() As Collection
     Set SeqSamples = pSeqSamples
 End Property
 
-Public Property Get SeqSample(SeqSampleKey) As clsSeqSample
+Public Property Get SeqSample(ByVal SeqSampleKey) As clsSeqSample
     Set SeqSample = pSeqSamples.Item(SeqSampleKey)
 End Property
 
-Public Sub Add(AddedSeqSample As clsSeqSample)
+Public Sub Add(ByVal AddedSeqSample As clsSeqSample)
     pSeqSamples.Add AddedSeqSample, AddedSeqSample.Name
     pSeqSamplesKeys.Add AddedSeqSample.Name
 End Sub

@@ -3,7 +3,7 @@ Attribute VB_Name = "XmodFoldIndex"
                         
 
 '****************************************************************************************************
-Sub DeleteAllChartsOnSheet()
+Public Sub DeleteAllChartsOnSheet()
 '====================================================================================================
 'Deletes all charts on the active sheet
 'Juraj Ahel, 2015-04-24
@@ -19,7 +19,7 @@ Next
 End Sub
 
 '****************************************************************************************************
-Function FoldIndex( _
+Public Function FoldIndex( _
                     InputSequence As String, _
                     Optional WindowSize As Long = 51, _
                     Optional Separator As String = vbTab _
@@ -85,12 +85,12 @@ FoldIndex = Join(tempResult, Separator)
 End Function
 
 '****************************************************************************************************
-Sub FoldIndexDraw(WindowSize As Long, PlotRange As Range, _
-                    LeftOffset, GraphWidth, _
-                    TopOffset, GraphHeight, _
-                    GraphMaximum, GraphMinimum, _
-                    TickSpace, LabelSpace, DisplayGrid, _
-                    mode, Series As Long)
+Public Sub FoldIndexDraw(ByVal WindowSize As Long, ByVal PlotRange As Range, _
+                    ByVal LeftOffset, ByVal GraphWidth, _
+                    ByVal TopOffset, ByVal GraphHeight, _
+                    ByVal GraphMaximum, ByVal GraphMinimum, _
+                    ByVal TickSpace, ByVal LabelSpace, ByVal DisplayGrid, _
+                    ByVal mode, ByVal Series As Long)
 
 '====================================================================================================
 'Draws the graphs for FoldIndexMacro
@@ -249,7 +249,7 @@ End With
 End Sub
 
 '****************************************************************************************************
-Sub FoldIndexMacro()
+Public Sub FoldIndexMacro()
 
 '====================================================================================================
 'Performs the FoldIndex calculation and generates the graphs to be imported in photoshop for overlaying

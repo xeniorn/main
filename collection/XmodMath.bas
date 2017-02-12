@@ -2,7 +2,7 @@ Attribute VB_Name = "XmodMath"
 Option Explicit
 
 '****************************************************************************************************
-Function RangeOverlaps( _
+Public Function RangeOverlaps( _
     ByVal ProbeStart As Long, _
     ByVal ProbeEnd As Long, _
     ByVal RangeStart As Long, _
@@ -25,7 +25,7 @@ Function RangeOverlaps( _
 End Function
 
 '****************************************************************************************************
-Sub SwapValue(a As Variant, b As Variant)
+Public Sub SwapValue(a As Variant, b As Variant)
 
 '====================================================================================================
 'Swaps two values of any type variable
@@ -42,7 +42,7 @@ b = c
 End Sub
 
 '****************************************************************************************************
-Function RoundToSignificantDigits( _
+Public Function RoundToSignificantDigits( _
     ByVal NumberToRound As Double, _
     ByVal SignificantDigits As Long _
     ) As Double
@@ -62,7 +62,7 @@ Function RoundToSignificantDigits( _
 End Function
 
 '****************************************************************************************************
-Function RoundToNearestX( _
+Public Function RoundToNearestX( _
     ByVal NumberToRound As Double, _
     ByVal RoundingFactor As Double, _
     Optional ByVal RoundDown As Boolean = False) As Double
@@ -86,7 +86,7 @@ End Function
 
 
 '****************************************************************************************************
-Function Lg(a As Double) As Double
+Public Function Lg(ByVal a As Double) As Double
 '====================================================================================================
 'Logarithm base 10
 'Juraj Ahel, 2015-02-11
@@ -97,7 +97,7 @@ Lg = Log(a) / Log(10#)
 
 End Function
 '****************************************************************************************************
-Function Ln(a As Double) As Double
+Public Function Ln(ByVal a As Double) As Double
 '====================================================================================================
 'Logarithm base e (natural logarithm)
 'Juraj Ahel, 2015-02-11
@@ -108,7 +108,7 @@ Ln = Log(a)
 
 End Function
 '****************************************************************************************************
-Function Lb(a As Double) As Double
+Public Function Lb(ByVal a As Double) As Double
 '====================================================================================================
 'Logarithm base 2
 'Juraj Ahel, 2015-02-11
@@ -120,7 +120,7 @@ Lb = Log(a) / Log(2)
 End Function
 
 '****************************************************************************************************
-Public Function FMod(a As Double, b As Double) As Double
+Public Function FMod(ByVal a As Double, ByVal b As Double) As Double
 
     FMod = a - Fix(a / b) * b
 

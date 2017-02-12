@@ -13,7 +13,7 @@ Private pName As String
 Private pSequence As String
 Private pCircular As Boolean
 
-Public Property Let Name(S As String)
+Public Property Let Name(ByVal S As String)
     pName = S
 End Property
 
@@ -21,7 +21,7 @@ Public Property Get Name() As String
     Name = pName
 End Property
 
-Public Property Let Sequence(S As String)
+Public Property Let Sequence(ByVal S As String)
     pSequence = S
 End Property
 
@@ -29,7 +29,7 @@ Public Property Get Sequence() As String
     Sequence = pSequence
 End Property
 
-Public Property Let Circular(S As Boolean)
+Public Property Let Circular(ByVal S As Boolean)
     pCircular = S
 End Property
 
@@ -42,9 +42,9 @@ Public Property Get Length() As Long
 End Property
 
 Public Sub Define( _
-        Optional Name As String = "", _
-        Optional Sequence As String = "", _
-        Optional Circular As Boolean = False _
+        Optional ByVal Name As String = "", _
+        Optional ByVal Sequence As String = "", _
+        Optional ByVal Circular As Boolean = False _
         )
     Me.Name = Name
     Me.Sequence = Sequence
@@ -52,9 +52,9 @@ Public Sub Define( _
 End Sub
 
 Public Function DefineNew( _
-        Optional Name As String = "", _
-        Optional Sequence As String = "", _
-        Optional Circular As Boolean = False _
+        Optional ByVal Name As String = "", _
+        Optional ByVal Sequence As String = "", _
+        Optional ByVal Circular As Boolean = False _
         ) As clsDNA
         
     Dim tDNA As clsDNA

@@ -509,7 +509,7 @@ Private Function OptimizeOverlaps() As VBA.Collection
 End Function
 
 
-Private Function CalculateNicenessScore(ByRef GibsonOverlap As VBA.Collection) As Double
+Private Function CalculateNicenessScore(ByVal GibsonOverlap As VBA.Collection) As Double
     
     Const conOverlapParameters As Long = 4
     
@@ -634,7 +634,7 @@ Private Function CalculateNicenessScore(ByRef GibsonOverlap As VBA.Collection) A
 End Function
 
 '****************************************************************************************************
-Private Function ExtractBestOverlaps(ByRef SortedCollection As VBA.Collection) As VBA.Collection
+Private Function ExtractBestOverlaps(ByVal SortedCollection As VBA.Collection) As VBA.Collection
 '====================================================================================================
 'Extract the best overlap from the sorted collection, based on length and dG
 'Juraj Ahel, 2016-12-20, for Gibson assembly

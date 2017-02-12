@@ -68,7 +68,7 @@ Public Sub AddNewDNA(ByVal Sequence As String, Optional ByVal Name As String = "
 
 End Sub
 
-Public Sub AddDNA(AddedDNA As clsDNA, Optional ByVal Key As String = "", Optional ByVal AllowRedundancy As Boolean = False)
+Public Sub AddDNA(ByVal AddedDNA As clsDNA, Optional ByVal Key As String = "", Optional ByVal AllowRedundancy As Boolean = False)
     
     Dim AddName As String
     Dim DNAExists As Boolean

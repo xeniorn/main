@@ -1,7 +1,6 @@
 Attribute VB_Name = "XmodImportFasta"
 '****************************************************************************************************
-Sub ImportFasta()
-Attribute ImportFasta.VB_ProcData.VB_Invoke_Func = "F\n14"
+Public Sub ImportFasta()
 
 '====================================================================================================
 'Takes a FASTA or mFASTA text as input (pasted in) and extracts the headers and the sequences

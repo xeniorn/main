@@ -29,7 +29,7 @@ Private Sub Class_Terminate()
 End Sub
 
 
-Public Property Let Name(S As String)
+Public Property Let Name(ByVal S As String)
     pName = S
 End Property
 
@@ -37,7 +37,7 @@ Public Property Get Name() As String
     Name = pName
 End Property
 
-Public Property Let Sequence(S As String)
+Public Property Let Sequence(ByVal S As String)
     pSequence = S
 End Property
 
@@ -49,17 +49,17 @@ Public Property Get SeqSamples() As clsSeqSamples
     Set SeqSamples = pSeqSamples
 End Property
 
-Public Property Set SeqSamples(c As clsSeqSamples)
+Public Property Set SeqSamples(ByVal c As clsSeqSamples)
     Set pSeqSamples = c
 End Property
 
-Public Sub AddSeqSample(AddedSeqSample As clsSeqSample)
+Public Sub AddSeqSample(ByVal AddedSeqSample As clsSeqSample)
     pSeqSamples.Add AddedSeqSample
 End Sub
 
 Public Sub Define( _
-        Optional Name As String = "", _
-        Optional Sequence As String = "" _
+        Optional ByVal Name As String = "", _
+        Optional ByVal Sequence As String = "" _
         )
     Me.Name = Name
     Me.Sequence = Sequence

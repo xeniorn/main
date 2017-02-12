@@ -22,13 +22,13 @@ Public Type ErrorStructure
     Source As String
 End Type
 
-Sub ErrorReport(Optional ErrNo As Long)
+Public Sub ErrorReport(Optional ByVal ErrNo As Long)
 
 Err.Raise ErrNo
 
 End Sub
 
-Sub ErrorReportGlobal(Optional ErrNo As Long, Optional Message As String, Optional Source As String)
+Public Sub ErrorReportGlobal(Optional ByVal ErrNo As Long, Optional ByVal Message As String, Optional ByVal Source As String)
 
 Err.Raise ErrNo, Source, Message
 
@@ -36,7 +36,7 @@ End Sub
 
 
 '************************************************************************************************
-Sub ErrReraise()
+Public Sub ErrReraise()
 '===============================================================================
 'Re-raises existing error
 'Juraj Ahel, 2017-01-03
@@ -47,12 +47,12 @@ Sub ErrReraise()
 End Sub
 
 '************************************************************************************************
-Function ApplyNewError( _
-    Optional Number As Long, _
-    Optional Source As String, _
-    Optional Description As String, _
-    Optional HelpFile As String, _
-    Optional HelpContext As Long _
+Public Function ApplyNewError( _
+    Optional ByVal Number As Long, _
+    Optional ByVal Source As String, _
+    Optional ByVal Description As String, _
+    Optional ByVal HelpFile As String, _
+    Optional ByVal HelpContext As Long _
     ) As ErrorStructure
     
 '===============================================================================
@@ -82,7 +82,7 @@ End Function
 
 
 '************************************************************************************************
-Sub ApplyError(ES As ErrorStructure)
+Public Sub ApplyError(ES As ErrorStructure)
     
 '===============================================================================
 'Copies error details into a structure
@@ -101,12 +101,12 @@ Sub ApplyError(ES As ErrorStructure)
 End Sub
 
 '************************************************************************************************
-Function DefineError( _
-    Optional Number As Long, _
-    Optional Source As String, _
-    Optional Description As String, _
-    Optional HelpFile As String, _
-    Optional HelpContext As Long _
+Public Function DefineError( _
+    Optional ByVal Number As Long, _
+    Optional ByVal Source As String, _
+    Optional ByVal Description As String, _
+    Optional ByVal HelpFile As String, _
+    Optional ByVal HelpContext As Long _
     ) As ErrorStructure
     
 '===============================================================================
@@ -127,7 +127,7 @@ End Function
     
 
 '************************************************************************************************
-Function CopyError() As ErrorStructure
+Public Function CopyError() As ErrorStructure
         
 '===============================================================================
 'Copies error details into a structure
@@ -146,7 +146,7 @@ Function CopyError() As ErrorStructure
 End Function
 
 
-Sub Test()
+Public Sub Test()
 
     Dim a As ErrorStructure
     

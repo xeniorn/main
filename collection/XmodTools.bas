@@ -2,7 +2,7 @@ Attribute VB_Name = "XmodTools"
 Option Explicit
 
 '****************************************************************************************************
-Function TempTimeStampName() As String
+Public Function TempTimeStampName() As String
 
 '====================================================================================================
 'A simple function that generates a timestamp string, containing full date and time without delimiters
@@ -23,7 +23,7 @@ Function TempTimeStampName() As String
 End Function
 
 '****************************************************************************************************
-Sub CallProgram( _
+Public Sub CallProgram( _
                 ProgramCommand As String, _
                 Optional ProgramPath As String = "", _
                 Optional ArgList As String = "", _
@@ -105,16 +105,16 @@ Sub CallProgram( _
 End Sub
 
 '****************************************************************************************************
-Sub TestCallProgram( _
-                ProgramCommand As String, _
-                Optional ProgramPath As String = "", _
-                Optional ArgList As String = "", _
-                Optional WaitUntilFinished As Boolean = True, _
-                Optional WindowMode As String = "1", _
-                Optional RunDirectory As String = "", _
-                Optional RunAsRawCmd As Boolean = True, _
-                Optional OutputFile As String = "", _
-                Optional InputFile As String = "" _
+Public Sub TestCallProgram( _
+                ByVal ProgramCommand As String, _
+                Optional ByVal ProgramPath As String = "", _
+                Optional ByVal ArgList As String = "", _
+                Optional ByVal WaitUntilFinished As Boolean = True, _
+                Optional ByVal WindowMode As String = "1", _
+                Optional ByVal RunDirectory As String = "", _
+                Optional ByVal RunAsRawCmd As Boolean = True, _
+                Optional ByVal OutputFile As String = "", _
+                Optional ByVal InputFile As String = "" _
                )
 
     Dim RunCommand As String
@@ -134,7 +134,7 @@ Sub TestCallProgram( _
 End Sub
 
 '****************************************************************************************************
-Function DTT(x, Optional y = 0, Optional DateFormat As String = "YYMMDDhhmm", _
+Public Function DTT(x, Optional y = 0, Optional DateFormat As String = "YYMMDDhhmm", _
              Optional RoundingMode As Long = -1, Optional Output As String = "d")
 
 '====================================================================================================

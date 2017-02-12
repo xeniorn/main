@@ -46,7 +46,7 @@ Public Function FileSystem_GetDirContents( _
 End Function
 
 '****************************************************************************************************
-Function FileSystem_Unzip(ByVal ZipFilename As String, _
+Public Function FileSystem_Unzip(ByVal ZipFilename As String, _
                     Optional ByVal TargetPath As String = "", _
                     Optional ByVal IgnoreExtension As Boolean = False) As String
 '===============================================================================
@@ -130,7 +130,7 @@ Function FileSystem_Unzip(ByVal ZipFilename As String, _
 End Function
 
 '****************************************************************************************************
-Function FileSystem_FileExists(ByVal FilePath As String) As Boolean
+Public Function FileSystem_FileExists(ByVal FilePath As String) As Boolean
 '===============================================================================
 'checks if a file exists
 'from StackOverflow http://stackoverflow.com/questions/16351249/vba-check-if-file-exists
@@ -147,7 +147,7 @@ Function FileSystem_FileExists(ByVal FilePath As String) As Boolean
 End Function
 
 '****************************************************************************************************
-Function FileSystem_DeleteFolder(ByVal FolderPath As String) As Boolean
+Public Function FileSystem_DeleteFolder(ByVal FolderPath As String) As Boolean
 '===============================================================================
 'deletes a folder
 '
@@ -181,8 +181,8 @@ Function FileSystem_DeleteFolder(ByVal FolderPath As String) As Boolean
 End Function
 
 '****************************************************************************************************
-Sub WriteBinaryFileFromString(OutputBuffer As String, _
-                    Optional OutputFilename As String = "c:\temp\exportexport.res", _
+Public Sub WriteBinaryFileFromString(ByVal OutputBuffer As String, _
+                    Optional ByVal OutputFilename As String = "c:\temp\exportexport.res", _
                     Optional ByVal ExistingFileHandle As Byte = 0)
 '===============================================================================
 'writes a raw binary string to a file
@@ -197,7 +197,7 @@ Sub WriteBinaryFileFromString(OutputBuffer As String, _
 End Sub
 
 '****************************************************************************************************
-Function CleanUpPath(ByVal FullPath As String, Optional ByVal TargetDirectoryDelimiter As String = "\") As String
+Public Function CleanUpPath(ByVal FullPath As String, Optional ByVal TargetDirectoryDelimiter As String = "\") As String
 
 '===============================================================================
 'formats the path properly
@@ -234,7 +234,7 @@ Function CleanUpPath(ByVal FullPath As String, Optional ByVal TargetDirectoryDel
 End Function
 
 '****************************************************************************************************
-Function FileSystem_GetPath(ByVal FullPath As String, Optional ByVal TargetDirectoryDelimiter As String = "\") As String
+Public Function FileSystem_GetPath(ByVal FullPath As String, Optional ByVal TargetDirectoryDelimiter As String = "\") As String
 
 '===============================================================================
 'extracts just the folder path from full path
@@ -262,7 +262,7 @@ Function FileSystem_GetPath(ByVal FullPath As String, Optional ByVal TargetDirec
 End Function
 
 '****************************************************************************************************
-Function FileSystem_GetExtension(ByVal FullPath As String _
+Public Function FileSystem_GetExtension(ByVal FullPath As String _
                             ) As String
 
 '===============================================================================
@@ -286,7 +286,7 @@ End Function
 
 
 '****************************************************************************************************
-Function FileSystem_GetFilename(ByVal FullPath As String, _
+Public Function FileSystem_GetFilename(ByVal FullPath As String, _
                             Optional ByVal Extension As Boolean = True _
                             ) As String
 
@@ -317,7 +317,7 @@ Function FileSystem_GetFilename(ByVal FullPath As String, _
 End Function
 
 '****************************************************************************************************
-Function FileSystem_GetTempFolder( _
+Public Function FileSystem_GetTempFolder( _
                 Optional ByVal IncludeTerminalSeparator As Boolean = False, _
                 Optional wsh As FileSystemObject = Nothing) As String
 '===============================================================================
@@ -352,7 +352,7 @@ Function FileSystem_GetTempFolder( _
 End Function
 
 '****************************************************************************************************
-Function FileSystem_FormatFilename( _
+Public Function FileSystem_FormatFilename( _
     ByVal FullPath As String, _
     Optional ByVal IncludePath As Boolean = True, _
     Optional ByVal IncludeExtension As Boolean = True, _
@@ -395,7 +395,7 @@ End Function
 
 
 '****************************************************************************************************
-Function FileSystem_CreatePath(ByVal YourPath As String, _
+Public Function FileSystem_CreatePath(ByVal YourPath As String, _
             Optional ByVal IncludeTerminalSeparator As Boolean = False, _
                 Optional wsh As WshShell = Nothing) As String
 '===============================================================================
@@ -440,7 +440,7 @@ Function FileSystem_CreatePath(ByVal YourPath As String, _
     
 End Function
 
-Private Function VarToByteString(InputVar As Variant) As String
+Private Function VarToByteString(ByVal InputVar As Variant) As String
 
     Select Case VarType(InputVar)
         Case vbString
@@ -452,8 +452,8 @@ Private Function VarToByteString(InputVar As Variant) As String
 End Function
 
 '****************************************************************************************************
-Sub WriteBinaryFile(OutputVariable As Variant, _
-                    Optional OutputFilename As String = "c:\temp\exportexport.res", _
+Public Sub WriteBinaryFile(ByVal OutputVariable As Variant, _
+                    Optional ByVal OutputFilename As String = "c:\temp\exportexport.res", _
                     Optional ByVal ExistingFileHandle As Byte = 0)
 '===============================================================================
 'writes a raw binary string to a file
@@ -498,7 +498,7 @@ Sub WriteBinaryFile(OutputVariable As Variant, _
 End Sub
 
 '****************************************************************************************************
-Function ReadBinaryFile(InputFilename As String) As String
+Public Function ReadBinaryFile(ByVal InputFilename As String) As String
 '===============================================================================
 'reads the entire contents of a binary file into a string
 'Juraj Ahel, 2016-05-06, for reading binary files
@@ -551,7 +551,7 @@ Function ReadBinaryFile(InputFilename As String) As String
 End Function
 
 '****************************************************************************************************
-Function CreateEmptyFile(ByVal OutputFilename As String) As Boolean
+Public Function CreateEmptyFile(ByVal OutputFilename As String) As Boolean
 '===============================================================================
 'simply creates an empty file, replacing any existing ones if they exist
 'Juraj Ahel, 2016-06-09, writing binary files
@@ -568,7 +568,7 @@ Function CreateEmptyFile(ByVal OutputFilename As String) As Boolean
 End Function
 
 '****************************************************************************************************
-Function WriteTextFile(OutputText As String, OutputFilename As String, Optional ByVal Append As Boolean) As Boolean
+Public Function WriteTextFile(ByVal OutputText As String, ByVal OutputFilename As String, Optional ByVal Append As Boolean) As Boolean
 '===============================================================================
 'reads the entire contents of a binary file into a string
 'poorly written, should be redone properly with checks, but there was an error
@@ -597,7 +597,7 @@ Function WriteTextFile(OutputText As String, OutputFilename As String, Optional 
 End Function
 
 '****************************************************************************************************
-Function ReadTextFile(InputFilename As String) As String
+Public Function ReadTextFile(ByVal InputFilename As String) As String
 '===============================================================================
 'reads the entire contents of a binary file into a string
 'Juraj Ahel, 2016-05-06, for reading binary files
@@ -640,7 +640,7 @@ Function ReadTextFile(InputFilename As String) As String
 End Function
 
 '****************************************************************************************************
-Sub ExportSeqToTXT()
+Public Sub ExportSeqToTXT()
 
 '====================================================================================================
 'Exports cell column pairs formated as [HEADER][SEQUENCE] in simple FASTA format
@@ -671,11 +671,11 @@ Next i
 End Sub
 
 '****************************************************************************************************
-Sub ExportToTXT( _
-                SourceData As Range, _
-                Optional FilePath As String = "C:\Excel_outputs\", _
-                Optional FilenameBase As String = "ExcelOutput ", _
-                Optional Extension As String = ".txt" _
+Public Sub ExportToTXT( _
+                ByVal SourceData As Range, _
+                Optional ByVal FilePath As String = "C:\Excel_outputs\", _
+                Optional ByVal FilenameBase As String = "ExcelOutput ", _
+                Optional ByVal Extension As String = ".txt" _
                )
 
 '====================================================================================================
@@ -700,7 +700,7 @@ End Sub
 
 
 '****************************************************************************************************
-Sub ExportToTXTSequence(SourceData As Range, Optional FilePath As String = "C:\Excel_outputs\", Optional FilenameBase As String = "ExcelOutput ", Optional Extension As String = ".txt")
+Public Sub ExportToTXTSequence(ByVal SourceData As Range, Optional ByVal FilePath As String = "C:\Excel_outputs\", Optional ByVal FilenameBase As String = "ExcelOutput ", Optional ByVal Extension As String = ".txt")
 
 '====================================================================================================
 'Exports a separate text file for each cell in selection
@@ -724,7 +724,7 @@ Next i
 
 End Sub
 
-Sub ExportToTXTMacro()
+Public Sub ExportToTXTMacro()
 
 Dim SourceData As Range
 Dim FilePath As String, FilenameBase As String

@@ -16,7 +16,7 @@ Option Explicit
 Const conClassName As String = "XModExcelSheetObjects"
 
 '****************************************************************************************************
-Sub DeleteAllChartsOnSheet()
+Public Sub DeleteAllChartsOnSheet()
 '====================================================================================================
 'Deletes all charts on the active sheet
 'Juraj Ahel, 2015-04-24
@@ -34,7 +34,7 @@ End Sub
 
 
 '****************************************************************************************
-Sub RangeColumnInvert()
+Public Sub RangeColumnInvert()
 
 '====================================================================================================
 'Inverts the row order within the selected columns
@@ -95,8 +95,8 @@ Private Sub ErrorReport(Optional ByVal ErrorNumber As Long = 0, Optional ByVal E
 
 End Sub
 
-Sub ChartApplySettingsToSeries(ByRef TargetSeries As Excel.Series, _
-                                ByRef Settings As clsSeriesFormatSettings)
+Public Sub ChartApplySettingsToSeries(ByVal TargetSeries As Excel.Series, _
+                                ByVal Settings As clsSeriesFormatSettings)
                                 
     With TargetSeries
         
@@ -121,10 +121,10 @@ Sub ChartApplySettingsToSeries(ByRef TargetSeries As Excel.Series, _
 End Sub
 
 '****************************************************************************************************
-Function ChartAddSeriesToChartDirect(ByRef x1() As Double, _
+Public Function ChartAddSeriesToChartDirect(ByRef x1() As Double, _
                         ByRef y1() As Double, _
-                        ByRef TargetChart As Excel.ChartObject, _
-                        Optional ByRef titlerange As String = "", _
+                        ByVal TargetChart As Excel.ChartObject, _
+                        Optional ByVal titlerange As String = "", _
                         Optional ByVal AxisChoice As Long = xlPrimary, _
                         Optional ByVal Settings As clsSeriesFormatSettings _
                         ) As Excel.Series
@@ -207,10 +207,10 @@ End Function
 
 
 '****************************************************************************************************
-Function ChartAddSeriesToChart(ByRef x1 As Excel.Range, _
-                        ByRef y1 As Excel.Range, _
-                        ByRef TargetChart As Excel.ChartObject, _
-                        Optional ByRef titlerange As Excel.Range = Nothing, _
+Public Function ChartAddSeriesToChart(ByVal x1 As Excel.Range, _
+                        ByVal y1 As Excel.Range, _
+                        ByVal TargetChart As Excel.ChartObject, _
+                        Optional ByVal titlerange As Excel.Range = Nothing, _
                         Optional ByVal AxisChoice As Long = xlPrimary, _
                         Optional ByVal DefineValuesDirectly As Boolean = False _
                         ) As Excel.Series
@@ -322,7 +322,7 @@ Function ChartAddSeriesToChart(ByRef x1 As Excel.Range, _
 
 End Function
 
-Sub Chromatography_RemoveHack(TargetChart As Excel.Chart)
+Public Sub Chromatography_RemoveHack(ByVal TargetChart As Excel.Chart)
 
     Dim srs As Excel.Series
     Dim i As Long
@@ -344,7 +344,7 @@ Sub Chromatography_RemoveHack(TargetChart As Excel.Chart)
 End Sub
 
 '****************************************************************************************************
-Function Chromatography_AddChart(Optional ByVal IncludeSecondaryAxis As Boolean = False, _
+Public Function Chromatography_AddChart(Optional ByVal IncludeSecondaryAxis As Boolean = False, _
                                     Optional TargetWorksheet As Excel.Worksheet = Nothing, _
                                     Optional Settings As clsChartFormatSettings = Nothing, _
                                     Optional AxisSettings As clsAxisFormatSettings = Nothing _
@@ -496,7 +496,7 @@ Function Chromatography_AddChart(Optional ByVal IncludeSecondaryAxis As Boolean 
 End Function
 
 '****************************************************************************************************
-Function ChartFormatSeries(TargetSeries As Excel.Series) As Excel.Chart
+Public Function ChartFormatSeries(ByVal TargetSeries As Excel.Series) As Excel.Chart
 
 '====================================================================================================
 '
@@ -671,7 +671,7 @@ Function ChartFormatSeries(TargetSeries As Excel.Series) As Excel.Chart
 End Function
 
 
-Function SheetExists(ByVal shtName As String, Optional ByVal wb As Workbook) As Boolean
+Public Function SheetExists(ByVal shtName As String, Optional ByVal wb As Workbook) As Boolean
 '===============================================================================
 'checks whether a sheet with a certain name exists in a workbook
 'Juraj Ahel, 2016-05-15
@@ -690,7 +690,7 @@ Function SheetExists(ByVal shtName As String, Optional ByVal wb As Workbook) As 
 End Function
 
 
-Function CreateSheetFromName(Optional ByVal SheetName As String = "Sheet", _
+Public Function CreateSheetFromName(Optional ByVal SheetName As String = "Sheet", _
                             Optional ByVal Spacer As String = "_", _
                             Optional ByVal TargetWorkbook As Excel.Workbook = Nothing) As String
 '===============================================================================

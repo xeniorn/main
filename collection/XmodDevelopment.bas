@@ -1,7 +1,7 @@
 Attribute VB_Name = "XmodDevelopment"
 Option Explicit
 
-Sub testaaaa()
+Public Sub testaaaa()
 
     Dim a
     
@@ -10,7 +10,7 @@ Sub testaaaa()
 
 End Sub
 
-Sub testGibson()
+Public Sub testGibson()
 
     Dim a As Range
     
@@ -44,7 +44,7 @@ Sub testGibson()
 
 End Sub
 
-Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
+Private Sub CMC_OutputGibson(ByVal Gibson As clsGibsonAssembly)
     
     Const conOutputs As Long = 19
     Const conSummaryOutputs = 6
@@ -213,7 +213,7 @@ Private Sub CMC_OutputGibson(ByRef Gibson As clsGibsonAssembly)
 
 End Sub
 
-Private Sub CMC_OutputPrimers(ByRef Primers As clsDNAs)
+Private Sub CMC_OutputPrimers(ByVal Primers As clsDNAs)
     
     Const conOutputs As Long = 4
     
@@ -227,6 +227,8 @@ Private Sub CMC_OutputPrimers(ByRef Primers As clsDNAs)
     Dim SheetName As String
     
     Dim i As Long
+    
+    If Primers.Count = 0 Then Exit Sub
     
     SheetName = CreateSheetFromName("NewPrimers")
     
@@ -277,7 +279,7 @@ Private Sub CMC_OutputPrimers(ByRef Primers As clsDNAs)
 
 End Sub
 
-Private Sub CMC_OutputProteins(ByRef Proteins As VBA.Collection)
+Private Sub CMC_OutputProteins(ByVal Proteins As VBA.Collection)
     
     Const conOutputs As Long = 3
     
@@ -340,7 +342,7 @@ Private Sub CMC_OutputProteins(ByRef Proteins As VBA.Collection)
 End Sub
 
 
-Private Sub CMC_OutputAssemblies(ByRef Assemblies As VBA.Collection)
+Private Sub CMC_OutputAssemblies(ByVal Assemblies As VBA.Collection)
     
     'TODO: give automatic pJAxxxx names to assemblies!
     
@@ -422,7 +424,7 @@ Private Sub CMC_OutputAssemblies(ByRef Assemblies As VBA.Collection)
 End Sub
 
 
-Private Sub CMC_OutputFragments(ByRef Fragments As clsDNAs, PCRPrimers As VBA.Collection)
+Private Sub CMC_OutputFragments(ByVal Fragments As clsDNAs, ByVal PCRPrimers As VBA.Collection)
     
     Const conOutputs As Long = 6
         
@@ -497,7 +499,7 @@ Private Sub CMC_OutputFragments(ByRef Fragments As clsDNAs, PCRPrimers As VBA.Co
 End Sub
 
 
-Sub CMC_testFromRange()
+Public Sub CMC_testFromRange()
     
     Const conHeaderBlocks As Long = 3
     
@@ -595,7 +597,7 @@ Sub CMC_testFromRange()
         
 End Sub
 
-Function RangeJoin(ByRef IR As Excel.Range, Optional Delimiter As String = "")
+Public Function RangeJoin(ByVal IR As Excel.Range, Optional ByVal Delimiter As String = "")
 
     Dim cell As Excel.Range
     Dim ar() As String
@@ -612,7 +614,7 @@ Function RangeJoin(ByRef IR As Excel.Range, Optional Delimiter As String = "")
 
 End Function
 
-Sub CMC_test()
+Public Sub CMC_test()
 
     Dim tColl As VBA.Collection
     Dim pSeq As String
@@ -801,7 +803,7 @@ Private Function CloningMakeConstructs_ParseTruncations(ByVal TruncationList As 
 End Function
 
 '************************************************************************************
-Function CloningMakeConstructs( _
+Public Function CloningMakeConstructs( _
          ByVal ProteinSequence As String, _
          ByRef InsertSourceDNA As clsDNA, _
          ByRef VectorSourceDNA As clsDNA, _
@@ -1200,7 +1202,7 @@ Function CloningMakeConstructs( _
     End Function
 
 
-Private Function CMC_tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Long
+Private Function CMC_tempCheckPrimer1(ByVal DNA As clsDNA, ByVal PrimColl As clsDNAs) As Long
     
     Dim i As Long
     
@@ -1217,7 +1219,7 @@ Private Function CMC_tempCheckPrimer1(DNA As clsDNA, PrimColl As clsDNAs) As Lon
 
 End Function
 
-Private Function CMC_tempCheckPrimer(DNA As clsDNA) As String
+Private Function CMC_tempCheckPrimer(ByVal DNA As clsDNA) As String
     
     Const conPrimersName As String = "tempPrimers"
     Const conMax As Long = 1000
@@ -1311,7 +1313,7 @@ End Function
 
 
 '************************************************************************************
-Function SmoothData(dataArray As Variant, WindowSize As Long) As Variant
+Public Function SmoothData(ByVal dataArray As Variant, ByVal WindowSize As Long) As Variant
 
     Dim DataLength As Long
     Dim TempOutput() As Variant
@@ -1350,7 +1352,7 @@ Function SmoothData(dataArray As Variant, WindowSize As Long) As Variant
 End Function
 
 '************************************************************************************
-Function GetMaxLetterCount(InputString As String) As Long
+Public Function GetMaxLetterCount(ByVal InputString As String) As Long
 
     Dim i As Byte
     Dim Char As String

@@ -15,6 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
 
+
 Private Sub B_OutputCase_Click()
 
 Const CaptionD = "Output UPPERCASE"

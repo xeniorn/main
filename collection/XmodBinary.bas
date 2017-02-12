@@ -23,7 +23,7 @@ End Function
 
 
 '*******************************************************************************
-Function ReverseBytes(ByVal InputVar As String)
+Public Function ReverseBytes(ByVal InputVar As String)
 '===============================================================================
 'For a given binary string, reverses the byte order (reverse character order)
 'Juraj Ahel, 2016-05-07, for reading binary files
@@ -51,7 +51,7 @@ Function ReverseBytes(ByVal InputVar As String)
 End Function
 
 '*******************************************************************************
-Function BinaryStringToInt32( _
+Public Function BinaryStringToInt32( _
         ByVal InputVar As String, _
         Optional ByVal LittleEndian As Boolean = True _
         ) As Long
@@ -94,7 +94,7 @@ End Function
 
 
 '*******************************************************************************
-Function BinaryStringToDouble( _
+Public Function BinaryStringToDouble( _
         ByVal InputVar As String, _
         Optional ByVal LittleEndian As Boolean = True _
                 ) As Double
@@ -147,7 +147,7 @@ Function BinaryStringToDouble( _
 End Function
 
 '*******************************************************************************
-Function BinaryStringToSingle( _
+Public Function BinaryStringToSingle( _
         ByVal InputVar As String, _
         Optional ByVal LittleEndian As Boolean = True _
                 ) As Single
@@ -205,7 +205,7 @@ End Function
 
 'end Function
 
-Function HexToString(ByVal InputVar As String, Optional SourceSpacer As String = "") As String
+Public Function HexToString(ByVal InputVar As String, Optional ByVal SourceSpacer As String = "") As String
 
 '===============================================================================
 'Converts a string representing a hex number (one you get e.g. by reading a file in binary mode)
@@ -254,7 +254,7 @@ Function HexToString(ByVal InputVar As String, Optional SourceSpacer As String =
 
 End Function
 
-Function AsHex(InputVar As String, Optional Spacer As String = " ") As String
+Public Function AsHex(ByVal InputVar As String, Optional ByVal Spacer As String = " ") As String
 
 '===============================================================================
 'Converts a string (one you get e.g. by reading a file in binary mode)

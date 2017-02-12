@@ -2,7 +2,7 @@ Attribute VB_Name = "XModGraphs"
 Option Explicit
 
 '****************************************************************************************************
-Sub ModifyTableData()
+Public Sub ModifyTableData()
 
 '====================================================================================================
 'Truncates a data table in column or row dimension

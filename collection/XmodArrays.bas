@@ -3,7 +3,7 @@ Option Explicit
 
 '************************************************************************************************
 '************************************************************************************************
-Function IsArrayAllocated(Arr As Variant) As Boolean
+Public Function IsArrayAllocated(ByVal Arr As Variant) As Boolean
 '===============================================================================
 'taken from Chip Pearson    http://www.cpearson.com/excel/isarrayallocated.aspx
 'Juraj Ahel, 2016-06-08
@@ -19,7 +19,7 @@ Function IsArrayAllocated(Arr As Variant) As Boolean
 End Function
 
 '************************************************************************************************
-Sub ArrayCopy(ByVal SourceArray As Variant, _
+Public Sub ArrayCopy(ByVal SourceArray As Variant, _
               ByRef TargetArray As Variant, _
               Optional ByVal TargetStartIndex As Long = 1, _
               Optional ByVal Overwrite As Boolean = True)
@@ -74,13 +74,13 @@ Sub ArrayCopy(ByVal SourceArray As Variant, _
 End Sub
 
 '****************************************************************************************************
-Function ArrayMaxElement(TestArray As Variant, _
-    Optional DimensionIndex As Long = 1, _
-    Optional col1 As Long, _
-    Optional col2 As Long, _
-    Optional col3 As Long, _
-    Optional col4 As Long, _
-    Optional col5 As Long _
+Public Function ArrayMaxElement(ByVal TestArray As Variant, _
+    Optional ByVal DimensionIndex As Long = 1, _
+    Optional ByVal col1 As Long, _
+    Optional ByVal col2 As Long, _
+    Optional ByVal col3 As Long, _
+    Optional ByVal col4 As Long, _
+    Optional ByVal col5 As Long _
     ) As Long
 '====================================================================================================
 'Finds the index of the maximum value in an array, using the dimension DimensionIndex

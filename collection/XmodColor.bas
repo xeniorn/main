@@ -3,7 +3,7 @@ Option Explicit
 
 Private Const Pi As Double = 3.14159265258979
 
-Sub testColors()
+Public Sub testColors()
 
 
     Dim R As Long, G As Long, b As Long
@@ -30,7 +30,7 @@ Sub testColors()
 
 End Sub
 
-Function ColorFromHSV(H As Double, S As Double, V As Double) As Long
+Public Function ColorFromHSV(H As Double, S As Double, V As Double) As Long
 
     Dim R As Long, G As Long, b As Long
     
@@ -40,7 +40,7 @@ Function ColorFromHSV(H As Double, S As Double, V As Double) As Long
 
 End Function
 
-Sub Color2RGB(ByVal InputColor As Long, _
+Public Sub Color2RGB(ByVal InputColor As Long, _
                 ByRef R As Long, _
                 ByRef G As Long, _
                 ByRef b As Long)
@@ -146,7 +146,7 @@ Private Function MinimumValue(ParamArray Inputs() As Variant) As Variant
 
 End Function
 
-Sub RGB2HSV(ByVal R As Long, _
+Public Sub RGB2HSV(ByVal R As Long, _
             ByVal G As Long, _
             ByVal b As Long, _
             ByRef H As Double, _
@@ -194,7 +194,7 @@ Sub RGB2HSV(ByVal R As Long, _
 
 End Sub
 
-Sub HSV2RGB(ByVal H As Double, _
+Public Sub HSV2RGB(ByVal H As Double, _
             ByVal S As Double, _
             ByVal V As Double, _
             ByRef R As Long, _

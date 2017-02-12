@@ -136,7 +136,7 @@ Private Function DNAGibsonConstructOverlaps( _
 End Function
     
     
-Sub GibsonOptimizeFrag1()
+Public Sub GibsonOptimizeFrag1()
 
     Dim InputR As Excel.Range
     Dim OutputR As Excel.Range
@@ -192,7 +192,7 @@ Sub GibsonOptimizeFrag1()
 
 End Sub
     
-Sub GibsonOptimizeFrag()
+Public Sub GibsonOptimizeFrag()
 
     Dim InputR As Excel.Range
     Dim OutputR As Excel.Range
@@ -374,7 +374,7 @@ Public Function DNAGibsonOptimizeOverlaps( _
 End Function
 
 Private Function DNAGibsonExtractBestOverlaps( _
-    ByRef SortedCollection As VBA.Collection, _
+    ByVal SortedCollection As VBA.Collection, _
     ByVal FinalSequence As String, _
     ByVal TargetLength As Long, _
     ByVal TargetTm As Double _
@@ -436,7 +436,7 @@ End Function
 
 
 
-Sub Test()
+Public Sub Test()
 
 Dim a As String
 Dim b As String
@@ -461,7 +461,7 @@ End Sub
 
 
 '****************************************************************************************************
-Sub GibsonTest()
+Public Sub GibsonTest()
 
 '====================================================================================================
 'A huge procedure that generates the final result of Gibson overlap analysis by Florian's script
@@ -590,7 +590,7 @@ Sub GibsonTest()
 End Sub
 
 '****************************************************************************************************
-Sub GibsonMother()
+Public Sub GibsonMother()
 '====================================================================================================
 'calls GibsonMonster for all areas in a selection
 'Juraj Ahel, 2016-07-05
@@ -620,8 +620,7 @@ Sub GibsonMother()
 End Sub
 
 '****************************************************************************************************
-Sub GibsonMonster()
-Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
+Public Sub GibsonMonster()
 
 '====================================================================================================
 '
@@ -1091,7 +1090,7 @@ Attribute GibsonMonster.VB_ProcData.VB_Invoke_Func = "G\n14"
 End Sub
 
 '****************************************************************************************************
-Sub GibsonMacro()
+Public Sub GibsonMacro()
 
 '====================================================================================================
 'wrapper for Gibson assembly
@@ -1159,7 +1158,7 @@ End Sub
 
 
 '****************************************************************************************************
-Sub GibsonRun( _
+Public Sub GibsonRun( _
     ByVal InputString As String, _
     ByRef ResultsArray() As Variant)
 
@@ -1267,7 +1266,7 @@ Sub GibsonRun( _
 End Sub
 
 '****************************************************************************************************
-Function ExtractParameter(Source As String, ParameterName As String, Optional MarkerType As String = "[]") As String
+Public Function ExtractParameter(ByVal Source As String, ByVal ParameterName As String, Optional ByVal MarkerType As String = "[]") As String
 
 '====================================================================================================
 'Finds marker-enclosed pieces of data. By default, the data are hugged by [Marker] and [\Marker],
@@ -1304,7 +1303,7 @@ Data = Mid(Source, StartIndex, EndIndex - StartIndex + 1)
 End Function
 
 
-Sub CallPythonScript(InputFile As String, RunDir As String, OutputFile As String)
+Public Sub CallPythonScript(ByVal InputFile As String, ByVal RunDir As String, ByVal OutputFile As String)
 
 '====================================================================================================
 'Wrapper for calling the python script
@@ -1336,7 +1335,7 @@ End Sub
 
 
 '****************************************************************************************************
-Sub ExportToTXT(SourceData As Range, Optional FilePath As String = ExcelExportFolder, Optional FilenameBase As String = "ExcelOutput ", Optional Extension As String = ".txt")
+Public Sub ExportToTXT(ByVal SourceData As Range, Optional FilePath As String = ExcelExportFolder, Optional ByVal FilenameBase As String = "ExcelOutput ", Optional ByVal Extension As String = ".txt")
 
 '====================================================================================================
 'Exports a separate text file for each cell in selection
